@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 name = "farmacia-scraper-api"
 version = "0.1.0"
 description = "API RESTful em FastAPI para extração e consulta de preços de medicamentos"
-authors = ["Sua Equipe <email@exemplo.com>"]
+authors = ["Aurora <seu-email@exemplo.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -28,6 +28,8 @@ ruff = ">=0.0.280"
 # Configurações do Linter Ruff
 [tool.ruff]
 line-length = 88
+
+[tool.ruff.lint]
 select = ["E", "F", "I"]
 
 # Configurações do Pytest
