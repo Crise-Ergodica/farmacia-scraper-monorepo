@@ -1,6 +1,7 @@
 # Variáveis de Ambiente e Segurança
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 
