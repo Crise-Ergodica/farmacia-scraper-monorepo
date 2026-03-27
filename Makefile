@@ -27,36 +27,32 @@ setup: setup-back setup-front ## Instala as dependências de todo o projeto (Bac
 
 clean: clean-back clean-front ## Remove caches, node_modules e ambientes virtuais
 
-# Backend (FastAPI, Python, SQLite)
+# Backend (FastAPI, Python, Poetry, SQLite)
 .PHONY: setup-back run-back migrate-back test-back clean-back scrape-back
 
-setup-back: ## Cria o venv e instala as dependências do backend
-	@echo "Configurando ambiente Python..."
-	cd $(BACKEND_DIR) && python3 -m venv .venv
-	$(PIP) install --upgrade pip
-	# Se estiver usando pyproject.toml com pip padrão:
-	$(PIP) install -e $(BACKEND_DIR)/[dev] 
-	# (Se preferir usar requirements.txt: $(PIP) install -r $(BACKEND_DIR)/requirements.txt)
+setup-back: ## Instala as dependências do backend usando Poetry
+	@echo "Configurando ambiente Python com Poetry..."
+	cd $(BACKEND_DIR) && poetry install
 
 run-back: ## Roda o servidor FastAPI localmente com hot-reload
 	@echo "Iniciando servidor FastAPI..."
-	cd $(BACKEND_DIR) && $(UVICORN) app.main:app --reload --host 0.0.0.0 --port 8000
+	cd $(BACKEND_DIR) && poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-migrate-back: ## Roda as migrações do banco de dados (Alembic/SQLModel) para o SQLite
+migrate-back: ## Roda as migrações do banco de dados para o SQLite
 	@echo "Aplicando migrações no banco de dados..."
-	cd $(BACKEND_DIR) && $(ALEMBIC) upgrade head
+	cd $(BACKEND_DIR) && poetry run alembic upgrade head
 
-test-back: ## Executa a suíte de testes automatizados do Python
+test-back: ## Executa a suíte de testes automatizados
 	@echo "Rodando testes do backend..."
-	cd $(BACKEND_DIR) && $(BACKEND_DIR)/.venv/bin/pytest tests/ -v
+	cd $(BACKEND_DIR) && poetry run pytest tests/ -v
 
-scrape-back: ## Dispara o script manual de scraping (caso exista um comando avulso)
+scrape-back: ## Dispara o script manual de scraping
 	@echo "Iniciando processo de scraping..."
-	cd $(BACKEND_DIR) && $(PYTHON) -m app.scrapers.main
+	cd $(BACKEND_DIR) && poetry run python -m app.scrapers.main
 
-clean-back: ## Limpa o cache do Python e o ambiente virtual
+clean-back: ## Limpa caches e o ambiente do Poetry
 	@echo "Limpando artefatos do backend..."
-	rm -rf $(BACKEND_DIR)/.venv
+	cd $(BACKEND_DIR) && poetry env remove --all
 	find $(BACKEND_DIR) -type d -name "__pycache__" -exec rm -r {} +
 	find $(BACKEND_DIR) -type d -name ".pytest_cache" -exec rm -r {} +
 
