@@ -1,0 +1,57 @@
+# Variáveis de Ambiente e Segurança
+.env
+.env.*
+*.pem
+*.key
+
+# Sistema Operativo
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+
+# Frontend (Node.js, React Native, Expo)
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/build/
+frontend/web-build/
+frontend/.eslintcache
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Compilações nativas do Frontend (caso ejete o Expo ou use prebuild)
+frontend/android/app/build/
+frontend/android/.gradle/
+frontend/ios/Pods/
+frontend/ios/build/
+
+# Backend (Python, FastAPI)
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.tox/
+backend/.coverage
+backend/htmlcov/
+backend/.venv/
+backend/venv/
+backend/env/
+backend/*.py[cod]
+backend/*$py.class
+
+# Banco de Dados SQLite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Ferramentas de Editor e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
