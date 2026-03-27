@@ -6,14 +6,8 @@
 BACKEND_DIR = backend
 FRONTEND_DIR = frontend
 
-# Definições do Python (Considerando um ambiente virtual chamado .venv no backend)
-PYTHON = $(BACKEND_DIR)/.venv/bin/python
-PIP = $(BACKEND_DIR)/.venv/bin/pip
-ALEMBIC = $(BACKEND_DIR)/.venv/bin/alembic
-UVICORN = $(BACKEND_DIR)/.venv/bin/uvicorn
-
 # Definições do Frontend
-NPM = npm # Troque para yarn ou pnpm se preferir
+NPM = npm
 
 # Comandos de Ajuda
 .PHONY: help
@@ -52,7 +46,7 @@ scrape-back: ## Dispara o script manual de scraping
 
 clean-back: ## Limpa caches e o ambiente do Poetry
 	@echo "Limpando artefatos do backend..."
-	cd $(BACKEND_DIR) && poetry env remove --all
+	cd $(BACKEND_DIR) && poetry env remove --all || true
 	find $(BACKEND_DIR) -type d -name "__pycache__" -exec rm -r {} +
 	find $(BACKEND_DIR) -type d -name ".pytest_cache" -exec rm -r {} +
 
