@@ -35,6 +35,8 @@ class Medicamento(Base):
     :type disponivel: bool
     :param url_origem: Link de referência externa ou fonte da extração de dados do medicamento.
     :type url_origem: str
+    :param imagem_url: Link da fotografia ou imagem ilustrativa do medicamento no site de origem.
+    :type imagem_url: str
     :param criado_em: Timestamp gerado automaticamente na inserção do registro.
     :type criado_em: datetime.datetime
     :param atualizado_em: Timestamp atualizado automaticamente em modificações.
@@ -56,6 +58,7 @@ class Medicamento(Base):
     quantidade_estoque: Mapped[int] = mapped_column(Integer, default=0)
     disponivel: Mapped[bool] = mapped_column(Boolean, default=True)
     url_origem: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    imagem_url: Mapped[str] = mapped_column(String(500), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     farmacia_id: Mapped[int] = mapped_column(ForeignKey("farmacias.id"))
