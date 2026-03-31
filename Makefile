@@ -9,6 +9,9 @@ FRONTEND_DIR = frontend
 # Definições do Frontend
 NPM = npm
 
+# Variáveis de Comando
+DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null || echo "docker compose")
+
 # Comandos de Ajuda
 .PHONY: help
 help: ## Mostra os comandos disponíveis
@@ -17,11 +20,25 @@ help: ## Mostra os comandos disponíveis
 
 # Comandos Globais
 .PHONY: setup clean
-setup: setup-back setup-front ## Instala as dependências de todo o projeto (Back e Front)
+setup: db-up setup-back setup-front ## Instala as dependências de todo o projeto (Back, Front) e sobe a infraestrutura de banco de dados
 
 clean: clean-back clean-front ## Remove caches, node_modules e ambientes virtuais
 
-# Backend (FastAPI, Python, Poetry, SQLite)
+# Infraestrutura (Docker, PostgreSQL)
+.PHONY: db-up db-down db-logs
+
+db-up: ## Sobe o banco de dados PostgreSQL via Docker
+	@echo "Subindo banco de dados usando $(DOCKER_COMPOSE)..."
+	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml up -d
+
+db-down: ## Para e remove os containers do banco de dados
+	@echo "Parando banco de dados..."
+	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml down
+
+db-logs: ## Mostra os logs do container do banco em tempo real
+	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml logs -f
+
+# Backend (FastAPI, Python, Poetry, PostgreSQL).
 .PHONY: setup-back run-back migrate-back test-back clean-back scrape-back
 
 setup-back: ## Instala as dependências do backend usando Poetry
