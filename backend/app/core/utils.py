@@ -5,49 +5,69 @@ Módulo de utilitários transversais e funções auxiliares do sistema.
 
 Este módulo centraliza algoritmos independentes, ferramentas de validação
 matemática e rotinas de higienização de dados que suportam toda a infraestrutura
-do web scraper. Ao isolar estas funções estáticas (como a validação rigorosa 
-de códigos EAN-13), garantimos que os controladores da API e os serviços 
-de negócio permaneçam limpos, coesos e focados apenas na orquestração.
-
-As funções aqui definidas são desenhadas para serem puras (sem efeitos colaterais)
-e altamente testáveis, não possuindo dependências diretas com o estado da 
-base de dados (SQLAlchemy) ou com chamadas de rede (httpx).
+do web scraper.
 """
+
+import json
+from typing import List, Dict, Any
+from sqlalchemy.exc import SQLAlchemyError 
 
 def validar_ean13(ean: str) -> bool:
     """
     Valida a integridade de um código de barras EAN-13 através do cálculo do seu dígito verificador.
-
-    O algoritmo baseia-se na norma global do sistema GS1, utilizando o cálculo de Módulo 10.
-    Os primeiros 12 dígitos compõem o corpo do código, e o 13º é o checksum de segurança. 
-    A validação garante que falhas de leitura ótica ou erros de extração web
-    sejam detetados antes da inserção na base de dados.
-
-    :param ean: Sequência de caracteres que representa o código de barras completo.
-    :type ean: str
-    :return: True se a string contiver exatamente 13 numerais e o checksum for matematicamente válido; False em qualquer cenário de não conformidade ou formato inválido.
-    :rtype: bool
     """
-    # Verificação de sanitização: garante que a entrada é uma string estritamente numérica com 13 posições
     if not (isinstance(ean, str) and len(ean) == 13 and ean.isdigit()):
         return False
     
     try:
-        # Extrai os 12 primeiros dígitos (corpo estrutural do EAN) convertendo-os em inteiros
         corpo = [int(d) for d in ean[:12]]
-        
-        # Aplica a regra de pesos alternados do GS1: 
-        # Dígitos em posições ímpares (índice par na lista) multiplicam por 1.
-        # Dígitos em posições pares (índice ímpar na lista) multiplicam por 3.
         pesos = [1, 3] * 6
         soma = sum(d * p for d, p in zip(corpo, pesos))
-        
-        # Calcula o dígito verificador subtraindo o último dígito da soma (módulo 10) da dezena imediatamente superior (ou 10).
         digito_esperado = (10 - (soma % 10)) % 10
-        
-        # Compara o dígito matematicamente esperado com o 13º dígito fornecido na string
         return int(ean[12]) == digito_esperado
-        
     except ValueError:
-        # Fallback de segurança caso a conversão para int falhe num cenário atípico de memória
         return False
+
+
+def parse_vtex_graphql_response(json_payload):
+    """
+    Extrai informações estruturadas de produtos de uma resposta GraphQL da VTEX.
+    """
+    produtos_brutos = json_payload.get("data", {}).get("productSearch", {}).get("products", [])
+    catalogo_limpo = []
+
+    for produto in produtos_brutos:
+        itens = produto.get("items", [])
+        if not itens:
+            continue
+            
+        item_principal = itens[0]
+        item_id = item_principal.get("itemId")
+        nome = item_principal.get("name")
+        link_relativo = produto.get("link")
+        link_completo = f"https://www.farmaciaindiana.com.br{link_relativo}" if link_relativo else None
+        
+        imagens = item_principal.get("images", [])
+        imagem_url = imagens[0].get("imageUrl") if imagens else None
+        
+        ean = item_principal.get("ean")
+        if not ean:
+            refs = item_principal.get("referenceId", [])
+            ean = refs[0].get("Value") if refs else ""
+        
+        vendedores = item_principal.get("sellers", [])
+        preco = None
+        if vendedores:
+            oferta = vendedores[0].get("commertialOffer", {})
+            preco = oferta.get("Price")
+
+        catalogo_limpo.append({
+            "id": item_id,
+            "ean": ean, 
+            "nome": nome,
+            "preco": preco,
+            "link": link_completo,
+            "imagem_url": imagem_url
+        })
+
+    return catalogo_limpo
