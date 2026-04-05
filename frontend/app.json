@@ -6,6 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "scheme": "farmacia-scraper-frontend",
+    "plugins": ["expo-router"],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -23,6 +25,12 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ]
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "web": {
+      "bundler": "metro"
     }
   }
 }

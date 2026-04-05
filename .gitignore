@@ -56,3 +56,9 @@ backend/*$py.class
 .idea/
 *.swp
 *.swo
+
+node_modules
+.env
+.expo
+dist
+web-build
