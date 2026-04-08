@@ -19,7 +19,8 @@ Módulos e Classes Exportadas:
 
 from .base import Base
 from .farmacia import Farmacia
-from .medicamento import Medicamento
+from .catalogo import CatalogoBase
+from .oferta_farmacia import OfertaFarmacia
 
 # Definição explícita da API pública do pacote de modelos.
 # Isso blinda o encapsulamento, garantindo que apenas estas classes sejam 
@@ -27,5 +28,6 @@ from .medicamento import Medicamento
 __all__ = [
     "Base",
     "Farmacia",
-    "Medicamento",
+    "CatalogoBase",
+    "OfertaFarmacia",
 ]

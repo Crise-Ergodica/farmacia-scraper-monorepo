@@ -51,4 +51,4 @@ class Farmacia(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
-    medicamentos = relationship("Medicamento", back_populates="farmacia")
+    ofertas: Mapped[list["OfertaFarmacia"]] = relationship("OfertaFarmacia", back_populates="farmacia", cascade="all, delete-orphan")

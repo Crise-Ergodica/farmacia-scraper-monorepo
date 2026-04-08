@@ -1,5 +1,5 @@
 from logging.config import fileConfig
-from app.models import Base, Medicamento, Farmacia
+from app.models import Base, Farmacia, CatalogoBase, OfertaFarmacia
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
