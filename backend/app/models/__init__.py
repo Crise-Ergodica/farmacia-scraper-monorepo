@@ -9,7 +9,8 @@ classe base antes da execução de migrações ou criação do esquema de banco.
 Módulos e Classes Exportadas:
     * :class:`~models.base.Base`: Classe base declarativa com configurações de nomenclatura.
     * :class:`~models.farmacia.Farmacia`: Entidade que representa as farmácias físicas e jurídicas.
-    * :class:`~models.medicamento.Medicamento`: Entidade que representa o inventário de produtos.
+    * :class:`~models.catalogo.CatalogoBase`: Entidade que representa o catálogo unificado com dados farmacológicos invariáveis.
+    * :class:`~models.oferta_farmacia.OfertaFarmacia`: Entidade que representa a precificação e a disponibilidade (oferta) de um item numa loja.
 
 .. note::
     Para o correto funcionamento das migrações, certifique-se de importar 
@@ -22,9 +23,6 @@ from .farmacia import Farmacia
 from .catalogo import CatalogoBase
 from .oferta_farmacia import OfertaFarmacia
 
-# Definição explícita da API pública do pacote de modelos.
-# Isso blinda o encapsulamento, garantindo que apenas estas classes sejam 
-# exportadas caso outro módulo faça a chamada `from models import *`.
 __all__ = [
     "Base",
     "Farmacia",
