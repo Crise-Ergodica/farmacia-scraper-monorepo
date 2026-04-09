@@ -13,8 +13,14 @@ preço e imagens) e despachando os dados limpos para a camada de persistência
 
 import asyncio
 from typing import Any, Dict, List
-
 import httpx
+
+from app.core.database import SessionLocal
+from app.core.utils import validar_ean13
+from app.models.farmacia import Farmacia
+from app.models.catalogo import CatalogoBase
+from app.models.oferta_farmacia import OfertaFarmacia
+from sqlalchemy.exc import SQLAlchemyError
 
 async def extrair_todos_produtos() -> None:
     """
@@ -148,55 +154,79 @@ if __name__ == "__main__":
         print("\nInterrompido pela usuária.")
         
 
-# def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
-#     """
-#     Persiste uma lista de produtos no banco de dados.
-#     Atualiza o preço caso o medicamento (EAN) já exista.
-#     """
-#     db = SessionLocal()
+def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
+    """
+    Persiste uma lista de produtos no banco de dados utilizando a nova estrutura.
+    Atualiza o preço da oferta caso o medicamento já exista no catálogo.
+    """
+    db = SessionLocal()
     
-#     try:
-#         cnpj_padrao = "00000000000100"
-#         farmacia = db.query(Farmacia).filter(Farmacia.cnpj == cnpj_padrao).first()
+    try:
+        cnpj_padrao = "00000000000100"
+        farmacia = db.query(Farmacia).filter(Farmacia.cnpj == cnpj_padrao).first()
 
-#         if not farmacia:
-#             farmacia = Farmacia(
-#                 cnpj=cnpj_padrao,
-#                 razao_social="Farmácia Indiana - Web Scraper",
-#                 nome_fantasia="Indiana",
-#                 endereco_completo="Extração API REST"
-#             )
-#             db.add(farmacia)
-#             db.commit()
-#             db.refresh(farmacia)
+        if not farmacia:
+            farmacia = Farmacia(
+                cnpj=cnpj_padrao,
+                razao_social="Farmácia Indiana - Web Scraper",
+                nome_fantasia="Indiana",
+                endereco_completo="Extração API REST"
+            )
+            db.add(farmacia)
+            db.commit()
+            db.refresh(farmacia)
 
-#         for prod in produtos:
-#             ean = prod.get('ean')
+        for prod in produtos:
+            ean = prod.get('ean')
 
-#             if not ean or not validar_ean13(ean):
-#                 continue
+            if not ean or not validar_ean13(ean):
+                continue
 
-#             medicamento_existente = db.query(Medicamento).filter(Medicamento.codigo_barras == ean).first()
+            # Tenta encontrar o produto no Catálogo Base
+            catalogo_item = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean).first()
 
-#             if not medicamento_existente:
-#                 novo_med = Medicamento(
-#                     codigo_barras=ean,
-#                     nome=prod['nome'],
-#                     preco=prod['preco'],
-#                     url_origem=prod['link'],
-#                     principio_ativo="Não informado",
-#                     laboratorio="Não informado",
-#                     farmacia_id=farmacia.id
-#                 )
-#                 db.add(novo_med)
-#             else:
-#                 medicamento_existente.preco = prod['preco']
-#                 medicamento_existente.url_origem = prod['link']
+            # Se não existir no catálogo, cria um novo registo
+            if not catalogo_item:
+                catalogo_item = CatalogoBase(
+                    codigo_barras=ean,
+                    nome=prod['nome'],
+                    principio_ativo="Não informado",
+                    laboratorio="Não informado",
+                    exige_receita=False
+                )
+                db.add(catalogo_item)
+                db.commit()  # Necessário para gerar o ID que será usado na oferta
+                db.refresh(catalogo_item)
 
-#         db.commit()
+            # Tenta encontrar a Oferta deste produto nesta farmácia específica
+            oferta_existente = db.query(OfertaFarmacia).filter(
+                OfertaFarmacia.catalogo_id == catalogo_item.id,
+                OfertaFarmacia.farmacia_id == farmacia.id
+            ).first()
 
-#     except SQLAlchemyError as e:
-#         db.rollback()
-#         print(f"[ERRO DB] Falha na persistência: {e}")
-#     finally:
-#         db.close()
+            # Se não houver oferta, cria uma nova
+            if not oferta_existente:
+                nova_oferta = OfertaFarmacia(
+                    preco=prod['preco'],
+                    quantidade_estoque=1,
+                    disponivel=True,
+                    url_origem=prod['link'],
+                    imagem_url=prod.get('imagem_url'),
+                    farmacia_id=farmacia.id,
+                    catalogo_id=catalogo_item.id
+                )
+                db.add(nova_oferta)
+            # Se a oferta já existir, atualiza apenas os dados dinâmicos
+            else:
+                oferta_existente.preco = prod['preco']
+                oferta_existente.url_origem = prod['link']
+                if prod.get('imagem_url'):
+                    oferta_existente.imagem_url = prod['imagem_url']
+
+        db.commit()
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        print(f"[ERRO DB] Falha na persistência: {e}")
+    finally:
+        db.close()
