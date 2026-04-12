@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const isWeb = Platform.OS === 'web';
 
   const handleLogin = () => {
     if (!email.trim() && !password.trim()) {
@@ -37,44 +38,50 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Log In</Text>
-          <Text style={styles.subtitle}>Opcional</Text>
-        </View>
+        <View style={[styles.box, isWeb && styles.boxWeb]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Log In</Text>
+            <Text style={styles.subtitle}>Opcional</Text>
+          </View>
 
-        <View style={styles.form}>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            placeholderTextColor={palette.primary}
-            style={styles.input}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-
-          <View style={styles.passwordWrapper}>
+          <View style={styles.form}>
             <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email"
               placeholderTextColor={palette.primary}
-              style={styles.passwordInput}
+              style={[styles.input, isWeb && styles.inputWeb]}
               autoCapitalize="none"
-              secureTextEntry={!showPassword}
+              keyboardType="email-address"
             />
 
-            <Pressable onPress={() => setShowPassword((current) => !current)}>
-              <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={22} color={palette.primary} />
-            </Pressable>
+            <View style={[styles.passwordWrapper, isWeb && styles.inputWeb]}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor={palette.primary}
+                style={styles.passwordInput}
+                autoCapitalize="none"
+                secureTextEntry={!showPassword}
+              />
+
+              <Pressable onPress={() => setShowPassword((current) => !current)}>
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={22}
+                  color={palette.primary}
+                />
+              </Pressable>
+            </View>
           </View>
+
+          <Pressable style={[styles.button, isWeb && styles.buttonWeb]} onPress={handleLogin}>
+            <Text style={styles.buttonText}>Log In</Text>
+          </Pressable>
+
+          <Text style={styles.helperText}>Forgot your password?</Text>
         </View>
-
-        <Pressable style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Log In</Text>
-        </Pressable>
-
-        <Text style={styles.helperText}>Forgot your password?</Text>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -87,6 +94,18 @@ const styles = StyleSheet.create({
   screenContent: {
     flex: 1,
     justifyContent: 'center',
+  },
+  box: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+  },
+  boxWeb: {
+    backgroundColor: palette.surface,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    padding: 28,
   },
   header: {
     alignItems: 'center',
@@ -107,7 +126,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   input: {
-    height: 44,
+    height: 48,
     borderWidth: 1,
     borderColor: palette.primary,
     borderRadius: radius.sm,
@@ -115,8 +134,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     color: palette.text,
   },
+  inputWeb: {
+    height: 54,
+  },
   passwordWrapper: {
-    height: 44,
+    height: 48,
     borderWidth: 1,
     borderColor: palette.primary,
     borderRadius: radius.sm,
@@ -130,12 +152,15 @@ const styles = StyleSheet.create({
     color: palette.text,
   },
   button: {
-    height: 44,
+    height: 48,
     borderRadius: radius.pill,
     backgroundColor: palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.xl,
+  },
+  buttonWeb: {
+    height: 54,
   },
   buttonText: {
     color: palette.surface,
