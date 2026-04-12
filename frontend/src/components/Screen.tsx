@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleProp,
@@ -18,22 +19,41 @@ type ScreenProps = {
   hideBottomNav?: boolean;
 };
 
-export function Screen({ children, scroll = true, contentStyle, hideBottomNav = false }: ScreenProps) {
-  const content = scroll ? (
-    <ScrollView
-      style={styles.body}
-      contentContainerStyle={[styles.content, contentStyle]}
-      showsVerticalScrollIndicator={false}
+export function Screen({
+  children,
+  scroll = true,
+  contentStyle,
+  hideBottomNav = false,
+}: ScreenProps) {
+  const isWeb = Platform.OS === 'web';
+
+  const innerContent = (
+    <View
+      style={[
+        styles.content,
+        isWeb && styles.contentWeb,
+        !scroll && styles.fill,
+        contentStyle,
+      ]}
     >
       {children}
-    </ScrollView>
-  ) : (
-    <View style={[styles.content, styles.fill, contentStyle]}>{children}</View>
+    </View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {content}
+      {scroll ? (
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {innerContent}
+        </ScrollView>
+      ) : (
+        <View style={styles.fill}>{innerContent}</View>
+      )}
+
       {hideBottomNav ? null : <BottomNav />}
     </SafeAreaView>
   );
@@ -50,9 +70,19 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+  scrollContainer: {
     paddingBottom: spacing.xl,
+  },
+  content: {
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  contentWeb: {
+    maxWidth: 1280,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
 });
