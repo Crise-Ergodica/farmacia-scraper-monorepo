@@ -76,13 +76,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   bottomTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
-    color: palette.textSoft,
+    color: palette.text,
     marginBottom: spacing.md,
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    rowGap: spacing.lg,
+    columnGap: spacing.md,
   },
 });
