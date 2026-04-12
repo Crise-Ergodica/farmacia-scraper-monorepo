@@ -1,4 +1,4 @@
-# Farma+ frontend base
+# Preço Bão frontend base
 
 Estrutura enxuta em **Expo Router + React Native** para rodar em **Android, iOS e web**.
 
