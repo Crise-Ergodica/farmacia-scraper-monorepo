@@ -20,6 +20,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const isWeb = Platform.OS === 'web';
 
   const handleLogin = () => {
@@ -45,25 +47,43 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              placeholderTextColor={palette.primary}
-              style={[styles.input, isWeb && styles.inputWeb]}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
+            <View
+              style={[
+                styles.inputWrapper,
+                emailFocused && styles.inputWrapperFocused,
+                isWeb && styles.inputWrapperWeb,
+              ]}
+            >
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
+                placeholderTextColor={palette.primary}
+                style={[styles.input, isWeb && styles.inputWeb]}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+              />
+            </View>
 
-            <View style={[styles.passwordWrapper, isWeb && styles.inputWeb]}>
+            <View
+              style={[
+                styles.passwordWrapper,
+                passwordFocused && styles.inputWrapperFocused,
+                isWeb && styles.inputWrapperWeb,
+              ]}
+            >
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Password"
                 placeholderTextColor={palette.primary}
-                style={styles.passwordInput}
+                style={[styles.passwordInput, isWeb && styles.inputWeb]}
                 autoCapitalize="none"
                 secureTextEntry={!showPassword}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
               />
 
               <Pressable onPress={() => setShowPassword((current) => !current)}>
@@ -125,17 +145,32 @@ const styles = StyleSheet.create({
   form: {
     gap: spacing.md,
   },
-  input: {
+  inputWrapper: {
     height: 48,
     borderWidth: 1,
     borderColor: palette.primary,
     borderRadius: radius.sm,
     backgroundColor: palette.surface,
     paddingHorizontal: spacing.sm,
+    justifyContent: 'center',
+  },
+  inputWrapperWeb: {
+    height: 54,
+  },
+  inputWrapperFocused: {
+    borderColor: palette.primary,
+    borderWidth: 2,
+  },
+  input: {
     color: palette.text,
+    fontSize: 16,
+    paddingVertical: spacing.sm,
   },
   inputWeb: {
-    height: 54,
+    fontSize: 17,
+    outlineWidth: 0,
+    outlineColor: 'transparent',
+    outlineStyle: 'none',
   },
   passwordWrapper: {
     height: 48,
@@ -150,6 +185,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     color: palette.text,
+    fontSize: 16,
   },
   button: {
     height: 48,
