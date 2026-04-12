@@ -27,7 +27,7 @@ export function SearchBar({
   onSubmit,
   onBack,
   onFilter,
-  placeholder = 'Farma+',
+  placeholder = 'Preço Bão',
   ...textInputProps
 }: SearchBarProps) {
   const isWeb = Platform.OS === 'web';

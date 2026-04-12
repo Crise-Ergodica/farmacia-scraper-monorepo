@@ -20,9 +20,9 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
     <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
       <View style={styles.avatarRow}>
         <View style={styles.avatarBox}>
-          <Text style={styles.avatarText}>F</Text>
+          <Text style={styles.avatarText}>P</Text>
         </View>
-        <Text style={styles.brand}>Farma+</Text>
+        <Text style={styles.brand}>Preço Bão</Text>
       </View>
 
       <View style={styles.itemsWrapper}>

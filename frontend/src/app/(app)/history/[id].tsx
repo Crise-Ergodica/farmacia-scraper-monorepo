@@ -14,7 +14,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getMedicineById } = useAppContext();
-  const [search, setSearch] = useState('Farma+');
+  const [search, setSearch] = useState('Preço Bão');
 
   const medicine = useMemo(() => getMedicineById(id), [getMedicineById, id]);
 

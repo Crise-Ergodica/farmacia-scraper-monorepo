@@ -11,7 +11,7 @@ import { palette, radius, spacing } from '../../theme';
 export default function FiltersScreen() {
   const router = useRouter();
   const { selectedFilters, filterOptions, toggleFilter } = useAppContext();
-  const [search, setSearch] = useState('Farma+');
+  const [search, setSearch] = useState('Preço Bão');
 
   return (
     <Screen>
