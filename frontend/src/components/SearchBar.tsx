@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -31,6 +31,7 @@ export function SearchBar({
   ...textInputProps
 }: SearchBarProps) {
   const isWeb = Platform.OS === 'web';
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={styles.row}>
@@ -40,7 +41,13 @@ export function SearchBar({
         </Pressable>
       ) : null}
 
-      <View style={[styles.container, isWeb && styles.containerWeb]}>
+      <View
+        style={[
+          styles.container,
+          isWeb && styles.containerWeb,
+          focused && styles.containerFocused,
+        ]}
+      >
         <Ionicons name="search-outline" size={20} color={palette.primary} />
 
         <TextInput
@@ -51,6 +58,8 @@ export function SearchBar({
           style={[styles.input, isWeb && styles.inputWeb]}
           returnKeyType="search"
           onSubmitEditing={onSubmit}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           {...textInputProps}
         />
 
@@ -93,6 +102,10 @@ const styles = StyleSheet.create({
     minHeight: 54,
     paddingHorizontal: 16,
   },
+  containerFocused: {
+    borderColor: palette.primary,
+    borderWidth: 2,
+  },
   input: {
     flex: 1,
     color: palette.text,
@@ -101,6 +114,9 @@ const styles = StyleSheet.create({
   },
   inputWeb: {
     fontSize: 17,
+    outlineWidth: 0,
+    outlineColor: 'transparent',
+    outlineStyle: 'none',
   },
   filterText: {
     color: palette.primary,
