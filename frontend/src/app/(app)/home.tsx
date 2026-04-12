@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
@@ -12,6 +12,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const { recentMedicines, cheapestMedicines, markAsViewed } = useAppContext();
   const [search, setSearch] = useState('');
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+
+  const recentLimit = isWeb ? (width >= 1200 ? 5 : 4) : 3;
+  const cheapestLimit = isWeb ? (width >= 1200 ? 10 : 8) : 6;
 
   const goToSearch = () => {
     router.push({ pathname: '/search', params: { q: search } });
@@ -32,9 +37,10 @@ export default function HomeScreen() {
       />
 
       <View style={styles.section}>
-        <Text style={styles.title}>Vistos Recentemente</Text>
-        <View style={styles.grid}>
-          {recentMedicines.slice(0, 3).map((medicine) => (
+        <Text style={[styles.title, isWeb && styles.titleWeb]}>Vistos Recentemente</Text>
+
+        <View style={[styles.grid, isWeb && styles.gridWeb]}>
+          {recentMedicines.slice(0, recentLimit).map((medicine) => (
             <MedicineCard
               key={medicine.id}
               medicine={medicine}
@@ -46,9 +52,10 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.title}>Mais Baratos</Text>
-        <View style={styles.grid}>
-          {cheapestMedicines.slice(0, 6).map((medicine) => (
+        <Text style={[styles.title, isWeb && styles.titleWeb]}>Mais Baratos</Text>
+
+        <View style={[styles.grid, isWeb && styles.gridWeb]}>
+          {cheapestMedicines.slice(0, cheapestLimit).map((medicine) => (
             <MedicineCard
               key={medicine.id}
               medicine={medicine}
@@ -72,10 +79,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.md,
   },
+  titleWeb: {
+    fontSize: 32,
+    marginBottom: 24,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     rowGap: spacing.lg,
+    columnGap: spacing.md,
+  },
+  gridWeb: {
+    rowGap: 28,
+    columnGap: 24,
   },
 });
