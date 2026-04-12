@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -29,23 +30,25 @@ export function SearchBar({
   placeholder = 'Farma+',
   ...textInputProps
 }: SearchBarProps) {
+  const isWeb = Platform.OS === 'web';
+
   return (
     <View style={styles.row}>
       {onBack ? (
         <Pressable style={styles.backButton} onPress={onBack}>
-          <Ionicons name="arrow-back" size={18} color={palette.primary} />
+          <Ionicons name="arrow-back" size={20} color={palette.primary} />
         </Pressable>
       ) : null}
 
-      <View style={styles.container}>
-        <Ionicons name="search-outline" size={18} color={palette.primary} />
+      <View style={[styles.container, isWeb && styles.containerWeb]}>
+        <Ionicons name="search-outline" size={20} color={palette.primary} />
 
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={palette.primary}
-          style={styles.input}
+          style={[styles.input, isWeb && styles.inputWeb]}
           returnKeyType="search"
           onSubmitEditing={onSubmit}
           {...textInputProps}
@@ -53,7 +56,7 @@ export function SearchBar({
 
         {onFilter ? (
           <Pressable onPress={onFilter} hitSlop={8}>
-            <Text style={styles.filterText}>Filter</Text>
+            <Text style={[styles.filterText, isWeb && styles.filterTextWeb]}>Filter</Text>
           </Pressable>
         ) : null}
       </View>
@@ -63,13 +66,14 @@ export function SearchBar({
 
 const styles = StyleSheet.create({
   row: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
   backButton: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -85,15 +89,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     backgroundColor: palette.surface,
   },
+  containerWeb: {
+    minHeight: 54,
+    paddingHorizontal: 16,
+  },
   input: {
     flex: 1,
     color: palette.text,
     fontSize: 16,
     paddingVertical: spacing.sm,
   },
+  inputWeb: {
+    fontSize: 17,
+  },
   filterText: {
     color: palette.primary,
     fontSize: 13,
     fontWeight: '600',
+  },
+  filterTextWeb: {
+    fontSize: 14,
   },
 });
