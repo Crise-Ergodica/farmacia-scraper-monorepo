@@ -37,3 +37,11 @@ migrate-back: ## Roda as migrações do banco de dados (Alembic)
 setup-front: ## Instala as dependências Node.js do Expo
 	@echo "\033[33mInstalando dependências do frontend...\033[0m"
 	cd $(FRONTEND_DIR) && $(NPM) install
+
+run-back: ## Inicia o servidor backend (FastAPI) em modo reload
+	@echo "\033[33mIniciando API...\033[0m"
+	cd $(BACKEND_DIR) && poetry run uvicorn app.main:app --reload
+
+run-front: ## Inicia o projeto frontend (Expo)
+	@echo "\033[33mIniciando interface Expo...\033[0m"
+	cd $(FRONTEND_DIR) && $(NPM) start
