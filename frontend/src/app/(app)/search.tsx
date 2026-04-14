@@ -7,24 +7,25 @@ import { OfferRow } from '../../components/OfferRow';
 import { Screen } from '../../components/Screen';
 import { SearchBar } from '../../components/SearchBar';
 import { useAppContext } from '../../context/AppContext';
-import { pharmacyColors } from '../../data/mockData';
 import { palette, spacing } from '../../theme';
 
 export default function SearchScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ q?: string }>();
-  const [search, setSearch] = useState(typeof params.q === 'string' ? params.q : 'Loratadina');
+  // Inicialização padrão vazia caso não haja query
+  const [search, setSearch] = useState(typeof params.q === 'string' ? params.q : '');
   const { buildSearchRows, cheapestMedicines, markAsViewed } = useAppContext();
 
   useEffect(() => {
     if (typeof params.q === 'string') {
-      setSearch(params.q || 'Loratadina');
+      setSearch(params.q || '');
     }
   }, [params.q]);
 
   const rows = useMemo(() => buildSearchRows(search), [buildSearchRows, search]);
 
-  const openDetail = (medicineId: string) => {
+  // CORREÇÃO: medicineId agora é estritamente do tipo number
+  const openDetail = (medicineId: number) => {
     markAsViewed(medicineId);
     router.push(`/medicine/${medicineId}`);
   };
@@ -41,11 +42,12 @@ export default function SearchScreen() {
       <View style={styles.resultsWrapper}>
         {rows.map((row, index) => (
           <OfferRow
-            key={`${row.medicineId}-${row.pharmacy}-${index}`}
-            medicineName={row.medicineName}
-            pharmacy={row.pharmacy}
-            price={row.price}
-            color={pharmacyColors[row.pharmacy]}
+            // CORREÇÃO: Chaves do banco de dados relacional
+            key={`${row.medicineId}-${row.farmaciaId}-${index}`}
+            medicineName={row.medicineNome}
+            pharmacy={row.farmaciaId}
+            price={row.preco}
+            color={palette.primary} // Fallback seguro de cor
             onPress={() => openDetail(row.medicineId)}
           />
         ))}
@@ -58,7 +60,7 @@ export default function SearchScreen() {
             <MedicineCard
               key={medicine.id}
               medicine={medicine}
-              onPress={() => openDetail(medicine.id)}
+              onPress={() => openDetail(medicine.id)} // Passando o ID numérico corretamente
               compact
             />
           ))}

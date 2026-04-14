@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, Image } from 'react-native';
 
 import { palette, radius, spacing } from '../theme';
 import { Medicamento } from '../types/api';
@@ -14,6 +14,7 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
 
+  // Forçamos a conversão para Number durante a comparação de menor preço
   const lowest = medicine.ofertas && medicine.ofertas.length > 0
     ? medicine.ofertas.reduce((min, curr) => 
         (Number(curr.preco) < Number(min.preco) ? curr : min)
@@ -29,8 +30,10 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
       ? 210
       : '31%';
 
+  // Fallbacks e extração de dados
   const farmaciaDisplay = lowest ? `Farmácia ID: ${lowest.farmacia_id}` : 'Sem ofertas';
   const priceDisplay = lowest ? `R$ ${Number(lowest.preco).toFixed(2)}` : '--';
+  const imageUrl = lowest?.imagem_url; // Extrai a URL da imagem da oferta
 
   return (
     <Pressable
@@ -47,13 +50,23 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
           styles.imageBox,
           compact && styles.compactImageBox,
           isWeb && compact && styles.compactImageBoxWeb,
+          // Se tiver imagem real, podemos deixar o fundo transparente ou branco
+          imageUrl && { backgroundColor: '#FFFFFF' } 
         ]}
       >
-        <Ionicons
-          name="image-outline"
-          size={isWeb ? 30 : compact ? 24 : 34}
-          color={palette.textSoft}
-        />
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.medicineImage}
+            resizeMode="contain" // Garante que a imagem não fique esticada
+          />
+        ) : (
+          <Ionicons
+            name="image-outline"
+            size={isWeb ? 30 : compact ? 24 : 34}
+            color={palette.textSoft}
+          />
+        )}
       </View>
 
       <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
@@ -102,6 +115,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xs,
+    overflow: 'hidden', 
   },
   compactImageBox: {
     aspectRatio: 1,
@@ -111,6 +125,11 @@ const styles = StyleSheet.create({
     height: 210,
     borderRadius: 18,
     marginBottom: 12,
+  },
+  medicineImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.md,
   },
   name: {
     color: palette.text,
