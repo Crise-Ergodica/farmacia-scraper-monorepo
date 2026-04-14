@@ -1,15 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from app.api.routes import catalogo
 
-@app.get("/") 
-def read_root():
-    return {"Hello": "Aurora"}
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int):
-    return {"item_id": item_id, "message": "Sucesso!"}
+app: FastAPI = FastAPI(title="Preço Bão API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,3 +12,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(catalogo.router)
+
+@app.get("/") 
+def read_root() -> dict[str, str]:
+    """
+    Root endpoint to verify the API status.
+
+    Returns
+    -------
+    dict[str, str]
+        A basic welcome message.
+    """
+    return {"Hello": "Aurora"}

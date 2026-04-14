@@ -1,19 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { getLowestOffer, Medicine, pharmacyColors } from '../data/mockData';
 import { palette, radius, spacing } from '../theme';
+import { Medicamento } from '../types/api';
 
 type MedicineCardProps = {
-  medicine: Medicine;
+  medicine: Medicamento;
   onPress: () => void;
   compact?: boolean;
 };
 
 export function MedicineCard({ medicine, onPress, compact = false }: MedicineCardProps) {
-  const lowest = getLowestOffer(medicine);
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
+
+  const lowest = medicine.ofertas && medicine.ofertas.length > 0
+    ? medicine.ofertas.reduce((min, curr) => 
+        (Number(curr.preco) < Number(min.preco) ? curr : min)
+      , medicine.ofertas[0])
+    : null;
 
   const compactWidth =
     isWeb && width >= 1400
@@ -23,6 +28,9 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
       : isWeb && width >= 900
       ? 210
       : '31%';
+
+  const farmaciaDisplay = lowest ? `Farmácia ID: ${lowest.farmacia_id}` : 'Sem ofertas';
+  const priceDisplay = lowest ? `R$ ${Number(lowest.preco).toFixed(2)}` : '--';
 
   return (
     <Pressable
@@ -49,21 +57,21 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
       </View>
 
       <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
-        {medicine.name}
+        {medicine.nome}
       </Text>
 
       <Text
         style={[
           styles.pharmacy,
           isWeb && styles.pharmacyWeb,
-          { color: pharmacyColors[lowest.pharmacy] ?? palette.primary },
+          { color: palette.primary },
         ]}
       >
-        {lowest.pharmacy}
+        {farmaciaDisplay}
       </Text>
 
       <Text style={[styles.price, isWeb && styles.priceWeb]}>
-        ${lowest.price.toFixed(2)}
+        {priceDisplay}
       </Text>
     </Pressable>
   );

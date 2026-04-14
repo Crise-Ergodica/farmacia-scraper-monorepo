@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, Text, useWindowDimensions, View, ActivityIndicator } from 'react-native';
 
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
@@ -10,10 +10,18 @@ import { palette, spacing } from '../../theme';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { recentMedicines, cheapestMedicines, markAsViewed } = useAppContext();
-  const [search, setSearch] = useState('');
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
+
+  // Consumimos a API, o estado de loading e as listas diretamente do AppContext
+  const { 
+    recentMedicines, 
+    cheapestMedicines, 
+    isLoading, 
+    markAsViewed 
+  } = useAppContext();
+  
+  const [search, setSearch] = useState('');
 
   const recentLimit = isWeb ? (width >= 1200 ? 5 : 4) : 3;
   const cheapestLimit = isWeb ? (width >= 1200 ? 10 : 8) : 6;
@@ -22,10 +30,20 @@ export default function HomeScreen() {
     router.push({ pathname: '/search', params: { q: search } });
   };
 
-  const goToDetail = (id: string) => {
+  const goToDetail = (id: number) => {
+    // Correção: Agora passamos o ID como number diretamente
     markAsViewed(id);
     router.push(`/medicine/${id}`);
   };
+
+  if (isLoading) {
+    return (
+      <Screen contentStyle={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={palette.primary} />
+        <Text style={styles.loadingText}>Sincronizando catálogo...</Text>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -36,24 +54,25 @@ export default function HomeScreen() {
         onFilter={() => router.push('/filters')}
       />
 
-      <View style={styles.section}>
-        <Text style={[styles.title, isWeb && styles.titleWeb]}>Vistos Recentemente</Text>
-
-        <View style={[styles.grid, isWeb && styles.gridWeb]}>
-          {recentMedicines.slice(0, recentLimit).map((medicine) => (
-            <MedicineCard
-              key={medicine.id}
-              medicine={medicine}
-              onPress={() => goToDetail(medicine.id)}
-              compact
-            />
-          ))}
+      {recentMedicines.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.title, isWeb && styles.titleWeb]}>Vistos Recentemente</Text>
+          <View style={[styles.grid, isWeb && styles.gridWeb]}>
+            {recentMedicines.slice(0, recentLimit).map((medicine) => (
+              <MedicineCard
+                key={medicine.id}
+                medicine={medicine}
+                // medicine.id já é do tipo number no schema real
+                onPress={() => goToDetail(medicine.id)}
+                compact
+              />
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={styles.section}>
         <Text style={[styles.title, isWeb && styles.titleWeb]}>Mais Baratos</Text>
-
         <View style={[styles.grid, isWeb && styles.gridWeb]}>
           {cheapestMedicines.slice(0, cheapestLimit).map((medicine) => (
             <MedicineCard
@@ -94,4 +113,15 @@ const styles = StyleSheet.create({
     rowGap: 28,
     columnGap: 24,
   },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+    paddingTop: spacing.xl * 2,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    color: palette.textSoft,
+    fontSize: 16,
+  }
 });
