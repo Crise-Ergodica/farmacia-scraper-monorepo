@@ -1,56 +1,78 @@
-## Requer execução como Administrador:
-## Set-ExecutionPolicy Bypass -Scope Process -Force; .\bootstrap\setup_windows.ps1
-
 $ErrorActionPreference = "Stop" # Regra de Ouro: Aborta no primeiro erro não tratado
 
-Write-Host "Iniciando a instalação do ambiente de desenvolvimento..." -ForegroundColor Cyan
-
-# Verifica privilégios de Administrador antes de prosseguir
+# 1 : BLOCO DE AUTO-ELEVAÇÃO PARA ADMINISTRADOR
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-Not $isAdmin) {
-    Write-Host "Este script requer privilégios de Administrador. Por favor, reabra o PowerShell como Administrador." -ForegroundColor Red
+    Write-Host "Privilégios de Administrador não detectados. Elevando permissões..." -ForegroundColor Yellow
+    # Reabre este exato script em uma nova janela como Administrador
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$PSCommandPath`"" -Verb RunAs
     Exit
 }
 
-# Verificação e Preparação Segura do WSL e Hyper-V
-Write-Host "Verificando o estado do Windows Subsystem for Linux (WSL) e Virtual Machine Platform..." -ForegroundColor Yellow
+# 2 : DEFINIÇÃO DO MARCADOR DE ESTADO (Para lidar com reboots)
+$resumeMarker = "$env:TEMP\precobao_setup_resume.marker"
 
-$wsl = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-$vmp = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
-$rebootRequired = $false
+if (-not (Test-Path $resumeMarker)) {
+    
+    # FASE 1: PREPARAÇÃO E REBOOT (WSL e Hyper-V)
+    Write-Host "Iniciando a instalação do ambiente de desenvolvimento..." -ForegroundColor Cyan
+    Write-Host "Verificando o estado do Windows Subsystem for Linux (WSL) e Virtual Machine Platform..." -ForegroundColor Yellow
 
-if ($wsl.State -ne 'Enabled') {
-    Write-Host "Habilitando WSL..."
-    Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
-    $rebootRequired = $true
+    $wsl = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+    $vmp = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
+    $rebootRequired = $false
+
+    if ($wsl.State -ne 'Enabled') {
+        Write-Host "Habilitando WSL..."
+        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+        $rebootRequired = $true
+    }
+
+    if ($vmp.State -ne 'Enabled') {
+        Write-Host "Habilitando Virtual Machine Platform..."
+        Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
+        $rebootRequired = $true
+    }
+
+    if ($rebootRequired) {
+        Write-Host "=================================================================" -ForegroundColor Red
+        Write-Host "ATENÇÃO: Os recursos do WSL foram habilitados, mas o Windows" -ForegroundColor Red
+        Write-Host "exige uma reinicialização para que o kernel entre em vigor." -ForegroundColor Red
+        Write-Host "Configurando reinício automático e retomada do script..." -ForegroundColor Yellow
+        Write-Host "=================================================================" -ForegroundColor Red
+        
+        # Cria o marcador de estado para pular esta fase no próximo boot
+        New-Item -Path $resumeMarker -ItemType File -Force | Out-Null
+
+        # Agenda a reabertura automática do script após você fazer login novamente
+        $runOnceCmd = "powershell.exe -WindowStyle Hidden -Command `"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -NoExit -File ''$PSCommandPath''' -Verb RunAs`""
+        Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "ResumePrecoBaoSetup" -Value $runOnceCmd
+        
+        Write-Host "O computador será reiniciado em 5 segundos..." -ForegroundColor Red
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+        Exit
+    }
+} else {
+    
+    # FASE 2: RETOMADA APÓS O REBOOT
+    Write-Host "=================================================================" -ForegroundColor Green
+    Write-Host "Retomando a instalação após o reinício..." -ForegroundColor Green
+    Write-Host "=================================================================" -ForegroundColor Green
+    
+    # Limpa o marcador de estado
+    Remove-Item -Path $resumeMarker -Force | Out-Null
 }
 
-if ($vmp.State -ne 'Enabled') {
-    Write-Host "Habilitando Virtual Machine Platform..."
-    Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
-    $rebootRequired = $true
-}
 
-# Interrupção preventiva (Race Condition Trap)
-if ($rebootRequired) {
-    Write-Host "=================================================================" -ForegroundColor Red
-    Write-Host "ATENÇÃO: Os recursos do WSL foram habilitados, mas o Windows" -ForegroundColor Red
-    Write-Host "exige uma reinicialização para que o kernel entre em vigor." -ForegroundColor Red
-    Write-Host "A execução foi PAUSADA aqui para evitar corromper a instalação" -ForegroundColor Red
-    Write-Host "do Docker Desktop." -ForegroundColor Red
-    Write-Host "=================================================================" -ForegroundColor Red
-    Write-Host "AÇÃO NECESSÁRIA: Reinicie o computador e execute este script" -ForegroundColor Yellow
-    Write-Host "novamente. Ele continuará exatamente de onde parou." -ForegroundColor Yellow
-    Exit
-}
-
+# FASE 3: INSTALAÇÃO DE FERRAMENTAS E DEPENDÊNCIAS
 # Função para instalar via winget isolando falhas de busca
 function Install-Tool($name, $id) {
     Write-Host "Verificando $name..."
     # Salva o estado de erro temporariamente para não quebrar o script se o pacote não existir
     $originalErrorAction = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    
+
     # Busca string correspondente ocultando os erros padrão do winget
     $check = winget list --id $id --accept-source-agreements 2>&1 | Select-String $id
     
@@ -91,4 +113,4 @@ if ($pythonExe) {
 
 Remove-Item install_poetry.py -ErrorAction SilentlyContinue
 
-Write-Host "Instalação concluída com sucesso!" -ForegroundColor Green
+Write-Host "Instalação concluída com sucesso! Seu ambiente está pronto." -ForegroundColor Green
