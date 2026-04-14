@@ -144,14 +144,6 @@ def adaptar_parser_rest(produtos_brutos: List[Dict[str, Any]]) -> List[Dict[str,
         })
         
     return catalogo_limpo
-
-
-if __name__ == "__main__":
-    print("Iniciando varredura via API REST...")
-    try:
-        asyncio.run(extrair_todos_produtos())
-    except KeyboardInterrupt:
-        print("\nInterrompido pela usuária.")
         
 
 def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
@@ -230,3 +222,11 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
         print(f"[ERRO DB] Falha na persistência: {e}")
     finally:
         db.close()
+
+
+if __name__ == "__main__":
+    print("Iniciando varredura via API REST...")
+    try:
+        asyncio.run(extrair_todos_produtos())
+    except KeyboardInterrupt:
+        print("\nInterrompido pela usuária.")

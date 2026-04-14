@@ -7,6 +7,7 @@ from sqlalchemy import String, Numeric, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from .base import Base
+from .oferta_farmacia import OfertaFarmacia
 
 class Farmacia(Base):
     """

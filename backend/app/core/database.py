@@ -9,8 +9,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Generator
 
-from app.models.farmacia import Farmacia
-from backend.app.models.oferta_farmacia import Medicamento
+# from app.models.farmacia import Farmacia
+from app.models import OfertaFarmacia, CatalogoBase, Farmacia
 from app.core.utils import validar_ean13
 
 # Configuração do Motor e Fábrica de Sessões
