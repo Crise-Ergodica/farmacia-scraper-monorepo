@@ -1,92 +1,39 @@
-# Documentação Oficial (FSF, por meio do Projeto GNU): 
-## https://www.gnu.org/software/make/
-## https://www.gnu.org/software/make/manual/html_node/Running.html
-
 # Variáveis Globais
 BACKEND_DIR = backend
 FRONTEND_DIR = frontend
-
-# Definições do Frontend
 NPM = npm
-
-# Variáveis de Comando
 DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null || echo "docker compose")
 
-# Comandos de Ajuda
-.PHONY: help
+.PHONY: help setup clean db-up db-down envs migrate-back setup-back setup-front
+
 help: ## Mostra os comandos disponíveis
 	@echo "Comandos disponíveis no Monorepo:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# Comandos Globais
-.PHONY: setup clean
-setup: db-up setup-back setup-front ## Instala as dependências de todo o projeto (Back, Front) e sobe a infraestrutura de banco de dados
+setup: envs db-up setup-back migrate-back setup-front ## Configura o projeto inteiro pronto para rodar
+	@echo "\033[32m\n=== Instalação concluída com sucesso! ===\033[0m"
+	@echo "Backend: make run-back"
+	@echo "Frontend: make run-front"
 
-clean: clean-back clean-front ## Remove caches, node_modules e ambientes virtuais
-
-# Infraestrutura (Docker, PostgreSQL)
-.PHONY: db-up db-down db-logs
+envs: ## Cria os arquivos .env a partir dos .env.example
+	@echo "\033[33mConfigurando variáveis de ambiente...\033[0m"
+	@if [ ! -f $(BACKEND_DIR)/.env ]; then cp $(BACKEND_DIR)/.env.example $(BACKEND_DIR)/.env; echo "Criado backend/.env"; fi
+	@if [ ! -f $(FRONTEND_DIR)/.env ]; then cp $(FRONTEND_DIR)/.env.example $(FRONTEND_DIR)/.env; echo "Criado frontend/.env"; fi
 
 db-up: ## Sobe o banco de dados PostgreSQL via Docker
-	@echo "Subindo banco de dados usando $(DOCKER_COMPOSE)..."
+	@echo "\033[33mSubindo banco de dados...\033[0m"
 	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml up -d
-
-db-down: ## Para e remove os containers do banco de dados
-	@echo "Parando banco de dados..."
-	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml down
-
-db-logs: ## Mostra os logs do container do banco em tempo real
-	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml logs -f
-
-# Backend (FastAPI, Python, Poetry, PostgreSQL).
-.PHONY: setup-back run-back migrate-back test-back clean-back scrape-back
+	@echo "Aguardando o banco de dados aceitar conexões..."
+	@sleep 3 
 
 setup-back: ## Instala as dependências do backend usando Poetry
-	@echo "Configurando ambiente Python com Poetry..."
+	@echo "\033[33mConfigurando ambiente Python...\033[0m"
 	cd $(BACKEND_DIR) && poetry install
 
-run-back: ## Roda o servidor FastAPI localmente com hot-reload
-	@echo "Iniciando servidor FastAPI..."
-	cd $(BACKEND_DIR) && poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-migrate-back: ## Roda as migrações do banco de dados para o SQLite
-	@echo "Aplicando migrações no banco de dados..."
+migrate-back: ## Roda as migrações do banco de dados (Alembic)
+	@echo "\033[33mAplicando migrações no banco de dados...\033[0m"
 	cd $(BACKEND_DIR) && poetry run alembic upgrade head
 
-test-back: ## Executa a suíte de testes automatizados
-	@echo "Rodando testes do backend..."
-	cd $(BACKEND_DIR) && poetry run pytest tests/ -v
-
-scrape-back: ## Dispara o script manual de scraping
-	@echo "Iniciando processo de scraping..."
-	cd $(BACKEND_DIR) && poetry run python -m app.scrapers.main
-
-clean-back: ## Limpa caches e o ambiente do Poetry
-	@echo "Limpando artefatos do backend..."
-	cd $(BACKEND_DIR) && poetry env remove --all || true
-	find $(BACKEND_DIR) -type d -name "__pycache__" -exec rm -r {} +
-	find $(BACKEND_DIR) -type d -name ".pytest_cache" -exec rm -r {} +
-
-# Frontend (React Native, Expo)
-.PHONY: setup-front run-front ios android clean-front
-
 setup-front: ## Instala as dependências Node.js do Expo
-	@echo "Instalando dependências do frontend..."
+	@echo "\033[33mInstalando dependências do frontend...\033[0m"
 	cd $(FRONTEND_DIR) && $(NPM) install
-
-run-front: ## Inicia o servidor do Expo
-	@echo "Iniciando Expo Bundler..."
-	cd $(FRONTEND_DIR) && npx expo start
-
-ios: ## Inicia o aplicativo no simulador do iOS
-	@echo "Iniciando no iOS..."
-	cd $(FRONTEND_DIR) && npx expo start --ios
-
-android: ## Inicia o aplicativo no emulador do Android
-	@echo "Iniciando no Android..."
-	cd $(FRONTEND_DIR) && npx expo start --android
-
-clean-front: ## Remove o node_modules e arquivos temporários do Expo
-	@echo "Limpando artefatos do frontend..."
-	rm -rf $(FRONTEND_DIR)/node_modules
-	rm -rf $(FRONTEND_DIR)/.expo
