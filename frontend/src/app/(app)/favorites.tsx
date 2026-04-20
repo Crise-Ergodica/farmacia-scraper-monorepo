@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -13,22 +14,52 @@ import {
 
 import { Screen } from '../../components/Screen';
 import { useAppContext } from '../../context/AppContext';
-import { getLowestOffer, medicines, pharmacyColors } from '../../data/mockData';
 import { palette, radius, spacing } from '../../theme';
+import { Oferta } from '../../types/api';
+
+type OfertaComExtras = Oferta & {
+  farmacia_nome?: string;
+  farmacia?: {
+    nome_fantasia?: string;
+    razao_social?: string;
+  };
+};
+
+function getLowestOfferFromBackend(offers?: Oferta[]) {
+  if (!offers?.length) {
+    return undefined;
+  }
+
+  return [...offers].sort((a, b) => Number(a.preco) - Number(b.preco))[0];
+}
+
+function formatPrice(value?: number) {
+  if (value === undefined || !Number.isFinite(value)) {
+    return '--';
+  }
+
+  return `R$ ${value.toFixed(2).replace('.', ',')}`;
+}
+
+function getPharmacyName(offer?: OfertaComExtras) {
+  if (!offer) {
+    return 'Sem ofertas';
+  }
+
+  return (
+    offer.farmacia_nome ||
+    offer.farmacia?.nome_fantasia ||
+    offer.farmacia?.razao_social ||
+    `Farmácia ID: ${offer.farmacia_id}`
+  );
+}
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { favoriteIds, toggleFavorite, markAsViewed } = useAppContext();
+  const { favoriteMedicines, toggleFavorite, markAsViewed } = useAppContext();
 
-  const favoriteMedicines = useMemo(
-    () => medicines.filter((medicine) => favoriteIds.includes(medicine.id)),
-    [favoriteIds]
-  );
-
-  const [notificationMap, setNotificationMap] = useState<Record<string, boolean>>(
-    Object.fromEntries(favoriteIds.map((id) => [id, true]))
-  );
+  const [notificationMap, setNotificationMap] = useState<Record<number, boolean>>({});
 
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 1200;
@@ -36,15 +67,15 @@ export default function FavoritesScreen() {
 
   const cardWidth = isDesktop ? 320 : isTablet ? 280 : '100%';
 
-  const handleOpenMedicine = (id: string) => {
+  const handleOpenMedicine = (id: number) => {
     markAsViewed(id);
     router.push(`/medicine/${id}`);
   };
 
-  const handleToggleNotification = (id: string) => {
+  const handleToggleNotification = (id: number) => {
     setNotificationMap((current) => ({
       ...current,
-      [id]: !current[id],
+      [id]: !(current[id] ?? true),
     }));
   };
 
@@ -63,8 +94,10 @@ export default function FavoritesScreen() {
       ) : (
         <View style={[styles.grid, isWeb && styles.gridWeb]}>
           {favoriteMedicines.map((medicine) => {
-            const lowest = getLowestOffer(medicine);
+            const lowest = getLowestOfferFromBackend(medicine.ofertas);
             const notificationsEnabled = notificationMap[medicine.id] ?? true;
+            const imageUrl = lowest?.imagem_url;
+            const price = lowest ? Number(lowest.preco) : undefined;
 
             return (
               <View
@@ -75,7 +108,7 @@ export default function FavoritesScreen() {
                   { width: cardWidth },
                 ]}
               >
-                <View style={styles.imageBox}>
+                <View style={[styles.imageBox, imageUrl && styles.imageBoxWithImage]}>
                   <Pressable
                     style={styles.imageOpenButton}
                     onPress={() => handleOpenMedicine(medicine.id)}
@@ -88,11 +121,19 @@ export default function FavoritesScreen() {
                     <Ionicons name="trash-outline" size={16} color={palette.surface} />
                   </Pressable>
 
-                  <Ionicons
-                    name="image-outline"
-                    size={isWeb ? 34 : 28}
-                    color={palette.textSoft}
-                  />
+                  {imageUrl ? (
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.productImage}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Ionicons
+                      name="image-outline"
+                      size={isWeb ? 34 : 28}
+                      color={palette.textSoft}
+                    />
+                  )}
                 </View>
 
                 <View style={styles.cardContent}>
@@ -120,21 +161,15 @@ export default function FavoritesScreen() {
                     onPress={() => handleOpenMedicine(medicine.id)}
                   >
                     <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
-                      {medicine.name}
+                      {medicine.nome}
                     </Text>
 
-                    <Text
-                      style={[
-                        styles.pharmacy,
-                        isWeb && styles.pharmacyWeb,
-                        { color: pharmacyColors[lowest.pharmacy] ?? palette.primary },
-                      ]}
-                    >
-                      {lowest.pharmacy}
+                    <Text style={[styles.pharmacy, isWeb && styles.pharmacyWeb]}>
+                      {getPharmacyName(lowest as OfertaComExtras)}
                     </Text>
 
                     <Text style={[styles.price, isWeb && styles.priceWeb]}>
-                      ${lowest.price.toFixed(2)}
+                      {formatPrice(price)}
                     </Text>
                   </Pressable>
                 </View>
@@ -206,6 +241,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  imageBoxWithImage: {
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
   },
   imageOpenButton: {
     ...StyleSheet.absoluteFillObject,
@@ -218,7 +263,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: radius.pill,
-    backgroundColor: '#EB5B54',
+    backgroundColor: palette.danger,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3,
@@ -266,6 +311,7 @@ const styles = StyleSheet.create({
   pharmacy: {
     fontSize: 13,
     fontWeight: '600',
+    color: palette.primary,
   },
   pharmacyWeb: {
     fontSize: 15,
