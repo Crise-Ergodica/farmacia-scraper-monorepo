@@ -54,7 +54,7 @@ async def extrair_todos_produtos() -> None:
     pagina = 1
     processando = True
 
-    async with httpx.AsyncClient(headers=headers, timeout=30.0) as client:
+    async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as client:
         while processando:
             print(f"Buscando Página {pagina} (Itens {offset} a {offset + itens_por_pagina})...")
             
@@ -88,8 +88,24 @@ async def extrair_todos_produtos() -> None:
                 await asyncio.sleep(2.0)
 
             except httpx.HTTPStatusError as e:
-                print(f"Erro HTTP na página {pagina}: {e.response.status_code}")
-                break
+                status = e.response.status_code
+                
+                # Retoma a extração da mesma página após 1 minuto (http 429: Too Many Requests)
+                if status == 429:
+                    print(f"Rate limit (429) atingido na página {pagina}. Pausando por 60 segundos...")
+                    await asyncio.sleep(60.0)
+                    continue 
+                
+                # Retoma a extração da mesma página após 10 segundos (http 500)
+                elif status >= 500:
+                    print(f"Erro {status} no servidor na página {pagina}. Aguardando 10s...")
+                    await asyncio.sleep(10.0)
+                    continue 
+                    
+                else:
+                    print(f"Erro HTTP bloqueante na página {pagina}: {status}")
+                    break  # Para 400, 401, 403, 404 (diferentes de 429 e de 500) encerra o loop
+                    
             except Exception as e:
                 print(f"Falha inesperada: {e}")
                 break
@@ -190,11 +206,17 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                 db.commit()  # Necessário para gerar o ID que será usado na oferta
                 db.refresh(catalogo_item)
 
-            # Tenta encontrar a Oferta deste produto nesta farmácia específica
+            # Tenta encontrar a Oferta pela URL (já que possui restrição UNIQUE no banco)
             oferta_existente = db.query(OfertaFarmacia).filter(
-                OfertaFarmacia.catalogo_id == catalogo_item.id,
-                OfertaFarmacia.farmacia_id == farmacia.id
+                OfertaFarmacia.url_origem == prod['link']
             ).first()
+
+            # Se não encontrar pela URL, tenta pela combinação de catálogo e farmácia
+            if not oferta_existente:
+                oferta_existente = db.query(OfertaFarmacia).filter(
+                    OfertaFarmacia.catalogo_id == catalogo_item.id,
+                    OfertaFarmacia.farmacia_id == farmacia.id
+                ).first()
 
             # Se não houver oferta, cria uma nova
             if not oferta_existente:
@@ -211,7 +233,11 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             # Se a oferta já existir, atualiza apenas os dados dinâmicos
             else:
                 oferta_existente.preco = prod['preco']
-                oferta_existente.url_origem = prod['link']
+                
+                # Atualiza a URL apenas se ela mudou (previne UniqueViolation secundário)
+                if oferta_existente.url_origem != prod['link']:
+                    oferta_existente.url_origem = prod['link']
+                    
                 if prod.get('imagem_url'):
                     oferta_existente.imagem_url = prod['imagem_url']
 
