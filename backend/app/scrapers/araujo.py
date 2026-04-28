@@ -1,223 +1,291 @@
-#TODO: Criando o 2° Scrapper: Farmacia Araujo!
+"""
+app.scrapers.araujo
+===================
+"""
 
-# """
-# app.scrapers.araujo
-# ===================
+# 1. Bibliotecas Padrão do Python
+import asyncio
+import json
+import random
+import re
+from typing import Any, Dict, List, Literal
 
-# Este módulo fornece utilitários para a extração (scraping) do catálogo de
-# medicamentos da Drogaria Araujo.
+# 2. Bibliotecas de Terceiros
+from bs4.element import AttributeValueList
+from curl_cffi import requests 
+from bs4 import BeautifulSoup, Tag
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.session import Session
 
-# Implementa rotinas assíncronas para consumo de dados, tratamento de paginação,
-# resiliência de rede (Jitter e Backoff) e persistência em lote utilizando
-# os modelos do SQLAlchemy.
-# """
-
-# import asyncio
-# import random
-# from typing import Any, Dict, List
-# import httpx
-
-# from app.core.database import SessionLocal
-# from app.core.utils import validar_ean13
-# from app.models.farmacia import Farmacia
-# from app.models.catalogo import CatalogoBase
-# from app.models.oferta_farmacia import OfertaFarmacia
-# from sqlalchemy.exc import SQLAlchemyError
+# 3. Módulos Locais da Aplicação
+from app.core.database import SessionLocal
+from app.core.utils import validar_ean13
+from app.models.catalogo import CatalogoBase
+from app.models.farmacia import Farmacia
+from app.models.oferta_farmacia import OfertaFarmacia
 
 
-# async def extrair_todos_produtos() -> None:
-#     """
-#     Controla o loop principal de varredura do catálogo da Araujo.
-#     """
-#     # URL temporária: precisaremos mapear a rota real da Araujo
-#     url_base_api = "https://www.araujo.com.br/api/catalog_system/pub/products/search/medicamentos"
+async def extrair_todos_produtos() -> None:
+    """
+    Controla o loop principal de varredura do catálogo da Araujo via HTML.
+    """
+    url_base = "https://www.araujo.com.br/medicamentos"
     
-#     headers = {
-#         "Accept": "application/json",
-#         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-#     }
+    # O curl_cffi já envia a maioria dos headers corretos de navegador, 
+    # mas mantemos o Accept-Language por garantia.
+    headers = {
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    }
 
-#     itens_por_pagina = 49  
-#     offset = 0
-#     pagina = 1
-#     processando = True
+    pagina = 1
+    processando = True
 
-#     async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as client:
-#         while processando:
-#             print(f"Buscando Araujo: Página {pagina} (Itens {offset} a {offset + itens_por_pagina})...")
+    # TROCAMOS AQUI: Usando AsyncSession com impersonate="chrome"
+    async with requests.AsyncSession(impersonate="chrome", headers=headers, timeout=30.0) as client:
+        while processando:
+            print(f"Buscando Araujo: Página {pagina}...")
             
-#             try:
-#                 url_paginada = f"{url_base_api}?_from={offset}&_to={offset + itens_por_pagina}"
-#                 resp = await client.get(url_paginada)
+            try:
+                url_paginada = f"{url_base}?page={pagina}" if pagina > 1 else url_base
+                resp = await client.get(url=url_paginada)
                 
-#                 if resp.status_code == 404:
-#                     print("Fim do catálogo (404).")
-#                     break
+                if resp.status_code == 404:
+                    print("Fim do catálogo (404).")
+                    break
 
-#                 resp.raise_for_status()
-#                 produtos_brutos = resp.json()
+                resp.raise_for_status()
+                html_content = resp.text
 
-#                 if not produtos_brutos:
-#                     print("Lista vazia. Varredura finalizada.")
-#                     break
+                # Passamos o HTML cru para o parser
+                produtos_limpos = adaptar_parser_araujo_html(html_content=html_content)
 
-#                 produtos_limpos = adaptar_parser_araujo(produtos_brutos)
-#                 await asyncio.to_thread(salvar_no_banco, produtos_limpos)
-#                 print(f"[{pagina}] {len(produtos_limpos)} medicamentos da Araujo processados.")
-                
-#                 pagina += 1
-#                 offset += (itens_por_pagina + 1)
-                
-#                 # Jitter implementado para mitigar bloqueios
-#                 tempo_pausa = random.uniform(2.0, 4.0)
-#                 await asyncio.sleep(tempo_pausa)
+                if not produtos_limpos:
+                    print("Nenhum produto encontrado nesta página. Varredura finalizada.")
+                    break
 
-#             except httpx.HTTPStatusError as e:
-#                 status = e.response.status_code
+                await asyncio.to_thread(salvar_no_banco, produtos_limpos)
+                print(f"[{pagina}] {len(produtos_limpos)} medicamentos da Araujo processados.")
                 
-#                 if status == 429:
-#                     print(f"Rate limit (429) na Araujo. Pausando por 60 segundos...")
-#                     await asyncio.sleep(60.0)
-#                     continue 
+                pagina += 1
                 
-#                 elif status >= 500:
-#                     print(f"Erro {status} no servidor Araujo. Aguardando 10s...")
-#                     await asyncio.sleep(10.0)
-#                     continue 
+                # ADICIONADO PARA O TESTE: Parar após a página 2
+                if pagina > 2:
+                    print("Limite de teste atingido. Encerrando.")
+                    break
+                
+                tempo_pausa = random.uniform(2.0, 5.0)
+                await asyncio.sleep(tempo_pausa)
+
+            except requests.errors.RequestsError as e: 
+                print(f"Erro de conexão na Araujo: {e}")
+                break
+                
+            except Exception as e:
+                # Acessa o atributo de forma dinâmica e segura para tipagem estática
+                response: Any | None = getattr(e, "response", None)
+                
+                if response is not None:
+                    status: int = getattr(response, "status_code", 0)
                     
-#                 else:
-#                     print(f"Erro HTTP bloqueante na página {pagina}: {status}")
-#                     break
-                    
-#             except Exception as e:
-#                 print(f"Falha inesperada: {e}")
-#                 break
+                    if status == 429:
+                        print(f"Rate limit (429) na Araujo. Pausando por 60 segundos...")
+                        await asyncio.sleep(60.0)
+                        continue 
+                    elif status >= 500:
+                        print(f"Erro {status} no servidor Araujo. Aguardando 10s...")
+                        await asyncio.sleep(10.0)
+                        continue 
+                    else:
+                        print(f"Erro HTTP bloqueante na página {pagina}: {status}")
+                        break
+                else:
+                    print(f"Falha inesperada: {e}")
+                    break
 
-
-# def adaptar_parser_araujo(produtos_brutos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-#     """
-#     Analisa e limpa a resposta bruta de produtos da Araujo.
-#     """
-#     catalogo_limpo = []
+def adaptar_parser_araujo_html(html_content: str) -> List[Dict[str, Any]]:
+    """
+    Analisa o DOM do HTML da Araujo utilizando BeautifulSoup para extrair os produtos.
+    Aproveita os metadados JSON do Google Tag Manager embutidos no HTML e 
+    extrai o EAN através de Regex na URL da imagem.
+    """
+    catalogo_limpo = []
+    soup = BeautifulSoup(markup=html_content, features="html.parser")
     
-#     for prod in produtos_brutos:
-#         # A lógica exata de extração dependerá do payload da Araujo
-#         # Este é um esqueleto baseado na estrutura VTEX padrão
-#         itens = prod.get("items", [])
-#         if not itens:
-#             continue
-            
-#         item_principal = itens[0]
-        
-#         ean = item_principal.get("ean")
-#         if not ean:
-#             refs = item_principal.get("referenceId", [])
-#             ean = refs[0].get("Value") if refs else ""
-            
-#         vendedores = item_principal.get("sellers", [])
-#         preco = 0.0
-#         if vendedores:
-#             preco = vendedores[0].get("commertialOffer", {}).get("Price", 0.0)
-            
-#         imagens = item_principal.get("images", [])
-#         imagem_url = imagens[0].get("imageUrl") if imagens else None
-
-#         catalogo_limpo.append({
-#             "id": item_principal.get("itemId"),
-#             "ean": ean,
-#             "nome": prod.get("productName"),
-#             "preco": preco,
-#             "link": prod.get("link"),
-#             "imagem_url": imagem_url
-#         })
-        
-#     return catalogo_limpo
-        
-
-# def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
-#     """
-#     Persiste uma lista de produtos no banco de dados.
-#     """
-#     db = SessionLocal()
+    # Busca a classe principal do card do produto
+    cards_produtos = soup.find_all(name="div", class_="productTile")
     
-#     try:
-#         # CNPJ Matriz da Araujo
-#         cnpj_padrao = "17256512000116" 
-#         farmacia = db.query(Farmacia).filter(Farmacia.cnpj == cnpj_padrao).first()
-
-#         if not farmacia:
-#             farmacia = Farmacia(
-#                 cnpj=cnpj_padrao,
-#                 razao_social="Drogaria Araujo S.A",
-#                 nome_fantasia="Araujo",
-#                 endereco_completo="Extração API REST"
-#             )
-#             db.add(farmacia)
-#             db.commit()
-#             db.refresh(farmacia)
-
-#         for prod in produtos:
-#             ean = prod.get('ean')
-
-#             if not ean or not validar_ean13(ean):
-#                 continue
-
-#             catalogo_item = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean).first()
-
-#             if not catalogo_item:
-#                 catalogo_item = CatalogoBase(
-#                     codigo_barras=ean,
-#                     nome=prod['nome'],
-#                     principio_ativo="Não informado",
-#                     laboratorio="Não informado",
-#                     exige_receita=False
-#                 )
-#                 db.add(catalogo_item)
-#                 db.commit()
-#                 db.refresh(catalogo_item)
-
-#             oferta_existente = db.query(OfertaFarmacia).filter(
-#                 OfertaFarmacia.url_origem == prod['link']
-#             ).first()
-
-#             if not oferta_existente:
-#                 oferta_existente = db.query(OfertaFarmacia).filter(
-#                     OfertaFarmacia.catalogo_id == catalogo_item.id,
-#                     OfertaFarmacia.farmacia_id == farmacia.id
-#                 ).first()
-
-#             if not oferta_existente:
-#                 nova_oferta = OfertaFarmacia(
-#                     preco=prod['preco'],
-#                     quantidade_estoque=1,
-#                     disponivel=True,
-#                     url_origem=prod['link'],
-#                     imagem_url=prod.get('imagem_url'),
-#                     farmacia_id=farmacia.id,
-#                     catalogo_id=catalogo_item.id
-#                 )
-#                 db.add(nova_oferta)
-#             else:
-#                 oferta_existente.preco = prod['preco']
+    for card in cards_produtos:
+        try:
+            # 1. Link do produto (Pegando diretamente do atributo do card)
+            link_path: str | AttributeValueList | None = card.get(key="data-url")
+            # Validação para evitar falhas de tipagem
+            if isinstance(link_path, list):
+                link_path = str(link_path[0])
+            elif link_path:
+                link_path = str(link_path)
+            else:
+                link_path = ""
                 
-#                 if oferta_existente.url_origem != prod['link']:
-#                     oferta_existente.url_origem = prod['link']
-                    
-#                 if prod.get('imagem_url'):
-#                     oferta_existente.imagem_url = prod['imagem_url']
+            link = f"https://www.araujo.com.br{link_path}" if link_path else ""
+
+            # 2. Dados GTM (Google Tag Manager)
+            # A Araujo injeta um JSON limpo com nome e preço aqui, o que evita erros de formatação
+            gtm_tag: Tag | None = card.find("div", class_="gtmContainer__productTile")
+            gtm_data_str: str | AttributeValueList | None = gtm_tag.get("data-gtmga4data") if gtm_tag else "{}"
             
-#         db.commit()
+            # Garantir que a string GTM é tratada corretamente
+            if isinstance(gtm_data_str, list):
+                gtm_data_str = str(gtm_data_str[0])
+            elif gtm_data_str:
+                gtm_data_str = str(gtm_data_str)
+                
+            gtm_data = json.loads(gtm_data_str) if gtm_data_str else {}
+            
+            # 3. Nome e Preço
+            nome = gtm_data.get("item_name", "")
+            if not nome:
+                tag_nome: Tag | None = card.find("a", class_="productTile__name")
+                nome: Any | Literal['Nome não encontrado'] = tag_nome.text.strip() if tag_nome else "Nome não encontrado"
+                
+            preco = gtm_data.get("price", 0.0)
+            if not preco:
+                tag_preco: Tag | None = card.find("span", class_="productPrice__price")
+                if tag_preco:
+                    texto_preco = tag_preco.text.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                    preco = float(texto_preco)
 
-#     except SQLAlchemyError as e:
-#         db.rollback()
-#         print(f"[ERRO DB] Falha na persistência: {e}")
-#     finally:
-#         db.close()
+            # 4. Imagem e EAN
+            tag_img: Tag | None = card.find(name="img", class_="productTile__imageWrapper__img")
+            
+            # Algumas imagens usam lazy loading via data-src
+            imagem_url: str | AttributeValueList | None = tag_img.get(key="data-src") or tag_img.get(key="src") if tag_img else ""
+            if isinstance(imagem_url, list):
+                imagem_url = str(imagem_url[0])
+            elif imagem_url:
+                imagem_url = str(imagem_url)
+            
+            ean = ""
+            if imagem_url:
+                # Procura por 13 ou 14 números seguidos na string da URL da imagem
+                match: re.Match[str] | None = re.search(pattern=r'(\d{13,14})', string=imagem_url)
+                if match:
+                    ean: str | Any = match.group(1)
+
+            # 5. ID Interno (Fallback caso o EAN falhe)
+            id_interno = card.get(key="data-pid", default="")
+            if isinstance(id_interno, list):
+                id_interno = str(id_interno[0])
+            elif id_interno:
+                id_interno = str(id_interno)
+
+            if link:
+                catalogo_limpo.append({
+                    "id": id_interno,
+                    "ean": ean,
+                    "nome": nome,
+                    "preco": float(preco),
+                    "link": link,
+                    "imagem_url": imagem_url
+                })
+        except Exception as e:
+            print(f"Erro ao parsear um card específico: {e}")
+            continue
+        
+    return catalogo_limpo
+        
+
+def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
+    """
+    Persiste uma lista de produtos no banco de dados.
+    Esta função permanece praticamente idêntica à do scraper da Indiana.
+    """
+    db: Session = SessionLocal()
+    
+    try:
+        # CNPJ Matriz da Araujo
+        cnpj_padrao = "17256512000116" 
+        farmacia: Farmacia | None = db.query(Farmacia).filter(Farmacia.cnpj == cnpj_padrao).first()
+
+        if not farmacia:
+            farmacia = Farmacia(
+                cnpj=cnpj_padrao,
+                razao_social="Drogaria Araujo S.A",
+                nome_fantasia="Araujo",
+                endereco_completo="Extração via HTML Scraper"
+            )
+            db.add(instance=farmacia)
+            db.commit()
+            db.refresh(instance=farmacia)
+
+        for prod in produtos:
+            ean: Any | None = prod.get('ean')
+            
+            # Garante que o EAN é string antes de validar
+            if ean:
+                ean = str(ean)
+            
+            if not ean or not validar_ean13(ean=ean):
+                # Cria um código falso único usando o ID da Araujo. 
+                # O [:13] garante que não vai estourar o String(13) do modelo de banco de dados.
+                id_produto = str(prod.get('id', '000'))
+                ean = f"ARJ{id_produto}"[:13] 
+
+            catalogo_item: CatalogoBase | None = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean).first()
+
+            if not catalogo_item:
+                catalogo_item = CatalogoBase(
+                    codigo_barras=ean,
+                    nome=prod['nome'],
+                    principio_ativo="Não informado",
+                    laboratorio="Não informado",
+                    exige_receita=False
+                )
+                db.add(instance=catalogo_item)
+                db.commit()
+                db.refresh(instance=catalogo_item)
+
+            oferta_existente = db.query(OfertaFarmacia).filter(
+                OfertaFarmacia.url_origem == prod['link']
+            ).first()
+
+            if not oferta_existente:
+                oferta_existente: OfertaFarmacia | None = db.query(OfertaFarmacia).filter(
+                    OfertaFarmacia.catalogo_id == catalogo_item.id,
+                    OfertaFarmacia.farmacia_id == farmacia.id
+                ).first()
+
+            if not oferta_existente:
+                nova_oferta = OfertaFarmacia(
+                    preco=prod['preco'],
+                    quantidade_estoque=1,
+                    disponivel=True,
+                    url_origem=prod['link'],
+                    imagem_url=prod.get('imagem_url'),
+                    farmacia_id=farmacia.id,
+                    catalogo_id=catalogo_item.id
+                )
+                db.add(instance=nova_oferta)
+            else:
+                oferta_existente.preco = prod['preco']
+                
+                if oferta_existente.url_origem != prod['link']:
+                    oferta_existente.url_origem = prod['link']
+                    
+                if prod.get('imagem_url'):
+                    oferta_existente.imagem_url = prod['imagem_url']
+            
+        db.commit()
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        print(f"[ERRO DB] Falha na persistência: {e}")
+    finally:
+        db.close()
 
 
-# if __name__ == "__main__":
-#     print("Iniciando varredura na Drogaria Araujo...")
-#     try:
-#         asyncio.run(extrair_todos_produtos())
-#     except KeyboardInterrupt:
-#         print("\nInterrompido pela usuária.")
+if __name__ == "__main__":
+    print("Iniciando varredura na Drogaria Araujo via HTML...")
+    try:
+        asyncio.run(main=extrair_todos_produtos())
+    except KeyboardInterrupt:
+        print("\nInterrompido pela usuária.")
