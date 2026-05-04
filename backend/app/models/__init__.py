@@ -11,6 +11,7 @@ Módulos e Classes Exportadas:
     * :class:`~models.farmacia.Farmacia`: Entidade que representa as farmácias físicas e jurídicas.
     * :class:`~models.catalogo.CatalogoBase`: Entidade que representa o catálogo unificado com dados farmacológicos invariáveis.
     * :class:`~models.oferta_farmacia.OfertaFarmacia`: Entidade que representa a precificação e a disponibilidade (oferta) de um item numa loja.
+    * :class:`~models.historico.HistoricoPreco`: Entidade que registra o histórico temporal de preços por farmácia.
 
 .. note::
     Para o correto funcionamento das migrações, certifique-se de importar 
@@ -22,10 +23,12 @@ from .base import Base
 from .farmacia import Farmacia
 from .catalogo import CatalogoBase
 from .oferta_farmacia import OfertaFarmacia
+from .historico import HistoricoPreco
 
 __all__ = [
     "Base",
     "Farmacia",
     "CatalogoBase",
     "OfertaFarmacia",
+    "HistoricoPreco",
 ]
