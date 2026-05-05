@@ -9,7 +9,7 @@ from app.schemas import CatalogoComOfertasOut, HistoricoOut
 
 router = APIRouter(prefix="/catalogo", tags=["Catálogo de Produtos"])
 
-@router.get("/", response_model=list[CatalogoComOfertasOut])
+@router.get(path="", response_model=list[CatalogoComOfertasOut])
 def listar_catalogo_completo(db: Session = Depends(get_db)):
     """
     Retorna todo o catálogo de medicamentos, incluindo as ofertas locais 
@@ -23,7 +23,7 @@ def listar_catalogo_completo(db: Session = Depends(get_db)):
     
     return resultados
 
-@router.get("/medicamentos/{id}/historico", response_model=list[schemas.HistoricoOut])
+@router.get(path="/medicamentos/{id}/historico", response_model=list[schemas.HistoricoOut])
 def ler_historico(id: int, db: Session = Depends(get_db)):
     # Retorna os preços ordenados por data para o gráfico
     return db.query(HistoricoPreco).filter(

@@ -3,17 +3,18 @@ Módulo responsável pela definição dos contratos de dados (Schemas) de Oferta
 """
 from decimal import Decimal
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field
 
 class OfertaBaseSchema(BaseModel):
     """
     Schema base contendo os atributos voláteis de precificação e estoque.
     """
-    preco: Decimal = Field(..., max_digits=10, decimal_places=2)
+    preco: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
     quantidade_estoque: int = Field(default=0, ge=0)
     disponivel: bool = Field(default=True)
-    url_origem: HttpUrl
-    imagem_url: HttpUrl | None = None
+    url_origem: str 
+    imagem_url: str | None = None
 
 class OfertaOut(OfertaBaseSchema):
     """

@@ -1,64 +1,58 @@
-#!/bin/bash
-set -e 
+$ErrorActionPreference = "Stop"
 
-## Requer execução com sudo: 
-## sudo bash ./bootstrap/setup_linux.sh
-
-echo -e "\e[36mIniciando a instalação do ambiente de desenvolvimento...\e[0m"
-
-# Identifica a distribuição Linux
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-    OS_LIKE=$ID_LIKE
-else
-    echo -e "\e[31mNão foi possível detectar a distribuição Linux. Abortando.\e[0m"
-    exit 1
-fi
-
-echo -e "Distribuição detectada: \e[33m$OS\e[0m"
-
-# Função para instalar pacotes via APT (Debian/Ubuntu)
-install_apt() {
-    sudo apt update && sudo apt upgrade -y
-    # Inclui build-essential, libpq-dev, nodejs e o docker-compose-plugin (Compose V2)
-    sudo apt install -y git python3 python3-pip python3-venv make curl docker.io docker-compose-plugin build-essential libpq-dev nodejs npm
+# 1 : AUTO-ELEVAÇÃO
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-Not $isAdmin) {
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$PSCommandPath`"" -Verb RunAs
+    Exit
 }
 
-# Função para instalar pacotes via DNF (Fedora/RHEL)
-install_dnf() {
-    sudo dnf upgrade -y
-    # Equivalentes no ecossistema RPM, incluindo o docker-compose-plugin (Compose V2)
-    sudo dnf install -y git python3 python3-pip make curl docker docker-compose-plugin gcc postgresql-devel nodejs npm
+# 2 : INSTALAÇÃO DO WSL E REBOOT
+$resumeMarker = "$env:TEMP\wsl_setup_resume.marker"
+
+if (-not (Test-Path $resumeMarker)) {
+    Write-Host "Verificando estado do WSL..." -ForegroundColor Cyan
+    
+    # Comando simplificado para instalar o WSL (padrão Ubuntu)
+    wsl --install
+    
+    Write-Host "`n=================================================================" -ForegroundColor Red
+    Write-Host "O WSL foi habilitado. O Windows PRECISA reiniciar agora." -ForegroundColor Red
+    Write-Host "Após o reinício, o Windows abrirá o terminal do Ubuntu para" -ForegroundColor Yellow
+    Write-Host "você configurar seu usuário e senha. Depois disso, execute" -ForegroundColor Yellow
+    Write-Host "este script novamente para concluir a configuração." -ForegroundColor Yellow
+    Write-Host "=================================================================" -ForegroundColor Red
+    
+    New-Item -Path $resumeMarker -ItemType File -Force | Out-Null
+    
+    # Agenda a retomada
+    $runOnceCmd = "powershell.exe -WindowStyle Normal -Command `"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -NoExit -File ''$PSCommandPath''' -Verb RunAs`""
+    Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\RunOnce" -Name "ResumeWSLSetup" -Value $runOnceCmd
+    
+    Write-Host "Reiniciando em 10 segundos..." -ForegroundColor Red
+    Start-Sleep -Seconds 10
+    Restart-Computer -Force
+    Exit
 }
 
-# Função para instalar pacotes via Pacman (Arch Linux/Manjaro)
-install_pacman() {
-    sudo pacman -Syu --noconfirm
-    # No Arch Linux, o pacote docker-compose já entrega a versão moderna em Go
-    sudo pacman -S --noconfirm git python python-pip make curl docker docker-compose gcc postgresql-libs nodejs npm
-}
+# 3 : INSTRUÇÕES DO VS CODE E DISPARO DO SCRIPT LINUX
+Remove-Item $resumeMarker -Force -ErrorAction SilentlyContinue
 
-# Despachante de gerenciador de pacotes
-if [[ "$OS" == "ubuntu" || "$OS" == "debian" || "$OS_LIKE" == *"debian"* ]]; then
-    install_apt
-elif [[ "$OS" == "fedora" || "$OS_LIKE" == *"fedora"* || "$OS_LIKE" == *"rhel"* ]]; then
-    install_dnf
-elif [[ "$OS" == "arch" || "$OS_LIKE" == *"arch"* ]]; then
-    install_pacman
-else
-    echo -e "\e[31mGerenciador de pacotes para $OS não mapeado no script.\e[0m"
-    exit 1
-fi
+Write-Host "`n=================================================================" -ForegroundColor Green
+Write-Host "WSL DETECTADO E ATIVO" -ForegroundColor Green
+Write-Host "=================================================================" -ForegroundColor Green
 
-# Configuração do Docker (Motor nativo Linux)
-echo "Configurando serviços do Docker..."
-sudo systemctl enable --now docker
-sudo usermod -aG docker $USER
+Write-Host "`nPASSO A PASSO PARA VS CODE:" -ForegroundColor Yellow
+Write-Host "1. Instale a extensão 'WSL' (da Microsoft) no seu VS Code local."
+Write-Host "2. Clique no ícone azul no canto inferior esquerdo do VS Code."
+Write-Host "3. Selecione 'Connect to WSL'."
+Write-Host "4. Abra a pasta do projeto dentro do ambiente Linux."
 
-# Instalação do Poetry
-echo "Instalando Poetry..."
-curl -sSL https://install.python-poetry.org | python3 -
+Write-Host "`n-----------------------------------------------------------------"
+Write-Host "Iniciando a execução do script Linux dentro do WSL..." -ForegroundColor Cyan
 
-echo -e "\e[32mInstalação concluída com sucesso!\e[0m"
-echo -e "\e[33mATENÇÃO:\e[0m Execute o comando \e[1mnewgrp docker\e[0m no seu terminal atual ou reinicie a sessão para aplicar as permissões do grupo Docker sem precisar de sudo."
+# Converte o caminho do Windows para o caminho do WSL e executa o .sh
+$wslPath = wsl wslpath ($PSScriptRoot + "/setup_linux.sh")
+wsl bash $wslPath
+
+Write-Host "`nProcesso concluído!" -ForegroundColor Green

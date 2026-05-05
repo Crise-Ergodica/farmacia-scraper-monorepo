@@ -163,6 +163,11 @@ def adaptar_parser_araujo_html(html_content: str) -> List[Dict[str, Any]]:
                 imagem_url = str(imagem_url[0])
             elif imagem_url:
                 imagem_url = str(imagem_url)
+            else:
+                imagem_url = ""
+                
+            if imagem_url and imagem_url.startswith("/"):
+                imagem_url = f"https://www.araujo.com.br{imagem_url}"
             
             ean = ""
             if imagem_url:
