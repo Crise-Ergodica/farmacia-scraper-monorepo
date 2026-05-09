@@ -44,7 +44,7 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
       ? 210
       : '31%';
 
-  const farmaciaDisplay = lowest ? `Farmácia ID: ${lowest.farmacia_id}` : 'Sem ofertas';
+
   const priceDisplay = lowest
     ? `R$ ${Number(lowest.preco).toFixed(2).replace('.', ',')}`
     : '--';
@@ -114,7 +114,7 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
               { color: palette.primary },
             ]}
           >
-            {farmaciaDisplay}
+
           </Text>
 
           <Text style={[styles.price, isWeb && styles.priceWeb]}>

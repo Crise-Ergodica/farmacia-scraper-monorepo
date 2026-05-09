@@ -27,6 +27,11 @@ type OfertaComExtras = Oferta & {
   };
 };
 
+const PHARMACY_NAME_MAP: Record<number, string> = {
+  1: 'Farmácia Indiana',
+  2: 'Drogaria Araújo',
+};
+
 function getOfferPrice(offer?: Oferta) {
   if (!offer) return Infinity;
   return Number(offer.preco);
@@ -55,6 +60,7 @@ function getPharmacyName(offer: OfertaComExtras) {
     offer.farmacia_nome ||
     offer.farmacia?.nome_fantasia ||
     offer.farmacia?.razao_social ||
+    PHARMACY_NAME_MAP[offer.farmacia_id] ||
     `Farmácia ${offer.farmacia_id}`
   );
 }
@@ -290,10 +296,6 @@ export default function MedicineDetailScreen() {
                     <View style={styles.offerInfo}>
                       <Text style={styles.offerName} numberOfLines={1}>
                         {pharmacyName}
-                      </Text>
-
-                      <Text style={styles.offerStock}>
-                        {offer.disponivel ? 'Disponível' : 'Indisponível'}
                       </Text>
 
                       <Text style={styles.offerPrice}>
@@ -543,13 +545,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: palette.text,
     fontWeight: '700',
-    marginBottom: 2,
-  },
-  offerStock: {
-    fontSize: 12,
-    color: palette.success,
-    fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   offerPrice: {
     fontSize: 22,
