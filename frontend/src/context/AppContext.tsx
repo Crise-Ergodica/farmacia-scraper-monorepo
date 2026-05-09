@@ -5,7 +5,6 @@ import { Medicamento } from '../types/api';
 
 type SessionMode = 'guest' | 'authenticated';
 
-// Adaptado para usar chaves correspondentes ao backend
 type SearchRow = {
   medicineId: number;
   medicineNome: string;
@@ -13,16 +12,37 @@ type SearchRow = {
   preco: number;
 };
 
+type LoginResult = {
+  ok: boolean;
+  message: string;
+};
+
+type RegisterPayload = {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+type RegisterResult = {
+  ok: boolean;
+  message: string;
+};
+
 type AppContextValue = {
   medicines: Medicamento[];
   isLoading: boolean;
   sessionMode: SessionMode;
+  currentUserName: string | null;
+  currentUserEmail: string | null;
   favoriteIds: number[];
   recentIds: number[];
   selectedFilters: MedicineCategory[];
   filterOptions: MedicineCategory[];
   continueAsGuest: () => void;
-  signIn: (email?: string) => void;
+  signIn: (email: string, password: string) => Promise<LoginResult>;
+  registerUser: (payload: RegisterPayload) => Promise<RegisterResult>;
+  logout: () => void;
   toggleFavorite: (id: number) => void;
   markAsViewed: (id: number) => void;
   toggleFilter: (filter: MedicineCategory) => void;
@@ -37,19 +57,20 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [medicines, setMedicines] = useState<Medicamento[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
+
   const [sessionMode, setSessionMode] = useState<SessionMode>('guest');
-  // IDs mockados temporariamente alterados para numbers para não quebrar a UI
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
   const [favoriteIds, setFavoriteIds] = useState<number[]>([2, 5, 9, 3, 6]);
   const [recentIds, setRecentIds] = useState<number[]>([1, 2, 3]);
   const [selectedFilters, setSelectedFilters] = useState<MedicineCategory[]>([]);
 
-  // Carrega o catálogo do backend ao inicializar o app
   useEffect(() => {
     const fetchCatalogo = async () => {
       try {
@@ -58,7 +79,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         setMedicines(data);
       } catch (error) {
-        console.error("Erro na integração com FastAPI:", error);
+        console.error('Erro na integração com FastAPI:', error);
       } finally {
         setIsLoading(false);
       }
@@ -67,8 +88,91 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     fetchCatalogo();
   }, []);
 
-  const continueAsGuest = () => setSessionMode('guest');
-  const signIn = () => setSessionMode('authenticated');
+  const continueAsGuest = () => {
+    setSessionMode('guest');
+    setCurrentUserName(null);
+    setCurrentUserEmail(null);
+  };
+
+  const logout = () => {
+    setSessionMode('guest');
+    setCurrentUserName(null);
+    setCurrentUserEmail(null);
+  };
+
+  const signIn = async (email: string, password: string): Promise<LoginResult> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          message: data.detail || 'Não foi possível entrar.',
+        };
+      }
+
+      setSessionMode('authenticated');
+      setCurrentUserName(data.name);
+      setCurrentUserEmail(data.email);
+
+      return {
+        ok: true,
+        message: data.message || 'Login realizado com sucesso.',
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: 'Erro de conexão com o servidor de autenticação.',
+      };
+    }
+  };
+
+  const registerUser = async (payload: RegisterPayload): Promise<RegisterResult> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: payload.name.trim(),
+          email: payload.email.trim(),
+          password: payload.password,
+          confirm_password: payload.confirmPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          message: data.detail || 'Não foi possível concluir o cadastro.',
+        };
+      }
+
+      return {
+        ok: true,
+        message: data.message || 'Cadastro enviado com sucesso.',
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: 'Erro de conexão com o servidor de cadastro.',
+      };
+    }
+  };
 
   const toggleFavorite = (id: number) => {
     setFavoriteIds((current) =>
@@ -97,10 +201,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [recentIds, medicines]
   );
 
-  // Função auxiliar para encontrar o menor preço entre as ofertas
   const getLowestPrice = (medicine: Medicamento) => {
     if (!medicine.ofertas || medicine.ofertas.length === 0) return Infinity;
-    return Math.min(...medicine.ofertas.map(o => Number(o.preco)));
+    return Math.min(...medicine.ofertas.map((o) => Number(o.preco)));
   };
 
   const cheapestMedicines = useMemo(
@@ -118,13 +221,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return list;
     }
 
-    // Transição de lógica: Como "Medicamento" agora só tem "exige_receita" boolean
-    // em vez de um array de strings complexas, fazemos uma filtragem básica.
     return list.filter((medicine) => {
       if (selectedFilters.includes('Controlados') && medicine.exige_receita) return true;
       if (selectedFilters.includes('Venda livre') && !medicine.exige_receita) return true;
-      // Expanda conforme o banco de dados ganhar colunas de categoria
-      return false; 
+      return false;
     });
   };
 
@@ -153,12 +253,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     medicines,
     isLoading,
     sessionMode,
+    currentUserName,
+    currentUserEmail,
     favoriteIds,
     recentIds,
     selectedFilters,
     filterOptions,
     continueAsGuest,
     signIn,
+    registerUser,
+    logout,
     toggleFavorite,
     markAsViewed,
     toggleFilter,

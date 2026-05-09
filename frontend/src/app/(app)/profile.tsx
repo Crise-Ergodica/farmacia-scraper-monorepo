@@ -7,11 +7,11 @@ import { useAppContext } from '../../context/AppContext';
 import { palette, radius, spacing } from '../../theme';
 
 export default function ProfileScreen() {
-  const { sessionMode, continueAsGuest } = useAppContext();
+  const { sessionMode, currentUserName, currentUserEmail, logout } = useAppContext();
   const isWeb = Platform.OS === 'web';
 
   const handleLogout = () => {
-    continueAsGuest();
+    logout();
     router.replace('/login');
   };
 
@@ -22,13 +22,23 @@ export default function ProfileScreen() {
 
         <Text style={styles.label}>Modo atual</Text>
         <Text style={[styles.mode, isWeb && styles.modeWeb]}>
-          {sessionMode === 'guest' ? 'Convidado' : 'Usuário'}
+          {sessionMode === 'guest' ? 'Convidado' : 'Usuário autenticado'}
         </Text>
 
-        <Text style={styles.description}>
-          Essa tela já está pronta para receber seus dados reais quando o backend e a
-          autenticação forem definidos.
-        </Text>
+        {sessionMode === 'authenticated' ? (
+          <>
+            <Text style={styles.infoLabel}>Nome</Text>
+            <Text style={styles.infoValue}>{currentUserName || 'Usuário Teste'}</Text>
+
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue}>{currentUserEmail || 'teste@precobao.com'}</Text>
+          </>
+        ) : (
+          <Text style={styles.description}>
+            Você está navegando como convidado. Para testar a área autenticada, use o
+            usuário teste.
+          </Text>
+        )}
 
         <Pressable style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Editar depois</Text>
@@ -74,10 +84,21 @@ const styles = StyleSheet.create({
     color: palette.text,
     fontSize: 28,
     fontWeight: '700',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   modeWeb: {
     fontSize: 36,
+  },
+  infoLabel: {
+    color: palette.textSoft,
+    fontSize: 15,
+    marginTop: spacing.sm,
+    marginBottom: 4,
+  },
+  infoValue: {
+    color: palette.text,
+    fontSize: 18,
+    fontWeight: '600',
   },
   description: {
     color: palette.textSoft,
@@ -91,6 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
   primaryButtonText: {
