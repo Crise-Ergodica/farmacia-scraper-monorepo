@@ -1,25 +1,54 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, Image } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  Image,
+} from 'react-native';
 
 import { palette, radius, spacing } from '../theme';
-import { Medicamento } from '../types/api';
+import { Medicamento, Oferta } from '../types/api';
 
 type MedicineCardProps = {
   medicine: Medicamento;
   onPress: () => void;
   compact?: boolean;
+  pharmacyId?: number;
+  pharmacyLabel?: string;
 };
 
-export function MedicineCard({ medicine, onPress, compact = false }: MedicineCardProps) {
+const PHARMACY_NAME_MAP: Record<number, string> = {
+  1: 'Farmácia Indiana',
+  2: 'Drogaria Araújo',
+};
+
+function getLowestOffer(offers: Oferta[]) {
+  if (!offers.length) return null;
+
+  return offers.reduce((min, curr) =>
+    Number(curr.preco) < Number(min.preco) ? curr : min
+  , offers[0]);
+}
+
+export function MedicineCard({
+  medicine,
+  onPress,
+  compact = false,
+  pharmacyId,
+  pharmacyLabel,
+}: MedicineCardProps) {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
 
-  // Forçamos a conversão para Number durante a comparação de menor preço
-  const lowest = medicine.ofertas && medicine.ofertas.length > 0
-    ? medicine.ofertas.reduce((min, curr) => 
-        (Number(curr.preco) < Number(min.preco) ? curr : min)
-      , medicine.ofertas[0])
-    : null;
+  const relevantOffers =
+    pharmacyId !== undefined
+      ? (medicine.ofertas || []).filter((offer) => offer.farmacia_id === pharmacyId)
+      : medicine.ofertas || [];
+
+  const lowest = getLowestOffer(relevantOffers);
 
   const compactWidth =
     isWeb && width >= 1400
@@ -30,10 +59,17 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
       ? 210
       : '31%';
 
-  // Fallbacks e extração de dados
-  const farmaciaDisplay = lowest ? `Farmácia ID: ${lowest.farmacia_id}` : 'Sem ofertas';
-  const priceDisplay = lowest ? `R$ ${Number(lowest.preco).toFixed(2)}` : '--';
-  const imageUrl = lowest?.imagem_url; // Extrai a URL da imagem da oferta
+  const resolvedPharmacyName = lowest
+    ? pharmacyLabel ||
+      PHARMACY_NAME_MAP[lowest.farmacia_id] ||
+      `Farmácia ${lowest.farmacia_id}`
+    : 'Sem ofertas';
+
+  const priceDisplay = lowest
+    ? `R$ ${Number(lowest.preco).toFixed(2).replace('.', ',')}`
+    : '--';
+
+  const imageUrl = lowest?.imagem_url;
 
   return (
     <Pressable
@@ -50,15 +86,14 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
           styles.imageBox,
           compact && styles.compactImageBox,
           isWeb && compact && styles.compactImageBoxWeb,
-          // Se tiver imagem real, podemos deixar o fundo transparente ou branco
-          imageUrl && { backgroundColor: '#FFFFFF' } 
+          imageUrl && styles.imageBoxWithImage,
         ]}
       >
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
             style={styles.medicineImage}
-            resizeMode="contain" // Garante que a imagem não fique esticada
+            resizeMode="contain"
           />
         ) : (
           <Ionicons
@@ -80,7 +115,7 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
           { color: palette.primary },
         ]}
       >
-        {farmaciaDisplay}
+        {resolvedPharmacyName}
       </Text>
 
       <Text style={[styles.price, isWeb && styles.priceWeb]}>
@@ -115,7 +150,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xs,
-    overflow: 'hidden', 
+    overflow: 'hidden',
+  },
+  imageBoxWithImage: {
+    backgroundColor: '#FFFFFF',
   },
   compactImageBox: {
     aspectRatio: 1,
