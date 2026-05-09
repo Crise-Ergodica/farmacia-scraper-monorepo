@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -17,54 +16,35 @@ import { palette, radius, spacing } from '../theme';
 
 export default function SignupScreen() {
   const { registerUser } = useAppContext();
+  const isWeb = Platform.OS === 'web';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [feedback, setFeedback] = useState<{ type: 'error' | 'success' | 'info'; text: string } | null>(null);
+  const handleSignup = async () => {
+    setMessage('');
 
-  const isWeb = Platform.OS === 'web';
-
-  const validate = () => {
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      return 'Preencha todos os campos.';
-    }
-
-    if (name.trim().length < 3) {
-      return 'O nome precisa ter pelo menos 3 caracteres.';
+      setMessage('Preencha todos os campos.');
+      return;
     }
 
     if (!email.includes('@')) {
-      return 'Digite um email válido.';
+      setMessage('Digite um email válido.');
+      return;
     }
 
     if (password.length < 6) {
-      return 'A senha precisa ter no mínimo 6 caracteres.';
+      setMessage('A senha precisa ter pelo menos 6 caracteres.');
+      return;
     }
 
     if (password !== confirmPassword) {
-      return 'As senhas não coincidem.';
-    }
-
-    return null;
-  };
-
-  const handleRegister = async () => {
-    setFeedback(null);
-
-    const validationError = validate();
-
-    if (validationError) {
-      setFeedback({
-        type: 'error',
-        text: validationError,
-      });
+      setMessage('As senhas não coincidem.');
       return;
     }
 
@@ -78,11 +58,7 @@ export default function SignupScreen() {
     });
 
     setIsSubmitting(false);
-
-    setFeedback({
-      type: result.ok ? 'info' : 'error',
-      text: result.message,
-    });
+    setMessage(result.message);
   };
 
   return (
@@ -93,7 +69,7 @@ export default function SignupScreen() {
       >
         <View style={[styles.box, isWeb && styles.boxWeb]}>
           <View style={styles.header}>
-            <Text style={styles.title}>Cadastro</Text>
+            <Text style={styles.title}>Criar conta</Text>
             <Text style={styles.subtitle}>Preparado para autenticação real</Text>
           </View>
 
@@ -116,59 +92,34 @@ export default function SignupScreen() {
               keyboardType="email-address"
             />
 
-            <View style={styles.passwordWrapper}>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Senha"
-                placeholderTextColor={palette.primary}
-                style={[styles.passwordInput, isWeb && styles.inputWeb]}
-                autoCapitalize="none"
-                secureTextEntry={!showPassword}
-              />
-              <Pressable onPress={() => setShowPassword((current) => !current)}>
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={22}
-                  color={palette.primary}
-                />
-              </Pressable>
-            </View>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Senha"
+              placeholderTextColor={palette.primary}
+              style={[styles.input, isWeb && styles.inputWeb]}
+              secureTextEntry
+            />
 
-            <View style={styles.passwordWrapper}>
-              <TextInput
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirmar senha"
-                placeholderTextColor={palette.primary}
-                style={[styles.passwordInput, isWeb && styles.inputWeb]}
-                autoCapitalize="none"
-                secureTextEntry={!showConfirmPassword}
-              />
-              <Pressable onPress={() => setShowConfirmPassword((current) => !current)}>
-                <Ionicons
-                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={22}
-                  color={palette.primary}
-                />
-              </Pressable>
-            </View>
+            <TextInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirmar senha"
+              placeholderTextColor={palette.primary}
+              style={[styles.input, isWeb && styles.inputWeb]}
+              secureTextEntry
+            />
           </View>
 
-          {feedback ? (
-            <View
-              style={[
-                styles.feedbackBox,
-                feedback.type === 'error' ? styles.feedbackError : styles.feedbackInfo,
-              ]}
-            >
-              <Text style={styles.feedbackText}>{feedback.text}</Text>
+          {message ? (
+            <View style={styles.messageBox}>
+              <Text style={styles.messageText}>{message}</Text>
             </View>
           ) : null}
 
           <Pressable
             style={[styles.button, isSubmitting && styles.buttonDisabled]}
-            onPress={handleRegister}
+            onPress={handleSignup}
             disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
@@ -177,7 +128,7 @@ export default function SignupScreen() {
           </Pressable>
 
           <Pressable onPress={() => router.replace('/login')}>
-            <Text style={styles.secondaryLink}>Voltar para login</Text>
+            <Text style={styles.secondaryLink}>Ir para login</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -195,7 +146,7 @@ const styles = StyleSheet.create({
   },
   box: {
     width: '100%',
-    maxWidth: 460,
+    maxWidth: 440,
     alignSelf: 'center',
   },
   boxWeb: {
@@ -238,38 +189,16 @@ const styles = StyleSheet.create({
     outlineColor: 'transparent',
     outlineStyle: 'none',
   },
-  passwordWrapper: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: palette.primary,
-    borderRadius: radius.sm,
-    backgroundColor: palette.surface,
-    paddingHorizontal: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  passwordInput: {
-    flex: 1,
-    color: palette.text,
-    fontSize: 16,
-  },
-  feedbackBox: {
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  messageBox: {
     marginTop: spacing.lg,
-  },
-  feedbackError: {
-    backgroundColor: '#FFF1F1',
-    borderWidth: 1,
-    borderColor: '#F0B7B7',
-  },
-  feedbackInfo: {
     backgroundColor: '#EEF6FF',
     borderWidth: 1,
     borderColor: '#CFE4FF',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  feedbackText: {
+  messageText: {
     color: palette.text,
     fontSize: 14,
     lineHeight: 20,

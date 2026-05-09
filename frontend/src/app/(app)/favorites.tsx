@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Image,
@@ -55,9 +55,9 @@ function getPharmacyName(offer?: OfertaComExtras) {
 }
 
 export default function FavoritesScreen() {
-  const router = useRouter();
+  const routerNav = useRouter();
   const { width } = useWindowDimensions();
-  const { favoriteMedicines, toggleFavorite, markAsViewed } = useAppContext();
+  const { favoriteMedicines, toggleFavorite, markAsViewed, sessionMode } = useAppContext();
 
   const [notificationMap, setNotificationMap] = useState<Record<number, boolean>>({});
 
@@ -69,7 +69,7 @@ export default function FavoritesScreen() {
 
   const handleOpenMedicine = (id: number) => {
     markAsViewed(id);
-    router.push(`/medicine/${id}`);
+    routerNav.push(`/medicine/${id}`);
   };
 
   const handleToggleNotification = (id: number) => {
@@ -78,6 +78,29 @@ export default function FavoritesScreen() {
       [id]: !(current[id] ?? true),
     }));
   };
+
+  if (sessionMode !== 'authenticated') {
+    return (
+      <Screen>
+        <View style={styles.lockedWrapper}>
+          <Ionicons name="lock-closed-outline" size={50} color={palette.primary} />
+          <Text style={[styles.title, isWeb && styles.titleWeb]}>Favoritos</Text>
+          <Text style={styles.lockedText}>
+            Recurso para usuários autenticados. Deseja criar uma conta ou logar em
+            uma conta existente?
+          </Text>
+
+          <Pressable style={styles.primaryButton} onPress={() => router.push('/signup')}>
+            <Text style={styles.primaryButtonText}>Criar conta</Text>
+          </Pressable>
+
+          <Pressable style={styles.secondaryButton} onPress={() => router.push('/login')}>
+            <Text style={styles.secondaryButtonText}>Fazer login</Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -193,6 +216,54 @@ const styles = StyleSheet.create({
   titleWeb: {
     fontSize: 40,
     marginBottom: 28,
+  },
+  lockedWrapper: {
+    width: '100%',
+    maxWidth: 540,
+    alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    padding: spacing.xl,
+    marginTop: spacing.xl,
+  },
+  lockedText: {
+    textAlign: 'center',
+    color: palette.text,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: spacing.xl,
+  },
+  primaryButton: {
+    width: '100%',
+    minHeight: 50,
+    borderRadius: radius.pill,
+    backgroundColor: palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  primaryButtonText: {
+    color: palette.surface,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    width: '100%',
+    minHeight: 50,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: palette.primary,
+    backgroundColor: palette.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: palette.primary,
+    fontSize: 16,
+    fontWeight: '700',
   },
   emptyState: {
     alignItems: 'center',

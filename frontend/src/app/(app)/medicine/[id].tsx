@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 
+import { AuthRequiredModal } from '../../../components/AuthRequiredModal';
 import { Screen } from '../../../components/Screen';
 import { SearchBar } from '../../../components/SearchBar';
 import { useAppContext } from '../../../context/AppContext';
@@ -54,15 +55,25 @@ function getPharmacyName(offer: OfertaComExtras) {
     offer.farmacia_nome ||
     offer.farmacia?.nome_fantasia ||
     offer.farmacia?.razao_social ||
-    `Farmácia ID: ${offer.farmacia_id}`
+    `Farmácia ${offer.farmacia_id}`
   );
 }
 
 export default function MedicineDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
-  const { getMedicineById, favoriteIds, toggleFavorite, markAsViewed } = useAppContext();
+
+  const {
+    getMedicineById,
+    favoriteIds,
+    toggleFavorite,
+    markAsViewed,
+    sessionMode,
+  } = useAppContext();
+
   const [search, setSearch] = useState('Preço Bão');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   const { width } = useWindowDimensions();
 
   const medicineId = useMemo(() => {
@@ -106,6 +117,11 @@ export default function MedicineDetailScreen() {
   const lowestPrice = lowest ? Number(lowest.preco) : undefined;
 
   const handleToggleFavorite = () => {
+    if (sessionMode !== 'authenticated') {
+      setShowAuthModal(true);
+      return;
+    }
+
     if (medicineId !== null) {
       toggleFavorite(medicineId);
     }
@@ -299,6 +315,11 @@ export default function MedicineDetailScreen() {
           </View>
         </View>
       </View>
+
+      <AuthRequiredModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </Screen>
   );
 }

@@ -1,46 +1,183 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
 import { SearchBar } from '../../components/SearchBar';
 import { useAppContext } from '../../context/AppContext';
-import { palette, spacing } from '../../theme';
+import { Medicamento } from '../../types/api';
+import { palette, radius, spacing } from '../../theme';
+
+const PHARMACIES = [
+  { id: 1, name: 'Farmácia Indiana' },
+  { id: 2, name: 'Drogaria Araújo' },
+] as const;
 
 export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
 
-  // Consumimos a API, o estado de loading e as listas diretamente do AppContext
-  const { 
-    recentMedicines, 
-    cheapestMedicines, 
-    isLoading, 
-    markAsViewed 
-  } = useAppContext();
-  
+  const { medicines, isLoading, markAsViewed } = useAppContext();
+
   const [search, setSearch] = useState('');
+  const [pageByPharmacy, setPageByPharmacy] = useState<Record<number, number>>({
+    1: 1,
+    2: 1,
+  });
 
-  const recentLimit = isWeb ? (width >= 1200 ? 5 : 4) : 3;
-  const cheapestLimit = isWeb ? (width >= 1200 ? 10 : 8) : 6;
+  const itemsPerPage = isWeb ? 8 : 4;
 
-  const goToSearch = () => {
-    router.push({ pathname: '/search', params: { q: search } });
+  useEffect(() => {
+    setPageByPharmacy({
+      1: 1,
+      2: 1,
+    });
+  }, [search]);
+
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const medicinesByPharmacy = useMemo(() => {
+    const baseList = normalizedSearch
+      ? medicines.filter((medicine) =>
+          medicine.nome.toLowerCase().includes(normalizedSearch)
+        )
+      : medicines;
+
+    const result: Record<number, Medicamento[]> = {};
+
+    for (const pharmacy of PHARMACIES) {
+      result[pharmacy.id] = baseList
+        .filter((medicine) =>
+          (medicine.ofertas || []).some(
+            (offer) => offer.farmacia_id === pharmacy.id
+          )
+        )
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    }
+
+    return result;
+  }, [medicines, normalizedSearch]);
+
+  const openDetail = (medicineId: number) => {
+    markAsViewed(medicineId);
+    router.push(`/medicine/${medicineId}`);
   };
 
-  const goToDetail = (id: number) => {
-    // Correção: Agora passamos o ID como number diretamente
-    markAsViewed(id);
-    router.push(`/medicine/${id}`);
+  const goToPage = (pharmacyId: number, page: number, totalPages: number) => {
+    const safePage = Math.max(1, Math.min(page, totalPages));
+
+    setPageByPharmacy((current) => ({
+      ...current,
+      [pharmacyId]: safePage,
+    }));
+  };
+
+  const renderPharmacySection = (pharmacyId: number, pharmacyName: string) => {
+    const pharmacyMedicines = medicinesByPharmacy[pharmacyId] || [];
+    const totalPages = Math.max(1, Math.ceil(pharmacyMedicines.length / itemsPerPage));
+    const currentPage = Math.min(pageByPharmacy[pharmacyId] || 1, totalPages);
+
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+
+    const paginatedItems = pharmacyMedicines.slice(start, end);
+
+    return (
+      <View key={pharmacyId} style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={[styles.title, isWeb && styles.titleWeb]}>
+              {pharmacyName}
+            </Text>
+            <Text style={styles.countText}>
+              {pharmacyMedicines.length} medicamento(s) encontrado(s)
+            </Text>
+          </View>
+        </View>
+
+        {pharmacyMedicines.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>
+              Nenhum medicamento encontrado nessa farmácia.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={[styles.grid, isWeb && styles.gridWeb]}>
+              {paginatedItems.map((medicine) => (
+                <MedicineCard
+                  key={`${pharmacyId}-${medicine.id}`}
+                  medicine={medicine}
+                  onPress={() => openDetail(medicine.id)}
+                  compact
+                />
+              ))}
+            </View>
+
+            {totalPages > 1 ? (
+              <View style={styles.pagination}>
+                <Pressable
+                  style={[
+                    styles.pageButton,
+                    currentPage === 1 && styles.pageButtonDisabled,
+                  ]}
+                  disabled={currentPage === 1}
+                  onPress={() => goToPage(pharmacyId, currentPage - 1, totalPages)}
+                >
+                  <Text
+                    style={[
+                      styles.pageButtonText,
+                      currentPage === 1 && styles.pageButtonTextDisabled,
+                    ]}
+                  >
+                    Anterior
+                  </Text>
+                </Pressable>
+
+                <Text style={styles.pageInfo}>
+                  Página {currentPage} de {totalPages}
+                </Text>
+
+                <Pressable
+                  style={[
+                    styles.pageButton,
+                    currentPage === totalPages && styles.pageButtonDisabled,
+                  ]}
+                  disabled={currentPage === totalPages}
+                  onPress={() => goToPage(pharmacyId, currentPage + 1, totalPages)}
+                >
+                  <Text
+                    style={[
+                      styles.pageButtonText,
+                      currentPage === totalPages && styles.pageButtonTextDisabled,
+                    ]}
+                  >
+                    Próxima
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </>
+        )}
+      </View>
+    );
   };
 
   if (isLoading) {
     return (
       <Screen contentStyle={styles.loadingContainer}>
         <ActivityIndicator size="large" color={palette.primary} />
-        <Text style={styles.loadingText}>Sincronizando catálogo...</Text>
+        <Text style={styles.loadingText}>Carregando medicamentos...</Text>
       </Screen>
     );
   }
@@ -50,40 +187,14 @@ export default function HomeScreen() {
       <SearchBar
         value={search}
         onChangeText={setSearch}
-        onSubmit={goToSearch}
+        onSubmit={() => {}}
         onFilter={() => router.push('/filters')}
+        placeholder="Preço Bão"
       />
 
-      {recentMedicines.length > 0 && (
-        <View style={styles.section}>
-          <Text style={[styles.title, isWeb && styles.titleWeb]}>Vistos Recentemente</Text>
-          <View style={[styles.grid, isWeb && styles.gridWeb]}>
-            {recentMedicines.slice(0, recentLimit).map((medicine) => (
-              <MedicineCard
-                key={medicine.id}
-                medicine={medicine}
-                // medicine.id já é do tipo number no schema real
-                onPress={() => goToDetail(medicine.id)}
-                compact
-              />
-            ))}
-          </View>
-        </View>
+      {PHARMACIES.map((pharmacy) =>
+        renderPharmacySection(pharmacy.id, pharmacy.name)
       )}
-
-      <View style={styles.section}>
-        <Text style={[styles.title, isWeb && styles.titleWeb]}>Mais Baratos</Text>
-        <View style={[styles.grid, isWeb && styles.gridWeb]}>
-          {cheapestMedicines.slice(0, cheapestLimit).map((medicine) => (
-            <MedicineCard
-              key={medicine.id}
-              medicine={medicine}
-              onPress={() => goToDetail(medicine.id)}
-              compact
-            />
-          ))}
-        </View>
-      </View>
     </Screen>
   );
 }
@@ -92,15 +203,21 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.xl,
   },
-  title: {
-    color: palette.text,
-    fontSize: 20,
-    fontWeight: '700',
+  sectionHeader: {
     marginBottom: spacing.md,
   },
+  title: {
+    fontSize: 28,
+    color: palette.primary,
+    fontWeight: '700',
+  },
   titleWeb: {
-    fontSize: 32,
-    marginBottom: 24,
+    fontSize: 34,
+  },
+  countText: {
+    marginTop: 6,
+    fontSize: 14,
+    color: palette.textSoft,
   },
   grid: {
     flexDirection: 'row',
@@ -113,6 +230,49 @@ const styles = StyleSheet.create({
     rowGap: 28,
     columnGap: 24,
   },
+  emptyBox: {
+    backgroundColor: palette.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    padding: spacing.lg,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: palette.textSoft,
+  },
+  pagination: {
+    marginTop: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  pageButton: {
+    minWidth: 100,
+    height: 42,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageButtonDisabled: {
+    backgroundColor: '#D7D7D7',
+  },
+  pageButtonText: {
+    color: palette.surface,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  pageButtonTextDisabled: {
+    color: '#7C7C7C',
+  },
+  pageInfo: {
+    fontSize: 14,
+    color: palette.text,
+    fontWeight: '600',
+  },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -123,5 +283,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     color: palette.textSoft,
     fontSize: 16,
-  }
+  },
 });

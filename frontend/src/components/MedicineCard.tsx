@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -9,46 +10,30 @@ import {
   Image,
 } from 'react-native';
 
+import { useAppContext } from '../context/AppContext';
 import { palette, radius, spacing } from '../theme';
-import { Medicamento, Oferta } from '../types/api';
+import { Medicamento } from '../types/api';
+import { AuthRequiredModal } from './AuthRequiredModal';
 
 type MedicineCardProps = {
   medicine: Medicamento;
   onPress: () => void;
   compact?: boolean;
-  pharmacyId?: number;
-  pharmacyLabel?: string;
 };
 
-const PHARMACY_NAME_MAP: Record<number, string> = {
-  1: 'Farmácia Indiana',
-  2: 'Drogaria Araújo',
-};
-
-function getLowestOffer(offers: Oferta[]) {
-  if (!offers.length) return null;
-
-  return offers.reduce((min, curr) =>
-    Number(curr.preco) < Number(min.preco) ? curr : min
-  , offers[0]);
-}
-
-export function MedicineCard({
-  medicine,
-  onPress,
-  compact = false,
-  pharmacyId,
-  pharmacyLabel,
-}: MedicineCardProps) {
+export function MedicineCard({ medicine, onPress, compact = false }: MedicineCardProps) {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
 
-  const relevantOffers =
-    pharmacyId !== undefined
-      ? (medicine.ofertas || []).filter((offer) => offer.farmacia_id === pharmacyId)
-      : medicine.ofertas || [];
+  const { sessionMode, favoriteIds, toggleFavorite } = useAppContext();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const lowest = getLowestOffer(relevantOffers);
+  const lowest =
+    medicine.ofertas && medicine.ofertas.length > 0
+      ? medicine.ofertas.reduce((min, curr) =>
+          Number(curr.preco) < Number(min.preco) ? curr : min
+        , medicine.ofertas[0])
+      : null;
 
   const compactWidth =
     isWeb && width >= 1400
@@ -59,75 +44,97 @@ export function MedicineCard({
       ? 210
       : '31%';
 
-  const resolvedPharmacyName = lowest
-    ? pharmacyLabel ||
-      PHARMACY_NAME_MAP[lowest.farmacia_id] ||
-      `Farmácia ${lowest.farmacia_id}`
-    : 'Sem ofertas';
-
+  const farmaciaDisplay = lowest ? `Farmácia ID: ${lowest.farmacia_id}` : 'Sem ofertas';
   const priceDisplay = lowest
     ? `R$ ${Number(lowest.preco).toFixed(2).replace('.', ',')}`
     : '--';
 
   const imageUrl = lowest?.imagem_url;
+  const isFavorite = favoriteIds.includes(medicine.id);
+
+  const handleFavoritePress = () => {
+    if (sessionMode !== 'authenticated') {
+      setShowAuthModal(true);
+      return;
+    }
+
+    toggleFavorite(medicine.id);
+  };
 
   return (
-    <Pressable
-      style={[
-        styles.card,
-        compact ? styles.compactCard : styles.fullCard,
-        isWeb && styles.cardWeb,
-        compact && { width: compactWidth },
-      ]}
-      onPress={onPress}
-    >
+    <>
       <View
         style={[
-          styles.imageBox,
-          compact && styles.compactImageBox,
-          isWeb && compact && styles.compactImageBoxWeb,
-          imageUrl && styles.imageBoxWithImage,
+          styles.card,
+          compact ? styles.compactCard : styles.fullCard,
+          isWeb && styles.cardWeb,
+          compact && { width: compactWidth },
         ]}
       >
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.medicineImage}
-            resizeMode="contain"
-          />
-        ) : (
+        <Pressable style={styles.favoriteButton} onPress={handleFavoritePress}>
           <Ionicons
-            name="image-outline"
-            size={isWeb ? 30 : compact ? 24 : 34}
-            color={palette.textSoft}
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={20}
+            color={isFavorite ? palette.danger : palette.primary}
           />
-        )}
+        </Pressable>
+
+        <Pressable onPress={onPress}>
+          <View
+            style={[
+              styles.imageBox,
+              compact && styles.compactImageBox,
+              isWeb && compact && styles.compactImageBoxWeb,
+              imageUrl && { backgroundColor: '#FFFFFF' },
+            ]}
+          >
+            {imageUrl ? (
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.medicineImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <Ionicons
+                name="image-outline"
+                size={isWeb ? 30 : compact ? 24 : 34}
+                color={palette.textSoft}
+              />
+            )}
+          </View>
+
+          <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
+            {medicine.nome}
+          </Text>
+
+          <Text
+            style={[
+              styles.pharmacy,
+              isWeb && styles.pharmacyWeb,
+              { color: palette.primary },
+            ]}
+          >
+            {farmaciaDisplay}
+          </Text>
+
+          <Text style={[styles.price, isWeb && styles.priceWeb]}>
+            {priceDisplay}
+          </Text>
+        </Pressable>
       </View>
 
-      <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
-        {medicine.nome}
-      </Text>
-
-      <Text
-        style={[
-          styles.pharmacy,
-          isWeb && styles.pharmacyWeb,
-          { color: palette.primary },
-        ]}
-      >
-        {resolvedPharmacyName}
-      </Text>
-
-      <Text style={[styles.price, isWeb && styles.priceWeb]}>
-        {priceDisplay}
-      </Text>
-    </Pressable>
+      <AuthRequiredModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     minWidth: 0,
+    position: 'relative',
   },
   fullCard: {
     width: '100%',
@@ -142,6 +149,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 12,
   },
+  favoriteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 3,
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   imageBox: {
     width: '100%',
     aspectRatio: 1,
@@ -151,9 +172,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xs,
     overflow: 'hidden',
-  },
-  imageBoxWithImage: {
-    backgroundColor: '#FFFFFF',
   },
   compactImageBox: {
     aspectRatio: 1,

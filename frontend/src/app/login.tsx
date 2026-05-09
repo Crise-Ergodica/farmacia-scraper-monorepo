@@ -17,13 +17,18 @@ import { palette, radius, spacing } from '../theme';
 
 export default function LoginScreen() {
   const { continueAsGuest, signIn } = useAppContext();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'error' | 'success' | 'info'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: 'error' | 'success';
+    text: string;
+  } | null>(null);
+
   const isWeb = Platform.OS === 'web';
 
   const handleLogin = async () => {
@@ -38,7 +43,7 @@ export default function LoginScreen() {
     if (!email.trim() || !password.trim()) {
       setFeedback({
         type: 'error',
-        text: 'Preencha email e senha ou entre como convidado deixando ambos vazios.',
+        text: 'Preencha email e senha ou entre como convidado deixando os dois vazios.',
       });
       return;
     }
@@ -131,9 +136,7 @@ export default function LoginScreen() {
             <View
               style={[
                 styles.feedbackBox,
-                feedback.type === 'error' && styles.feedbackError,
-                feedback.type === 'success' && styles.feedbackSuccess,
-                feedback.type === 'info' && styles.feedbackInfo,
+                feedback.type === 'error' ? styles.feedbackError : styles.feedbackSuccess,
               ]}
             >
               <Text style={styles.feedbackText}>{feedback.text}</Text>
@@ -154,7 +157,9 @@ export default function LoginScreen() {
             <Text style={styles.secondaryLink}>Criar conta</Text>
           </Pressable>
 
-          <Text style={styles.helperText}>Usuário teste: teste@precobao.com / 123456</Text>
+          <Text style={styles.helperText}>
+            Usuário teste: teste@precobao.com / 123456
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -256,11 +261,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1FFF4',
     borderWidth: 1,
     borderColor: '#B9E4C1',
-  },
-  feedbackInfo: {
-    backgroundColor: '#EEF6FF',
-    borderWidth: 1,
-    borderColor: '#CFE4FF',
   },
   feedbackText: {
     color: palette.text,

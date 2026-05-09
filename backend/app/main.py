@@ -16,6 +16,7 @@ app.add_middleware(
 app.include_router(catalogo.router)
 app.include_router(auth.router)
 
+
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {"Hello": "Aurora"}
