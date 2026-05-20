@@ -22,6 +22,8 @@ from app.models.catalogo import CatalogoBase
 from app.models.oferta_farmacia import OfertaFarmacia
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
+
 async def extrair_todos_produtos() -> None:
     """
     Extrai todos os medicamentos iterando sobre a paginação da API REST.
@@ -194,13 +196,20 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             catalogo_item = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean).first()
 
             # Se não existir no catálogo, cria um novo registo
+            # Se não existir no catálogo, cria um novo registo enriquecido
             if not catalogo_item:
+                # Aciona o enriquecimento (assim como na Araujo, estamos numa thread separada)
+                dados_enriquecidos = asyncio.run(
+                    ServicoEnriquecimentoFarmacologico.enriquecer_produto(ean, prod['nome'])
+                )
+
                 catalogo_item = CatalogoBase(
                     codigo_barras=ean,
                     nome=prod['nome'],
-                    principio_ativo="Não informado",
-                    laboratorio="Não informado",
-                    exige_receita=False
+                    principio_ativo=dados_enriquecidos['principio_ativo'],
+                    laboratorio=dados_enriquecidos['laboratorio'],
+                    exige_receita=dados_enriquecidos['exige_receita'],
+                    categorias=dados_enriquecidos['categorias']
                 )
                 db.add(catalogo_item)
                 db.commit()  # Necessário para gerar o ID que será usado na oferta
