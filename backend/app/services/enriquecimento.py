@@ -1,77 +1,115 @@
 """
 Módulo responsável por inferir e enriquecer dados farmacológicos.
-Idealmente executado como um worker assíncrono (ex: Celery) ou em lote pós-scraping.
 """
-import re
+import os
 import httpx
-from typing import Dict, Any, List
+from typing import Dict, Any
 
-# Categorias mapeadas conforme contrato do Frontend
-CATEGORIAS_VALIDAS = {'Generico', 'Original', 'Similar', 'Controlados', 'Venda livre'}
+CATEGORIAS_VALIDAS = {'Generico', 'Original', 'Similar', 'Controlados', 'Venda livre', 'Indeterminado'}
 
 class ServicoEnriquecimentoFarmacologico:
+    # Cache em memória para evitar chamadas redundantes à API externa durante a execução do scraper
+    _cache_ean: Dict[str, Dict[str, Any]] = {}
             
     @staticmethod
     async def buscar_dados_por_ean(codigo_barras: str) -> Dict[str, Any]:
-        """
-        Consulta uma API externa (Mock para Cosmos/Bluesoft/BrasilAPI) 
-        para obter dados mestres do produto usando o EAN.
-        """
-        # Exemplo prático de chamada HTTP (substitua pela API real escolhida)
-        # url = f"https://api.cosmos.bluesoft.com.br/gtins/{codigo_barras}.json"
-        # Em um cenário real, você injetaria seu token de API aqui.
-        return {} # Mock: retornando vazio para forçar a heurística neste exemplo
+        """Consulta a API externa com tolerância a falhas."""
+        token = os.getenv("API_EAN_TOKEN", "")
+        url = f"https://api.cosmos.bluesoft.com.br/gtins/{codigo_barras}.json"
+        
+        headers = {
+            "X-Cosmos-Token": token,
+            "User-Agent": "PrecoBao-Worker/1.0"
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resposta = await client.get(url, headers=headers)
+                
+                if resposta.status_code == 200:
+                    return resposta.json()
+                return {}
+        except httpx.RequestError as e:
+            print(f"[ERRO REDE] Falha ao consultar EAN {codigo_barras}: {e}")
+            return {}
 
     @staticmethod
-    def aplicar_heuristica_nome(nome_comercial: str) -> Dict[str, Any]:
+    def inferir_categoria_por_texto(texto: str, exige_receita: bool) -> list[str]:
+        """Desacoplado para uso tanto na API quanto no fallback."""
+        texto_lower = texto.lower()
+        categorias = set()
+        
+        if "genérico" in texto_lower or "generico" in texto_lower:
+            categorias.add("Generico")
+        elif not exige_receita:
+            categorias.add("Venda livre")
+            
+        return list(categorias) if categorias else ["Original"]
+
+    @classmethod
+    async def enriquecer_produto(cls, ean: str, nome_comercial: str) -> Dict[str, Any]:
         """
-        Gera metadados inferindo padrões comuns nos nomes comerciais das farmácias.
-        Utilizado como fallback robusto contra falhas de API.
+        Pipeline principal com Cache, API e Fallback.
         """
+        if not ean:
+            return cls._aplicar_fallback_restritivo(nome_comercial)
+
+        # 1. Verifica Cache (O(1) - Previne bloqueio da API)
+        if ean in cls._cache_ean:
+            return cls._cache_ean[ean]
+
+        # 2. Tenta API Externa real
+        dados_api = await cls.buscar_dados_por_ean(ean)
+        
+        if dados_api:
+            descricao = dados_api.get("description", nome_comercial)
+            marca = dados_api.get("brand", {}).get("name", "Não informado")
+            
+            texto_regulatorio = str(dados_api).lower()
+            exige_receita = "tarja vermelha" in texto_regulatorio or "tarja preta" in texto_regulatorio or "retenção" in texto_regulatorio
+            
+            # Combina a descrição oficial com o nome comercial da farmácia para não perder a detecção de Genérico
+            contexto_texto = f"{descricao} {nome_comercial}"
+            categorias_reais = cls.inferir_categoria_por_texto(contexto_texto, exige_receita)
+            
+            resultado = {
+                "principio_ativo": descricao,
+                "laboratorio": marca,
+                "categorias": categorias_reais, 
+                "exige_receita": exige_receita
+            }
+            
+            # Salva no cache antes de retornar
+            cls._cache_ean[ean] = resultado
+            return resultado
+            
+        # 3. Fallback Restritivo (se falhar, exige receita por segurança)
+        resultado_fallback = cls._aplicar_fallback_restritivo(nome_comercial)
+        cls._cache_ean[ean] = resultado_fallback # Adiciona falhas ao cache para não insistir no mesmo EAN
+        return resultado_fallback
+
+    @staticmethod
+    def _aplicar_fallback_restritivo(nome_comercial: str) -> Dict[str, Any]:
+        """Garante a negação por defeito em caso de falha."""
         nome_lower = nome_comercial.lower()
         categorias: set[str] = set()
         exige_receita = False
         
-        # 1. Identificação de Genéricos (Lei 9.787/99 exige a nomenclatura)
         if "genérico" in nome_lower or "generico" in nome_lower:
             categorias.add("Generico")
         
-        # 2. Identificação de Controle Especial
         termos_controle = ["tarja preta", "tarja vermelha", "retenção de receita", "antibiótico", "psicotrópico"]
         if any(termo in nome_lower for termo in termos_controle):
             categorias.add("Controlados")
             exige_receita = True
             
-        # 3. Classificação de Venda Livre (OTC)
         if not exige_receita and "Generico" not in categorias:
-            # Assunção cética: se não explicitou controle, assumimos venda livre até atualização por API
-            categorias.add("Venda livre")
+            categorias.add("Indeterminado")
+            exige_receita = True 
             
         return {
             "categorias": list(categorias),
             "exige_receita": exige_receita,
-            # Princípio e laboratório são perigosos de inferir por regex puro, 
-            # mantemos o default caso não venha da API.
-            "principio_ativo": "Não informado",
+            "principio_ativo": "Não informado (Pendente)",
             "laboratorio": "Não informado"
         }
-
-    @classmethod
-    async def enriquecer_produto(cls, ean: str, nome: str) -> Dict[str, Any]:
-        """
-        Pipeline principal: Tenta dados determinísticos, cai para inferência em caso de falha.
-        """
-        # 1. Tenta API Externa
-        dados_api = await cls.buscar_dados_por_ean(ean)
-        
-        if dados_api:
-            # Mapeamento do payload da API para o modelo (Depende da resposta da sua API)
-            return {
-                "principio_ativo": dados_api.get("description", "Não informado"),
-                "laboratorio": dados_api.get("brand", {}).get("name", "Não informado"),
-                "categorias": ["Original"], # Exemplo de mapeamento
-                "exige_receita": False
-            }
-            
-        # 2. Fallback para Heurística de Texto
-        return cls.aplicar_heuristica_nome(nome)
