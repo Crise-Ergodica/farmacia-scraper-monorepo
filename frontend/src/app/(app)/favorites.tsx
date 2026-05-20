@@ -90,11 +90,11 @@ export default function FavoritesScreen() {
             uma conta existente?
           </Text>
 
-          <Pressable style={styles.primaryButton} onPress={() => router.push('/signup')}>
+          <Pressable style={styles.primaryButton} onPress={() => router.push('/signup' as any)}>
             <Text style={styles.primaryButtonText}>Criar conta</Text>
           </Pressable>
 
-          <Pressable style={styles.secondaryButton} onPress={() => router.push('/login')}>
+          <Pressable style={styles.secondaryButton} onPress={() => router.push('/login' as any)}>
             <Text style={styles.secondaryButtonText}>Fazer login</Text>
           </Pressable>
         </View>

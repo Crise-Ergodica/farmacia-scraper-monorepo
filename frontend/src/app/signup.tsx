@@ -127,7 +127,7 @@ export default function SignupScreen() {
             </Text>
           </Pressable>
 
-          <Pressable onPress={() => router.replace('/login')}>
+          <Pressable onPress={() => router.replace('/login' as any)}>
             <Text style={styles.secondaryLink}>Ir para login</Text>
           </Pressable>
         </View>
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     outlineWidth: 0,
     outlineColor: 'transparent',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   messageBox: {
     marginTop: spacing.lg,

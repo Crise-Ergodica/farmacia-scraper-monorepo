@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     outlineWidth: 0,
     outlineColor: 'transparent',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   filterText: {
     color: palette.primary,

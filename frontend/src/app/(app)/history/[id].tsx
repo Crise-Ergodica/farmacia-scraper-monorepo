@@ -137,9 +137,11 @@ function normalizeHistoryPayload(payload: HistoricoResponseItem[]): HistoryChart
   (payload as HistoricoResponseItem[]).forEach((item) => {
     if (!('farmacia_id' in item)) return;
 
-    const price = Number(item.preco_registrado ?? item.preco ?? 0);
-    const pharmacyId = item.farmacia_id;
-    const pharmacyName = item.farmacia_nome || `Farmácia ${pharmacyId}`;
+    const record = item as { farmacia_id: number; farmacia_nome?: string; data_registro: string; preco_registrado?: number; preco?: number; };
+
+    const price = Number(record.preco_registrado ?? record.preco ?? 0);
+    const pharmacyId = record.farmacia_id;
+    const pharmacyName = record.farmacia_nome || `Farmácia ${pharmacyId}`;
 
     if (!grouped.has(pharmacyId)) {
       grouped.set(pharmacyId, {
@@ -149,7 +151,7 @@ function normalizeHistoryPayload(payload: HistoricoResponseItem[]): HistoryChart
     }
 
     grouped.get(pharmacyId)?.points.push({
-      data_registro: item.data_registro,
+      data_registro: record.data_registro,
       preco: price,
     });
   });

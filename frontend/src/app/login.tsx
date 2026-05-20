@@ -153,7 +153,7 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push('/signup')}>
+          <Pressable onPress={() => router.push('/signup' as any)}>
             <Text style={styles.secondaryLink}>Criar conta</Text>
           </Pressable>
 
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     outlineWidth: 0,
     outlineColor: 'transparent',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   passwordWrapper: {
     height: 48,

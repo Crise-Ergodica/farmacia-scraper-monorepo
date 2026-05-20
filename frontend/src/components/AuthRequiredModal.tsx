@@ -24,12 +24,12 @@ export function AuthRequiredModal({
 
   const goToLogin = () => {
     onClose();
-    router.push('/login');
+    router.push('/login' as any);
   };
 
   const goToSignup = () => {
     onClose();
-    router.push('/signup');
+    router.push('/signup' as any);
   };
 
   return (
