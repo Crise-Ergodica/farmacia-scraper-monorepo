@@ -12,9 +12,13 @@ class CatalogoBaseSchema(BaseModel):
     """
     codigo_barras: str = Field(..., max_length=13, description="Código EAN de 13 dígitos")
     nome: str = Field(..., max_length=150)
-    principio_ativo: str = Field(..., max_length=150)
-    laboratorio: str = Field(..., max_length=100)
+    principio_ativo: str = Field(default="Não informado", max_length=150)
+    laboratorio: str = Field(default="Não informado", max_length=100)
     exige_receita: bool = Field(default=False)
+    categorias: list[str] = Field(
+        default_factory=list, 
+        description="Categorias do medicamento (Ex: Genérico, Original, Controlados)"
+    )
 
 class CatalogoOut(CatalogoBaseSchema):
     """

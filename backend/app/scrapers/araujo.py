@@ -23,6 +23,7 @@ from app.core.utils import validar_ean13
 from app.models.catalogo import CatalogoBase
 from app.models.farmacia import Farmacia
 from app.models.oferta_farmacia import OfertaFarmacia
+from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
 
 
 async def extrair_todos_produtos() -> None:
@@ -224,26 +225,28 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
 
         for prod in produtos:
             ean: Any | None = prod.get('ean')
-            
-            # Garante que o EAN é string antes de validar
-            if ean:
-                ean = str(ean)
+            if ean: ean = str(ean)
             
             if not ean or not validar_ean13(ean=ean):
-                # Cria um código falso único usando o ID da Araujo. 
-                # O [:13] garante que não vai estourar o String(13) do modelo de banco de dados.
                 id_produto = str(prod.get('id', '000'))
                 ean = f"ARJ{id_produto}"[:13] 
 
             catalogo_item: CatalogoBase | None = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean).first()
 
             if not catalogo_item:
+                # ---> NOVO: Executa o enriquecimento do dado antes de criar <---
+                # Como salvar_no_banco é síncrono e roda em uma thread, precisamos rodar a corrotina
+                dados_enriquecidos = asyncio.run(
+                    ServicoEnriquecimentoFarmacologico.enriquecer_produto(ean, prod['nome'])
+                )
+
                 catalogo_item = CatalogoBase(
                     codigo_barras=ean,
                     nome=prod['nome'],
-                    principio_ativo="Não informado",
-                    laboratorio="Não informado",
-                    exige_receita=False
+                    principio_ativo=dados_enriquecidos['principio_ativo'],
+                    laboratorio=dados_enriquecidos['laboratorio'],
+                    exige_receita=dados_enriquecidos['exige_receita'],
+                    categorias=dados_enriquecidos['categorias']
                 )
                 db.add(instance=catalogo_item)
                 db.commit()
