@@ -41,6 +41,7 @@ class OfertaFarmacia(Base):
     __tablename__ = "ofertas_farmacia"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    sku_interno: Mapped[str] = mapped_column(String(50), index=True)
     preco: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     quantidade_estoque: Mapped[int] = mapped_column(Integer, default=0)
     disponivel: Mapped[bool] = mapped_column(Boolean, default=True)

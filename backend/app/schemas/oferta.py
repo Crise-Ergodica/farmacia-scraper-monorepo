@@ -3,8 +3,31 @@ Módulo responsável pela definição dos contratos de dados (Schemas) de Oferta
 """
 from decimal import Decimal
 from datetime import datetime
-from typing import Annotated
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated, Any
+from pydantic import BaseModel, ConfigDict, Field, constr, field_validator
+
+class ProdutoExtraidoSchema(BaseModel):
+    """
+    Schema estrito para validação dos dados brutos extraídos pelos scrapers
+    antes de serem processados para inserção no banco de dados.
+    """
+    id: str | int = Field(..., description="ID interno do produto no scraper")
+    sku_interno: str = Field(..., description="SKU local único da farmácia para a oferta")
+    ean: str | None = Field(default=None, max_length=14, pattern=r"^\d+$", description="Código de barras EAN estritamente numérico")
+    name_search: str = Field(..., max_length=150, description="Nome do produto padronizado para busca")
+
+    @field_validator('ean', mode='before')
+    @classmethod
+    def limpar_ean(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v = v.strip().replace("-", "").replace(" ", "")
+            if not v:
+                return None
+        return v
+
+    preco: float = Field(default=0.0, ge=0.0, description="Preço do produto (precisão flutuante inicial)")
+    link: str = Field(..., max_length=500, description="URL de origem do produto")
+    imagem_url: str | None = Field(default=None, max_length=500, description="URL da imagem do produto")
 
 class OfertaBaseSchema(BaseModel):
     """

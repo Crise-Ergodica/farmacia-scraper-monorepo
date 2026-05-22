@@ -20,6 +20,8 @@ from app.core.utils import validar_ean13
 from app.models.farmacia import Farmacia
 from app.models.catalogo import CatalogoBase
 from app.models.oferta_farmacia import OfertaFarmacia
+from app.schemas.oferta import ProdutoExtraidoSchema
+from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
@@ -154,8 +156,9 @@ def adaptar_parser_rest(produtos_brutos: List[Dict[str, Any]]) -> List[Dict[str,
 
         catalogo_limpo.append({
             "id": item_principal.get("itemId"),
+            "sku_interno": f"IND{item_principal.get('itemId', '000')}",
             "ean": ean,
-            "nome": prod.get("productName"),
+            "name_search": prod.get("productName"),
             "preco": preco,
             "link": prod.get("link"),
             "imagem_url": imagem_url
@@ -187,25 +190,34 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             db.refresh(farmacia)
 
         for prod in produtos:
-            ean = prod.get('ean')
-
-            if not ean or not validar_ean13(ean):
+            try:
+                prod_validado = ProdutoExtraidoSchema.model_validate(prod)
+            except ValidationError as e:
+                print(f"[AVISO] Ignorando produto inválido: {e}")
                 continue
 
-            # Tenta encontrar o produto no Catálogo Base
-            catalogo_item = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean).first()
+            ean_validado = prod_validado.ean
+            sku_interno = prod_validado.sku_interno
+
+            if ean_validado and validar_ean13(ean_validado):
+                # Tenta encontrar o produto no Catálogo Base
+                catalogo_item = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean_validado).first()
+            else:
+                catalogo_item = None
+                ean_validado = None
 
             # Se não existir no catálogo, cria um novo registo
             # Se não existir no catálogo, cria um novo registo enriquecido
             if not catalogo_item:
                 # Aciona o enriquecimento (assim como na Araujo, estamos numa thread separada)
+                ean_para_enriquecer = ean_validado if ean_validado else ""
                 dados_enriquecidos = asyncio.run(
-                    ServicoEnriquecimentoFarmacologico.enriquecer_produto(ean, prod['nome'])
+                    ServicoEnriquecimentoFarmacologico.enriquecer_produto(ean_para_enriquecer, prod_validado.name_search)
                 )
 
                 catalogo_item = CatalogoBase(
-                    codigo_barras=ean,
-                    nome=prod['nome'],
+                    codigo_barras=ean_validado,
+                    name_search=prod_validado.name_search,
                     principio_ativo=dados_enriquecidos['principio_ativo'],
                     laboratorio=dados_enriquecidos['laboratorio'],
                     exige_receita=dados_enriquecidos['exige_receita'],
@@ -217,7 +229,7 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
 
             # Tenta encontrar a Oferta pela URL (já que possui restrição UNIQUE no banco)
             oferta_existente = db.query(OfertaFarmacia).filter(
-                OfertaFarmacia.url_origem == prod['link']
+                OfertaFarmacia.url_origem == prod_validado.link
             ).first()
 
             # Se não encontrar pela URL, tenta pela combinação de catálogo e farmácia
@@ -230,25 +242,26 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             # Se não houver oferta, cria uma nova
             if not oferta_existente:
                 nova_oferta = OfertaFarmacia(
-                    preco=prod['preco'],
+                    sku_interno=sku_interno,
+                    preco=prod_validado.preco,
                     quantidade_estoque=1,
                     disponivel=True,
-                    url_origem=prod['link'],
-                    imagem_url=prod.get('imagem_url'),
+                    url_origem=prod_validado.link,
+                    imagem_url=prod_validado.imagem_url,
                     farmacia_id=farmacia.id,
                     catalogo_id=catalogo_item.id
                 )
                 db.add(nova_oferta)
             # Se a oferta já existir, atualiza apenas os dados dinâmicos
             else:
-                oferta_existente.preco = prod['preco']
+                oferta_existente.preco = prod_validado.preco
                 
                 # Atualiza a URL apenas se ela mudou (previne UniqueViolation secundário)
-                if oferta_existente.url_origem != prod['link']:
-                    oferta_existente.url_origem = prod['link']
+                if oferta_existente.url_origem != prod_validado.link:
+                    oferta_existente.url_origem = prod_validado.link
                     
-                if prod.get('imagem_url'):
-                    oferta_existente.imagem_url = prod['imagem_url']
+                if prod_validado.imagem_url:
+                    oferta_existente.imagem_url = prod_validado.imagem_url
 
         db.commit()
 
