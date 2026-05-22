@@ -17,8 +17,8 @@ class CatalogoBase(Base):
     __tablename__ = "catalogo_base"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    codigo_barras: Mapped[str] = mapped_column(String(13), unique=True, index=True)
-    nome: Mapped[str] = mapped_column(String(150), index=True)
+    codigo_barras: Mapped[str | None] = mapped_column(String(14), unique=True, index=True, nullable=True)
+    name_search: Mapped[str] = mapped_column(String(150), index=True)
     
     principio_ativo: Mapped[str] = mapped_column(String(150), index=True, default="Não informado")
     laboratorio: Mapped[str] = mapped_column(String(100), index=True, default="Não informado")
