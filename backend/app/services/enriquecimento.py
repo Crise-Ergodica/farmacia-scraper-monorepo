@@ -1,48 +1,33 @@
 """
 Módulo responsável por inferir e enriquecer dados farmacológicos.
 """
-import os
-import httpx
+import asyncio
 from typing import Dict, Any
-from dotenv import load_dotenv
-from pathlib import Path
 
-env_path = Path(__file__).parent.parent.parent / ".env"
-if not env_path.exists():
-    env_path = Path(__file__).parent.parent.parent / ".env.example"
-
-load_dotenv(dotenv_path=env_path)
+from app.core.database import SessionLocal
+from app.models.anvisa import AnvisaMedicamento
 
 CATEGORIAS_VALIDAS = {'Generico', 'Original', 'Similar', 'Controlados', 'Venda livre', 'Indeterminado'}
 
 class ServicoEnriquecimentoFarmacologico:
-    # Cache em memória para evitar chamadas redundantes à API externa durante a execução do scraper
+    # Cache em memória para evitar chamadas redundantes ao banco local durante a execução do scraper
     _cache_ean: Dict[str, Dict[str, Any]] = {}
-            
+
     @staticmethod
-    async def buscar_dados_por_ean(codigo_barras: str) -> Dict[str, Any]:
-        token = os.getenv("API_EAN_TOKEN", "")
-        # Adicione um log para verificar se o token está realmente chegando
-        print(f"DEBUG: Consultando EAN: {codigo_barras} | Token len: {len(token)}")
-        
-        url = f"https://api.cosmos.bluesoft.com.br/gtins/{codigo_barras}.json"
-        headers = {"X-Cosmos-Token": token, "User-Agent": "PrecoBao-Worker/1.0"}
-        
-        try:
-            async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
-                resposta = await client.get(url, headers=headers)
-                
-                # DEBUG CRÍTICO: Ver o status e o corpo da resposta
-                print(f"DEBUG: Status API: {resposta.status_code}")
-                if resposta.status_code != 200:
-                    print(f"DEBUG: Corpo da resposta (Erro): {resposta.text[:200]}")
-                
-                if resposta.status_code == 200:
-                    return resposta.json()
-                return {}
-        except httpx.RequestError as e:
-            print(f"[ERRO REDE] Falha ao consultar EAN {codigo_barras}: {e}")
+    def _buscar_dados_por_ean_local(codigo_barras: str) -> Dict[str, Any]:
+        """Realiza a busca síncrona na base local da ANVISA."""
+        if not codigo_barras:
             return {}
+
+        with SessionLocal() as db:
+            registro = db.query(AnvisaMedicamento).filter_by(ean=codigo_barras).first()
+            if registro:
+                return {
+                    "principio_ativo": registro.principio_ativo,
+                    "laboratorio": registro.laboratorio,
+                    "tarja": registro.tarja,
+                }
+        return {}
 
     @staticmethod
     def inferir_categoria_por_texto(texto: str, exige_receita: bool) -> list[str]:
@@ -65,19 +50,19 @@ class ServicoEnriquecimentoFarmacologico:
         if not ean:
             return cls._aplicar_fallback_restritivo(nome_comercial)
 
-        # 1. Verifica Cache (O(1) - Previne bloqueio da API)
+        # 1. Verifica Cache (O(1) - Previne chamadas repetidas ao banco)
         if ean in cls._cache_ean:
             return cls._cache_ean[ean]
 
-        # 2. Tenta API Externa real
-        dados_api = await cls.buscar_dados_por_ean(ean)
+        # 2. Consulta banco local da ANVISA em uma thread separada para não bloquear o Event Loop
+        dados_anvisa = await asyncio.to_thread(cls._buscar_dados_por_ean_local, ean)
         
-        if dados_api:
-            descricao = dados_api.get("description", nome_comercial)
-            marca = dados_api.get("brand", {}).get("name", "Não informado")
+        if dados_anvisa:
+            descricao = dados_anvisa.get("principio_ativo") or nome_comercial
+            marca = dados_anvisa.get("laboratorio") or "Não informado"
+            tarja = (dados_anvisa.get("tarja") or "").lower()
             
-            texto_regulatorio = str(dados_api).lower()
-            exige_receita = "tarja vermelha" in texto_regulatorio or "tarja preta" in texto_regulatorio or "retenção" in texto_regulatorio
+            exige_receita = "vermelha" in tarja or "preta" in tarja
             
             # Combina a descrição oficial com o nome comercial da farmácia para não perder a detecção de Genérico
             contexto_texto = f"{descricao} {nome_comercial}"
@@ -94,9 +79,9 @@ class ServicoEnriquecimentoFarmacologico:
             cls._cache_ean[ean] = resultado
             return resultado
             
-        # 3. Fallback Restritivo (se falhar, exige receita por segurança)
+        # 3. Fallback Restritivo (se não encontrar na base da ANVISA, infere pelo nome e exige receita por segurança)
         resultado_fallback = cls._aplicar_fallback_restritivo(nome_comercial)
-        cls._cache_ean[ean] = resultado_fallback # Adiciona falhas ao cache para não insistir no mesmo EAN
+        cls._cache_ean[ean] = resultado_fallback # Adiciona resultados de fallback ao cache
         return resultado_fallback
 
     @staticmethod

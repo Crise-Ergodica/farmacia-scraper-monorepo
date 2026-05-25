@@ -12,6 +12,7 @@ Módulos e Classes Exportadas:
     * :class:`~models.catalogo.CatalogoBase`: Entidade que representa o catálogo unificado com dados farmacológicos invariáveis.
     * :class:`~models.oferta_farmacia.OfertaFarmacia`: Entidade que representa a precificação e a disponibilidade (oferta) de um item numa loja.
     * :class:`~models.historico.HistoricoPreco`: Entidade que registra o histórico temporal de preços por farmácia.
+    * :class:`~models.anvisa.AnvisaMedicamento`: Entidade que representa o lookup local de medicamentos da ANVISA.
 
 .. note::
     Para o correto funcionamento das migrações, certifique-se de importar 
@@ -24,6 +25,7 @@ from .farmacia import Farmacia
 from .catalogo import CatalogoBase
 from .oferta_farmacia import OfertaFarmacia
 from .historico import HistoricoPreco
+from .anvisa import AnvisaMedicamento
 
 __all__ = [
     "Base",
@@ -31,4 +33,5 @@ __all__ = [
     "CatalogoBase",
     "OfertaFarmacia",
     "HistoricoPreco",
+    "AnvisaMedicamento",
 ]
