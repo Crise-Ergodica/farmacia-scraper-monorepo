@@ -4,6 +4,14 @@ Módulo responsável por inferir e enriquecer dados farmacológicos.
 import os
 import httpx
 from typing import Dict, Any
+from dotenv import load_dotenv
+from pathlib import Path
+
+env_path = Path(__file__).parent.parent.parent / ".env"
+if not env_path.exists():
+    env_path = Path(__file__).parent.parent.parent / ".env.example"
+
+load_dotenv(dotenv_path=env_path)
 
 CATEGORIAS_VALIDAS = {'Generico', 'Original', 'Similar', 'Controlados', 'Venda livre', 'Indeterminado'}
 
@@ -13,18 +21,21 @@ class ServicoEnriquecimentoFarmacologico:
             
     @staticmethod
     async def buscar_dados_por_ean(codigo_barras: str) -> Dict[str, Any]:
-        """Consulta a API externa com tolerância a falhas."""
         token = os.getenv("API_EAN_TOKEN", "")
-        url = f"https://api.cosmos.bluesoft.com.br/gtins/{codigo_barras}.json"
+        # Adicione um log para verificar se o token está realmente chegando
+        print(f"DEBUG: Consultando EAN: {codigo_barras} | Token len: {len(token)}")
         
-        headers = {
-            "X-Cosmos-Token": token,
-            "User-Agent": "PrecoBao-Worker/1.0"
-        }
+        url = f"https://api.cosmos.bluesoft.com.br/gtins/{codigo_barras}.json"
+        headers = {"X-Cosmos-Token": token, "User-Agent": "PrecoBao-Worker/1.0"}
         
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
                 resposta = await client.get(url, headers=headers)
+                
+                # DEBUG CRÍTICO: Ver o status e o corpo da resposta
+                print(f"DEBUG: Status API: {resposta.status_code}")
+                if resposta.status_code != 200:
+                    print(f"DEBUG: Corpo da resposta (Erro): {resposta.text[:200]}")
                 
                 if resposta.status_code == 200:
                     return resposta.json()

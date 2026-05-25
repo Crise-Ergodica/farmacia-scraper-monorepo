@@ -31,7 +31,7 @@ class AraujoScraper(BasePharmacyScraper):
         processando = True
 
         # Usando AsyncSession do curl_cffi para imitar o comportamento de browser
-        async with requests.AsyncSession(impersonate="chrome110") as session:
+        async with requests.AsyncSession(impersonate="chrome110", verify=False) as session:
             while processando:
                 print(f"Buscando Drogaria Araujo - Página {pagina}...")
                 
@@ -48,6 +48,7 @@ class AraujoScraper(BasePharmacyScraper):
                         break
 
                     html_content = response.text
+                    print(f"DEBUG: Tamanho do HTML recebido: {len(html_content)} bytes")
 
                     # Se não encontrar o wrapper principal de produtos, provável fim
                     if "productTile" not in html_content:
@@ -85,6 +86,17 @@ class AraujoScraper(BasePharmacyScraper):
         """
         catalogo_limpo = []
         soup = BeautifulSoup(markup=html_content, features="html.parser")
+        # DEBUG: Liste as classes de todas as divs para ver se o nome mudou
+        divs = soup.find_all("div")
+        classes_encontradas = set()
+        for div in divs:
+            if div.get("class"):
+                classes_encontradas.update(div.get("class"))
+
+        print(f"DEBUG: Classes CSS encontradas na página: {list(classes_encontradas)[:20]}...")
+        # Verifica se o seletor antigo ainda existe
+        tem_product_tile = soup.find_all(class_="productTile")
+        print(f"DEBUG: Quantidade de elementos 'productTile' encontrados: {len(tem_product_tile)}")
 
         cards_produtos = soup.find_all(name="div", class_="productTile")
 
