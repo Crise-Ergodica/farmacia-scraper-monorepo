@@ -2,12 +2,27 @@ from logging.config import fileConfig
 from app.models import Base, Farmacia, CatalogoBase, OfertaFarmacia
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
 from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+env_path = Path(__file__).parent.parent / ".env"
+if not env_path.exists():
+    env_path = Path(__file__).parent.parent / ".env.example"
+
+load_dotenv(dotenv_path=env_path)
+
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    # Esta linha ignora e substitui o valor obsoleto definido no alembic.ini
+    config.set_main_option("sqlalchemy.url", database_url)
+else:
+    raise ValueError("Erro Crítico: DATABASE_URL não encontrada no ambiente para realizar a migração.")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
