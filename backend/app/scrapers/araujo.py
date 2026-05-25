@@ -31,7 +31,19 @@ class AraujoScraper(BasePharmacyScraper):
         processando = True
 
         # Usando AsyncSession do curl_cffi para imitar o comportamento de browser
-        async with requests.AsyncSession(impersonate="chrome110", verify=False) as session:
+        # Injetando headers para contornar o bloqueio de bot (Cloudflare/Akamai) que retorna 0 produtos
+        headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Referer": "https://www.araujo.com.br/",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1"
+        }
+
+        async with requests.AsyncSession(impersonate="chrome110", verify=False, headers=headers) as session:
             while processando:
                 print(f"Buscando Drogaria Araujo - Página {pagina}...")
                 
@@ -155,7 +167,7 @@ class AraujoScraper(BasePharmacyScraper):
                 if imagem_url:
                     match = re.search(pattern=r'(\d{13,14})', string=imagem_url)
                     if match:
-                        ean = match.group(1)
+                        ean = match.group(1).strip().replace("-", "")
 
                 # 5. ID Interno
                 id_interno = card.get(key="data-pid", default="")
