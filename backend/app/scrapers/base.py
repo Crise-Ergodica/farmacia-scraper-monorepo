@@ -49,7 +49,7 @@ class BasePharmacyScraper(ABC):
                 if produto_dict is None:
                     # Salva o restante antes de finalizar o worker
                     if batch:
-                        await asyncio.to_thread(self._salvar_lote_no_banco, batch)
+                        await asyncio.to_thread(self._processar_e_salvar_lote, batch)
                     break
 
                 try:
@@ -65,24 +65,17 @@ class BasePharmacyScraper(ABC):
                 # Contudo podemos usar ele validado para as proximas etapas
                 prod_validado.ean = ean_valido
 
-                # 2. Enriquecimento Assíncrono (sem bloquear thread)
-                ean_para_enriquecer = prod_validado.ean if prod_validado.ean else ""
-                dados_enriquecidos = await ServicoEnriquecimentoFarmacologico.enriquecer_produto(
-                    ean_para_enriquecer,
-                    prod_validado.name_search
-                )
-
-                # Prepara dicionário consolidado para o banco
+                # Prepara dicionário consolidado para o banco (enriquecido será preenchido em lote)
                 item_enriquecido = {
                     "validado": prod_validado,
-                    "enriquecido": dados_enriquecidos
+                    "enriquecido": None
                 }
 
                 batch.append(item_enriquecido)
 
                 if len(batch) >= self.batch_size:
                     # Salva em lote usando uma thread separada para não bloquear o loop de eventos
-                    await asyncio.to_thread(self._salvar_lote_no_banco, batch.copy())
+                    await asyncio.to_thread(self._processar_e_salvar_lote, batch.copy())
                     batch.clear()
 
             except Exception as e:
@@ -90,9 +83,9 @@ class BasePharmacyScraper(ABC):
             finally:
                 self.fila.task_done()
 
-    def _salvar_lote_no_banco(self, batch: List[Dict[str, Any]]) -> None:
+    def _processar_e_salvar_lote(self, batch: List[Dict[str, Any]]) -> None:
         """
-        Persiste um lote de produtos no banco de dados utilizando bulk upsert do PostgreSQL.
+        Realiza o Bulk Lookup de enriquecimento e persiste o lote no banco de dados.
         Roda dentro de uma thread separada via asyncio.to_thread.
         """
         if not batch:
@@ -100,6 +93,9 @@ class BasePharmacyScraper(ABC):
 
         db = SessionLocal()
         try:
+            # 1. Enriquecimento em lote (Bulk Lookup)
+            batch = ServicoEnriquecimentoFarmacologico.enriquecer_lote(db, batch)
+
             # 1. Garante que a farmácia existe
             farmacia = db.query(Farmacia).filter(Farmacia.cnpj == self.farmacia_cnpj).first()
             if not farmacia:
