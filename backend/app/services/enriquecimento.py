@@ -2,7 +2,8 @@
 Módulo responsável por inferir e enriquecer dados farmacológicos.
 """
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, List
+from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models.anvisa import AnvisaMedicamento
@@ -13,21 +14,65 @@ class ServicoEnriquecimentoFarmacologico:
     # Cache em memória para evitar chamadas redundantes ao banco local durante a execução do scraper
     _cache_ean: Dict[str, Dict[str, Any]] = {}
 
-    @staticmethod
-    def _buscar_dados_por_ean_local(codigo_barras: str) -> Dict[str, Any]:
-        """Realiza a busca síncrona na base local da ANVISA."""
-        if not codigo_barras:
-            return {}
+    @classmethod
+    def enriquecer_lote(cls, db: Session, produtos: List[Dict]) -> List[Dict]:
+        """
+        Enriquece um lote de produtos de uma só vez realizando uma única consulta
+        na base de dados local (Bulk Lookup) para os EANs fornecidos.
+        """
+        # Extrai todos os eans válidos da lista de produtos
+        lista_eans = [p["validado"].ean for p in produtos if p["validado"].ean]
 
-        with SessionLocal() as db:
-            registro = db.query(AnvisaMedicamento).filter_by(ean=codigo_barras).first()
-            if registro:
-                return {
+        # Filtra os que não estão no cache e remove duplicatas
+        eans_para_buscar = list(set([ean for ean in lista_eans if ean not in cls._cache_ean]))
+
+        # Busca no banco apenas os EANs não cacheados (Bulk Lookup)
+        if eans_para_buscar:
+            registros = db.query(AnvisaMedicamento).filter(AnvisaMedicamento.ean.in_(eans_para_buscar)).all()
+            for registro in registros:
+                cls._cache_ean[registro.ean] = {
                     "principio_ativo": registro.principio_ativo,
                     "laboratorio": registro.laboratorio,
                     "tarja": registro.tarja,
                 }
-        return {}
+
+        # Itera sobre os produtos e aplica o enriquecimento
+        for produto in produtos:
+            prod_validado = produto["validado"]
+            ean = prod_validado.ean
+            nome_comercial = prod_validado.name_search
+
+            if not ean:
+                produto["enriquecido"] = cls._aplicar_fallback_restritivo(nome_comercial)
+                continue
+
+            dados_anvisa = cls._cache_ean.get(ean)
+
+            if dados_anvisa and dados_anvisa.get("principio_ativo"):
+                descricao = dados_anvisa.get("principio_ativo") or nome_comercial
+                marca = dados_anvisa.get("laboratorio") or "Não informado"
+                tarja = (dados_anvisa.get("tarja") or "").lower()
+
+                exige_receita = "vermelha" in tarja or "preta" in tarja
+
+                # Combina a descrição oficial com o nome comercial da farmácia para não perder a detecção de Genérico
+                contexto_texto = f"{descricao} {nome_comercial}"
+                categorias_reais = cls.inferir_categoria_por_texto(contexto_texto, exige_receita)
+
+                resultado = {
+                    "principio_ativo": descricao,
+                    "laboratorio": marca,
+                    "categorias": categorias_reais,
+                    "exige_receita": exige_receita
+                }
+
+                # Salva o resultado final no cache para evitar recálculo (opcional, já que cacheamos o dado cru)
+                cls._cache_ean[f"{ean}_resultado"] = resultado
+                produto["enriquecido"] = resultado
+            else:
+                produto["enriquecido"] = cls._aplicar_fallback_restritivo(nome_comercial)
+
+        return produtos
 
     @staticmethod
     def inferir_categoria_por_texto(texto: str, exige_receita: bool) -> list[str]:
@@ -41,48 +86,6 @@ class ServicoEnriquecimentoFarmacologico:
             categorias.add("Venda livre")
             
         return list(categorias) if categorias else ["Original"]
-
-    @classmethod
-    async def enriquecer_produto(cls, ean: str, nome_comercial: str) -> Dict[str, Any]:
-        """
-        Pipeline principal com Cache, API e Fallback.
-        """
-        if not ean:
-            return cls._aplicar_fallback_restritivo(nome_comercial)
-
-        # 1. Verifica Cache (O(1) - Previne chamadas repetidas ao banco)
-        if ean in cls._cache_ean:
-            return cls._cache_ean[ean]
-
-        # 2. Consulta banco local da ANVISA em uma thread separada para não bloquear o Event Loop
-        dados_anvisa = await asyncio.to_thread(cls._buscar_dados_por_ean_local, ean)
-        
-        if dados_anvisa:
-            descricao = dados_anvisa.get("principio_ativo") or nome_comercial
-            marca = dados_anvisa.get("laboratorio") or "Não informado"
-            tarja = (dados_anvisa.get("tarja") or "").lower()
-            
-            exige_receita = "vermelha" in tarja or "preta" in tarja
-            
-            # Combina a descrição oficial com o nome comercial da farmácia para não perder a detecção de Genérico
-            contexto_texto = f"{descricao} {nome_comercial}"
-            categorias_reais = cls.inferir_categoria_por_texto(contexto_texto, exige_receita)
-            
-            resultado = {
-                "principio_ativo": descricao,
-                "laboratorio": marca,
-                "categorias": categorias_reais, 
-                "exige_receita": exige_receita
-            }
-            
-            # Salva no cache antes de retornar
-            cls._cache_ean[ean] = resultado
-            return resultado
-            
-        # 3. Fallback Restritivo (se não encontrar na base da ANVISA, infere pelo nome e exige receita por segurança)
-        resultado_fallback = cls._aplicar_fallback_restritivo(nome_comercial)
-        cls._cache_ean[ean] = resultado_fallback # Adiciona resultados de fallback ao cache
-        return resultado_fallback
 
     @staticmethod
     def _aplicar_fallback_restritivo(nome_comercial: str) -> Dict[str, Any]:
