@@ -211,8 +211,8 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             if not catalogo_item:
                 # Aciona o enriquecimento (assim como na Araujo, estamos numa thread separada)
                 ean_para_enriquecer = ean_validado if ean_validado else ""
-                dados_enriquecidos = asyncio.run(
-                    ServicoEnriquecimentoFarmacologico.enriquecer_produto(ean_para_enriquecer, prod_validado.name_search)
+                dados_enriquecidos = ServicoEnriquecimentoFarmacologico.enriquecer_produto(
+                    db, ean_para_enriquecer, prod_validado.name_search
                 )
 
                 catalogo_item = CatalogoBase(

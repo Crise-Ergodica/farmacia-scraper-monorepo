@@ -73,6 +73,47 @@ class ServicoEnriquecimentoFarmacologico:
                 produto["enriquecido"] = cls._aplicar_fallback_restritivo(nome_comercial)
 
         return produtos
+    
+    @classmethod
+    def enriquecer_produto(cls, db: Session, ean: str, nome_comercial: str) -> Dict[str, Any]:
+        """
+        Enriquece um único produto de forma síncrona.
+        Utiliza o cache de memória para evitar saturação do banco de dados relacional.
+        """
+        if not ean:
+            return cls._aplicar_fallback_restritivo(nome_comercial)
+
+        if ean not in cls._cache_ean:
+            registro = db.query(AnvisaMedicamento).filter(AnvisaMedicamento.ean == ean).first()
+            if registro:
+                cls._cache_ean[ean] = {
+                    "principio_ativo": registro.principio_ativo,
+                    "laboratorio": registro.laboratorio,
+                    "tarja": registro.tarja,
+                }
+            else:
+                # Armazena dicionário vazio para não reconsultar o mesmo EAN inexistente no futuro
+                cls._cache_ean[ean] = {} 
+
+        dados_anvisa = cls._cache_ean.get(ean)
+
+        if dados_anvisa and dados_anvisa.get("principio_ativo"):
+            descricao = dados_anvisa.get("principio_ativo") or nome_comercial
+            marca = dados_anvisa.get("laboratorio") or "Não informado"
+            tarja = (dados_anvisa.get("tarja") or "").lower()
+
+            exige_receita = "vermelha" in tarja or "preta" in tarja
+            contexto_texto = f"{descricao} {nome_comercial}"
+            categorias_reais = cls.inferir_categoria_por_texto(contexto_texto, exige_receita)
+
+            return {
+                "principio_ativo": descricao,
+                "laboratorio": marca,
+                "categorias": categorias_reais,
+                "exige_receita": exige_receita
+            }
+        
+        return cls._aplicar_fallback_restritivo(nome_comercial)
 
     @staticmethod
     def inferir_categoria_por_texto(texto: str, exige_receita: bool) -> list[str]:
@@ -112,3 +153,4 @@ class ServicoEnriquecimentoFarmacologico:
             "principio_ativo": "Não informado (Pendente)",
             "laboratorio": "Não informado"
         }
+

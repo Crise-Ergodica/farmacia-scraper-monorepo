@@ -47,10 +47,9 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
 
     print(f"Lendo o CSV {csv_filepath}...")
 
-    # O arquivo da CMED frequentemente vem em ISO-8859-1 (latin1) com separador ';'
     try:
         # Lê todas as colunas como string para evitar perdas de precisão em IDs numéricos (como EAN)
-        df = pd.read_csv(csv_filepath, sep=';', encoding='iso-8859-1', dtype=str, keep_default_na=False)
+        df = pd.read_csv(csv_filepath, sep=';', encoding='utf-8', dtype=str, keep_default_na=False)
     except Exception as e:
         print(f"Falha ao ler o CSV: {e}")
         sys.exit(1)
