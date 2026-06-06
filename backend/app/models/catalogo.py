@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import ARRAY  # Importação específica par
 
 from .base import Base
 from .oferta_farmacia import OfertaFarmacia
+from .historico import HistoricoPreco
 
 class CatalogoBase(Base):
     """
@@ -29,4 +30,6 @@ class CatalogoBase(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
+
     ofertas: Mapped[list["OfertaFarmacia"]] = relationship("OfertaFarmacia", back_populates="produto_catalogo")
+    historico_precos: Mapped[list["HistoricoPreco"]] = relationship("HistoricoPreco", backref="medicamento", cascade="all, delete-orphan")
