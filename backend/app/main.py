@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, catalogo
+from app.api.routes import auth, catalogo, historico
 
 app: FastAPI = FastAPI(title="Preço Bão API")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 
 app.include_router(catalogo.router)
 app.include_router(auth.router)
+app.include_router(historico.router, prefix="/api/v1")
 
 
 @app.get("/")

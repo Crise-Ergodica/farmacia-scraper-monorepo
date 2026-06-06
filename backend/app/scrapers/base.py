@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.database import SessionLocal
 from app.models.catalogo import CatalogoBase
 from app.models.oferta_farmacia import OfertaFarmacia
+from app.models.historico import HistoricoPreco
 from app.models.farmacia import Farmacia
 from app.schemas.oferta import ProdutoExtraidoSchema
 from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
@@ -170,6 +171,15 @@ class BasePharmacyScraper(ABC):
                 for c in catalogos_sem_ean:
                     mapa_catalogo[c.name_search] = c.id
 
+
+            # Prepare to query existing OfertaFarmacia to check for price changes
+            urls_no_lote = [item["validado"].link for item in batch]
+            precos_existentes = {}
+            if urls_no_lote:
+                ofertas_existentes = db.query(OfertaFarmacia).filter(OfertaFarmacia.url_origem.in_(urls_no_lote)).all()
+                for oferta in ofertas_existentes:
+                    precos_existentes[oferta.url_origem] = oferta.preco
+
             # Desduplicação da OfertaFarmacia no lote atual
             oferta_dicts_map = {}
             for item in batch:
@@ -195,6 +205,19 @@ class BasePharmacyScraper(ABC):
 
             oferta_dicts = list(oferta_dicts_map.values())
 
+            historico_dicts = []
+            for url, oferta_data in oferta_dicts_map.items():
+                preco_novo = oferta_data["preco"]
+                preco_antigo = precos_existentes.get(url)
+
+                # If it's a new offer or the price has changed, add to history
+                if preco_antigo is None or preco_novo != preco_antigo:
+                    historico_dicts.append({
+                        "medicamento_id": oferta_data["catalogo_id"],
+                        "farmacia_id": oferta_data["farmacia_id"],
+                        "preco": preco_novo
+                    })
+
             if oferta_dicts:
                 # Upsert OfertaFarmacia
                 stmt_oferta = insert(OfertaFarmacia).values(oferta_dicts)
@@ -206,7 +229,12 @@ class BasePharmacyScraper(ABC):
                     }
                 )
                 db.execute(stmt_oferta)
-                db.commit()
+
+            if historico_dicts:
+                stmt_historico = insert(HistoricoPreco).values(historico_dicts)
+                db.execute(stmt_historico)
+
+            db.commit()
 
         except SQLAlchemyError as e:
             db.rollback()

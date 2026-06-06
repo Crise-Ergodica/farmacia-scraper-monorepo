@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from .base import Base
 from .oferta_farmacia import OfertaFarmacia
+from .historico import HistoricoPreco
 
 class Farmacia(Base):
     """
@@ -52,4 +53,6 @@ class Farmacia(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
+
     ofertas: Mapped[list["OfertaFarmacia"]] = relationship("OfertaFarmacia", back_populates="farmacia", cascade="all, delete-orphan")
+    historico_precos: Mapped[list["HistoricoPreco"]] = relationship("HistoricoPreco", backref="farmacia_rel", cascade="all, delete-orphan")

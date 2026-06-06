@@ -10,6 +10,7 @@ acesso rápido e centralizado a todas as estruturas de serialização necessári
 
 from .catalogo import CatalogoBaseSchema, CatalogoOut, CatalogoComOfertasOut, HistoricoBase, HistoricoOut
 from .oferta import OfertaBaseSchema, OfertaOut
+from .historico import PricePointSchema, PharmacyHistorySchema, MedicineHistoryResponse
 
 __all__ = [
     # Schemas do Catálogo Global (Dados Estáticos)
@@ -23,6 +24,9 @@ __all__ = [
     # Schemas de Histórico (Rastreabilidade de Preços no Tempo)
     "HistoricoBase",
     "HistoricoOut",
+    "PricePointSchema",
+    "PharmacyHistorySchema",
+    "MedicineHistoryResponse",
     
     # Schemas Agregados (Junção de Domínios para o Frontend)
     "CatalogoComOfertasOut",
