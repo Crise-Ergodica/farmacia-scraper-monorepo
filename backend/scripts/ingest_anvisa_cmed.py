@@ -92,7 +92,8 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
         eans_str = row.get(ean_col, "")
         substancia = row.get(substancia_col, "Não informado").strip()
         laboratorio = row.get(lab_col, "Não informado").strip()
-        tarja = row.get(tarja_col, "Sem Tarja").strip()
+        tarja_bruta = row.get(tarja_col, "Sem Tarja").strip()
+        tarja = tarja_bruta.replace("(*)", "").strip()
 
         eans_validos = normalize_ean(eans_str)
 

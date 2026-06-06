@@ -4,7 +4,11 @@ FRONTEND_DIR = frontend
 NPM = npm
 DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null || echo "docker compose")
 
-.PHONY: help setup clean db-up db-down envs migrate-back setup-back setup-front
+# Variáveis do Pipeline de Dados (podem ser sobrescritas no terminal)
+CMED_XLSX ?= data/xls_conformidade_site_20260508_234642408.xlsx
+CMED_CSV ?= data/cmed_atual.csv
+
+.PHONY: help setup clean db-up db-down db-reset envs migrate-back setup-back setup-front run-back run-front etl-convert etl-ingest etl-run
 
 help: ## Mostra os comandos disponíveis
 	@echo "Comandos disponíveis no Monorepo:"
@@ -26,6 +30,13 @@ db-up: ## Sobe o banco de dados PostgreSQL via Docker
 	@echo "Aguardando o banco de dados aceitar conexões..."
 	@sleep 3 
 
+db-down: ## Derruba o banco de dados e destrói os volumes persistentes
+	@echo "\033[31mDerrubando contêineres e limpando volumes persistentes...\033[0m"
+	$(DOCKER_COMPOSE) -f $(BACKEND_DIR)/docker-compose.yml down -v
+
+db-reset: db-down db-up migrate-back ## Reseta o banco do zero (destrói, sobe e aplica migrações)
+	@echo "\033[32mBanco de dados sanitizado e recriado com sucesso.\033[0m"
+
 setup-back: ## Instala as dependências do backend usando Poetry
 	@echo "\033[33mConfigurando ambiente Python...\033[0m"
 	cd $(BACKEND_DIR) && poetry install
@@ -45,3 +56,14 @@ run-back: ## Inicia o servidor backend (FastAPI) em modo reload
 run-front: ## Inicia o projeto frontend (Expo)
 	@echo "\033[33mIniciando interface Expo...\033[0m"
 	cd $(FRONTEND_DIR) && $(NPM) start
+
+etl-convert: ## Converte a planilha XLSX da CMED para CSV
+	@echo "\033[33mConvertendo planilha CMED (XLSX -> CSV)...\033[0m"
+	cd $(BACKEND_DIR) && poetry run python scripts/convert_cmed_xls_to_csv.py $(CMED_XLSX) $(CMED_CSV)
+
+etl-ingest: ## Ingesta o arquivo CSV gerado no banco de dados
+	@echo "\033[33mIniciando carga de dados no PostgreSQL...\033[0m"
+	cd $(BACKEND_DIR) && poetry run python scripts/ingest_anvisa_cmed.py $(CMED_CSV)
+
+etl-run: etl-convert etl-ingest ## Roda o pipeline de dados completo (Conversão + Ingestão)
+	@echo "\033[32mPipeline ETL concluído.\033[0m"
