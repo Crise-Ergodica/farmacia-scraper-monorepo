@@ -38,6 +38,23 @@ class CatalogoComOfertasOut(CatalogoOut):
     """
     ofertas: list[OfertaOut] = Field(default_factory=list)
 
+class CatalogoPageOut(BaseModel):
+    """
+    Schema para paginação do catálogo de produtos.
+    """
+    total: int
+    limit: int
+    offset: int
+    items: list[CatalogoComOfertasOut]
+
+class CatalogoFiltrosOut(BaseModel):
+    """
+    Schema de saída para os filtros dinâmicos do catálogo.
+    """
+    categorias: list[str]
+    laboratorios: list[str]
+    principios_ativos: list[str]
+
 class HistoricoBase(BaseModel):
     """
     Schema base para o registro de histórico de preços.
