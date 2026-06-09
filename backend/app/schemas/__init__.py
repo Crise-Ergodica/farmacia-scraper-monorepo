@@ -8,7 +8,7 @@ temporal de preços (histórico), garantindo que os endpoints do FastAPI tenham
 acesso rápido e centralizado a todas as estruturas de serialização necessárias.
 """
 
-from .catalogo import CatalogoBaseSchema, CatalogoOut, CatalogoComOfertasOut, HistoricoBase, HistoricoOut
+from .catalogo import CatalogoBaseSchema, CatalogoOut, CatalogoComOfertasOut, CatalogoPageOut, CatalogoFiltrosOut, HistoricoBase, HistoricoOut
 from .oferta import OfertaBaseSchema, OfertaOut
 from .historico import PricePointSchema, PharmacyHistorySchema, MedicineHistoryResponse
 
@@ -30,4 +30,6 @@ __all__ = [
     
     # Schemas Agregados (Junção de Domínios para o Frontend)
     "CatalogoComOfertasOut",
+    "CatalogoPageOut",
+    "CatalogoFiltrosOut",
 ]

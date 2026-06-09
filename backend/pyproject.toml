@@ -29,10 +29,10 @@ pandas = "^3.0.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"
-pytest-asyncio = ">=0.21.0"
 ruff = ">=0.0.280"
 
 # Configurações do Linter Ruff
+pytest-asyncio = "^1.4.0"
 [tool.ruff]
 line-length = 88
 
