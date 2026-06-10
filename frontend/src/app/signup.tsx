@@ -33,8 +33,10 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
+type FocusedField = 'name' | 'email' | 'password' | 'confirmPassword' | null;
+
 export default function SignupScreen() {
-  const { registerUser } = useAppContext();
+  const { registerUser, signIn } = useAppContext();
 
   const { width } = useWindowDimensions();
 
@@ -58,9 +60,7 @@ export default function SignupScreen() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-
+  const [focusedField, setFocusedField] = useState<FocusedField>(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
 
@@ -75,32 +75,59 @@ export default function SignupScreen() {
       confirmPassword: data.confirmPassword,
     });
 
-    if (result.ok) {
-      setMessageType('success');
-      setMessage(result.message);
-      setTimeout(() => {
-        router.replace('/(app)/home' as never);
-      }, 1000);
-    } else {
+    if (!result.ok) {
       setMessageType('error');
       setMessage(result.message);
-      setError('root', { message: result.message });
+
+      setError('root', {
+        message: result.message,
+      });
+
+      return;
     }
+
+    setMessageType('success');
+    setMessage('Cadastro realizado. Entrando na sua conta...');
+
+    const loginResult = await signIn(data.email, data.password);
+
+    if (!loginResult.ok) {
+      const errorMessage =
+        'Cadastro realizado, mas não foi possível entrar automaticamente. Faça login manualmente.';
+
+      setMessageType('error');
+      setMessage(errorMessage);
+
+      setError('root', {
+        message: errorMessage,
+      });
+
+      return;
+    }
+
+    router.replace('/(app)/home' as never);
   };
 
   return (
-    <Screen
-      hideBottomNav
-      scroll
-      contentStyle={[styles.screenContent, isWide && styles.screenContentWeb]}
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <Screen
+        contentStyle={[
+          styles.screenContent,
+          isWeb && styles.screenContentWeb,
+        ]}
       >
         <View style={[styles.page, isWide && styles.pageWeb]}>
           <View style={[styles.hero, !isWide && styles.heroMobile]}>
-            <Pressable style={styles.backButton} onPress={() => router.replace('/login')}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.backButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.replace('/login' as never)}
+            >
               <Ionicons name="chevron-back" size={22} color={palette.text} />
             </Pressable>
 
@@ -113,31 +140,43 @@ export default function SignupScreen() {
             </Text>
 
             <Text style={styles.heroSubtitle}>
-              Salve seus medicamentos favoritos e tenha uma experiência mais personalizada.
+              Salve seus medicamentos favoritos e tenha uma experiência mais
+              personalizada.
             </Text>
 
             <View style={styles.infoPanel}>
               <View style={styles.infoRow}>
-                <Ionicons name="checkmark-circle-outline" size={21} color={palette.success} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={21}
+                  color={palette.primary}
+                />
                 <Text style={styles.infoText}>Cadastro simples e rápido</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Ionicons name="heart-outline" size={21} color={palette.primary} />
-                <Text style={styles.infoText}>Favoritos vinculados à sua conta</Text>
+                <Ionicons name="heart" size={21} color={palette.primary} />
+                <Text style={styles.infoText}>
+                  Favoritos vinculados à sua conta
+                </Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Ionicons name="shield-checkmark-outline" size={21} color={palette.primary} />
-                <Text style={styles.infoText}>Pronto para autenticação real do backend</Text>
+                <Ionicons
+                  name="shield-checkmark"
+                  size={21}
+                  color={palette.primary}
+                />
+                <Text style={styles.infoText}>
+                  Pronto para autenticação real do backend
+                </Text>
               </View>
             </View>
           </View>
 
-          <View style={[styles.card, isWide && styles.cardWeb]}>
+          <View style={[styles.card, isWeb && styles.cardWeb]}>
             <View style={styles.cardHeader}>
               <Text style={styles.title}>Criar conta</Text>
-
               <Text style={styles.subtitle}>
                 Preencha os dados abaixo para iniciar seu cadastro.
               </Text>
@@ -156,14 +195,19 @@ export default function SignupScreen() {
                         errors.name && styles.inputWrapperError,
                       ]}
                     >
-                      <Ionicons name="person-outline" size={20} color={palette.primary} />
+                      <Ionicons
+                        name="person-outline"
+                        size={20}
+                        color={palette.textSoft}
+                      />
+
                       <TextInput
                         value={value}
                         onChangeText={onChange}
                         placeholder="Nome"
-                        placeholderTextColor={palette.muted}
-                        textContentType="name"
+                        placeholderTextColor={palette.textSoft}
                         style={[styles.input, isWeb && styles.inputWeb]}
+                        autoCapitalize="words"
                         onFocus={() => setFocusedField('name')}
                         onBlur={() => {
                           setFocusedField(null);
@@ -173,7 +217,10 @@ export default function SignupScreen() {
                     </View>
                   )}
                 />
-                {errors.name && <Text style={styles.helperText}>{errors.name.message}</Text>}
+
+                {errors.name ? (
+                  <Text style={styles.helperText}>{errors.name.message}</Text>
+                ) : null}
               </View>
 
               <View>
@@ -188,16 +235,21 @@ export default function SignupScreen() {
                         errors.email && styles.inputWrapperError,
                       ]}
                     >
-                      <Ionicons name="mail-outline" size={20} color={palette.primary} />
+                      <Ionicons
+                        name="mail-outline"
+                        size={20}
+                        color={palette.textSoft}
+                      />
+
                       <TextInput
                         value={value}
                         onChangeText={onChange}
                         placeholder="Email"
-                        placeholderTextColor={palette.muted}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        textContentType="emailAddress"
+                        placeholderTextColor={palette.textSoft}
                         style={[styles.input, isWeb && styles.inputWeb]}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
                         onFocus={() => setFocusedField('email')}
                         onBlur={() => {
                           setFocusedField(null);
@@ -207,7 +259,10 @@ export default function SignupScreen() {
                     </View>
                   )}
                 />
-                {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
+
+                {errors.email ? (
+                  <Text style={styles.helperText}>{errors.email.message}</Text>
+                ) : null}
               </View>
 
               <View>
@@ -218,39 +273,52 @@ export default function SignupScreen() {
                     <View
                       style={[
                         styles.inputWrapper,
-                        focusedField === 'password' && styles.inputWrapperFocused,
+                        focusedField === 'password' &&
+                          styles.inputWrapperFocused,
                         errors.password && styles.inputWrapperError,
                       ]}
                     >
-                      <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color={palette.textSoft}
+                      />
+
                       <TextInput
                         value={value}
                         onChangeText={onChange}
                         placeholder="Senha"
-                        placeholderTextColor={palette.muted}
-                        secureTextEntry={!showPassword}
-                        textContentType="newPassword"
+                        placeholderTextColor={palette.textSoft}
                         style={[styles.input, isWeb && styles.inputWeb]}
+                        secureTextEntry={!showPassword}
                         onFocus={() => setFocusedField('password')}
                         onBlur={() => {
                           setFocusedField(null);
                           onBlur();
                         }}
                       />
+
                       <Pressable
                         style={styles.eyeButton}
-                        onPress={() => setShowPassword((current) => !current)}
+                        onPress={() =>
+                          setShowPassword((current) => !current)
+                        }
                       >
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={21}
+                          size={20}
                           color={palette.textSoft}
                         />
                       </Pressable>
                     </View>
                   )}
                 />
-                {errors.password && <Text style={styles.helperText}>{errors.password.message}</Text>}
+
+                {errors.password ? (
+                  <Text style={styles.helperText}>
+                    {errors.password.message}
+                  </Text>
+                ) : null}
               </View>
 
               <View>
@@ -261,39 +329,56 @@ export default function SignupScreen() {
                     <View
                       style={[
                         styles.inputWrapper,
-                        focusedField === 'confirmPassword' && styles.inputWrapperFocused,
+                        focusedField === 'confirmPassword' &&
+                          styles.inputWrapperFocused,
                         errors.confirmPassword && styles.inputWrapperError,
                       ]}
                     >
-                      <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color={palette.textSoft}
+                      />
+
                       <TextInput
                         value={value}
                         onChangeText={onChange}
                         placeholder="Confirmar senha"
-                        placeholderTextColor={palette.muted}
-                        secureTextEntry={!showConfirmPassword}
-                        textContentType="newPassword"
+                        placeholderTextColor={palette.textSoft}
                         style={[styles.input, isWeb && styles.inputWeb]}
+                        secureTextEntry={!showConfirmPassword}
                         onFocus={() => setFocusedField('confirmPassword')}
                         onBlur={() => {
                           setFocusedField(null);
                           onBlur();
                         }}
                       />
+
                       <Pressable
                         style={styles.eyeButton}
-                        onPress={() => setShowConfirmPassword((current) => !current)}
+                        onPress={() =>
+                          setShowConfirmPassword((current) => !current)
+                        }
                       >
                         <Ionicons
-                          name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={21}
+                          name={
+                            showConfirmPassword
+                              ? 'eye-off-outline'
+                              : 'eye-outline'
+                          }
+                          size={20}
                           color={palette.textSoft}
                         />
                       </Pressable>
                     </View>
                   )}
                 />
-                {errors.confirmPassword && <Text style={styles.helperText}>{errors.confirmPassword.message}</Text>}
+
+                {errors.confirmPassword ? (
+                  <Text style={styles.helperText}>
+                    {errors.confirmPassword.message}
+                  </Text>
+                ) : null}
               </View>
             </View>
 
@@ -301,19 +386,23 @@ export default function SignupScreen() {
               <View
                 style={[
                   styles.messageBox,
-                  messageType === 'success'
-                    ? styles.messageSuccess
-                    : styles.messageError,
+                  messageType === 'error'
+                    ? styles.messageError
+                    : styles.messageSuccess,
                 ]}
               >
                 <Ionicons
                   name={
-                    messageType === 'success'
-                      ? 'checkmark-circle-outline'
-                      : 'alert-circle-outline'
+                    messageType === 'error'
+                      ? 'alert-circle-outline'
+                      : 'checkmark-circle-outline'
                   }
-                  size={19}
-                  color={messageType === 'success' ? palette.success : palette.danger}
+                  size={20}
+                  color={
+                    messageType === 'error'
+                      ? palette.danger
+                      : palette.primary
+                  }
                 />
 
                 <Text style={styles.messageText}>{message}</Text>
@@ -321,25 +410,32 @@ export default function SignupScreen() {
             ) : null}
 
             <Pressable
-              style={[styles.button, isSubmitting && styles.buttonDisabled]}
-              onPress={handleSubmit(onSubmit)}
+              style={({ pressed }) => [
+                styles.button,
+                isSubmitting && styles.buttonDisabled,
+                pressed && styles.buttonPressed,
+              ]}
               disabled={isSubmitting}
+              onPress={handleSubmit(onSubmit)}
             >
               <Text style={styles.buttonText}>
-                {isSubmitting ? 'Enviando...' : 'Cadastrar'}
+                {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
               </Text>
             </Pressable>
 
             <Pressable
-              style={styles.loginButton}
+              style={({ pressed }) => [
+                styles.loginButton,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => router.replace('/login' as never)}
             >
               <Text style={styles.loginButtonText}>Já tenho conta</Text>
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </Screen>
+      </Screen>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -617,5 +713,14 @@ const styles = StyleSheet.create({
     color: palette.primary,
     fontSize: 15,
     fontWeight: '800',
+  },
+
+  buttonPressed: {
+    opacity: 0.86,
+    transform: [
+      {
+        scale: 0.98,
+      },
+    ],
   },
 });

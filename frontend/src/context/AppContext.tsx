@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 
 import { Medicamento } from '../types/api';
-import { api, setUnauthorizedCallback, TOKEN_KEY, tokenStorage } from '../services/api';
+import { api, setUnauthorizedCallback, tokenStorage } from '../services/api';
 
 type SessionMode = 'guest' | 'authenticated';
 
@@ -52,6 +52,8 @@ type RegisterResult = {
 export type User = {
   id: string;
   email: string;
+  nome?: string;
+  name?: string;
   is_active: boolean;
   is_superuser: boolean;
   is_verified: boolean;
@@ -92,9 +94,9 @@ type AppContextValue = {
   continueAsGuest: () => void;
   signIn: (email: string, password: string) => Promise<LoginResult>;
   registerUser: (payload: RegisterPayload) => Promise<RegisterResult>;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   toggleFavorite: (id: number) => Promise<void>;
-  togglePharmacyFavorite?: (id: number) => Promise<void>;
+  togglePharmacyFavorite: (id: number) => Promise<void>;
   markAsViewed: (id: number) => void;
   toggleFilter: (filter: FilterOption) => void;
   applyFilters: (filters: FilterOption[]) => void;
@@ -439,6 +441,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const syncMedicamentosFavoritos = useCallback(async () => {
     try {
       const response = await api.get('/users/me/favoritos/medicamentos');
+
       setFavoriteIds(response.data.map((item: any) => Number(item.id)));
     } catch (error) {
       console.error('Erro ao sincronizar medicamentos favoritos:', error);
@@ -448,6 +451,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const syncFarmaciasFavoritos = useCallback(async () => {
     try {
       const response = await api.get('/users/me/favoritos/farmacias');
+
       setFavoritePharmacyIds(response.data.map((item: any) => Number(item.id)));
     } catch (error) {
       console.error('Erro ao sincronizar farmácias favoritas:', error);
@@ -477,7 +481,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       params.set('offset', String(offset));
 
       const response = await api.get(`/catalogo?${params.toString()}`);
-
       const data: CatalogoResponse | BackendMedicamento[] = response.data;
 
       return data;
@@ -520,30 +523,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const fetchFiltrosOpcoes = async () => {
       const response = await api.get('/catalogo/filtros/opcoes');
       const data: FiltrosOpcoesResponse = response.data;
+
       return buildFilterOptions(data);
     };
 
     const checkAuth = async () => {
       const storedToken = await tokenStorage.get();
-      if (storedToken) {
-        try {
-          const response = await api.get('/users/me');
-          const userData = response.data;
-          setUser(userData);
-          setToken(storedToken);
-          setIsAuthenticated(true);
-          setSessionMode('authenticated');
-          setCurrentUserName(userData.name || userData.email);
-          setCurrentUserEmail(userData.email);
 
-          await Promise.all([
-            syncMedicamentosFavoritos(),
-            syncFarmaciasFavoritos(),
-          ]);
-        } catch (error) {
-          console.error('Erro ao verificar auth:', error);
-          await tokenStorage.delete();
-        }
+      if (!storedToken) {
+        return;
+      }
+
+      try {
+        const response = await api.get('/users/me');
+        const userData: User = response.data;
+
+        setUser(userData);
+        setToken(storedToken);
+        setIsAuthenticated(true);
+        setSessionMode('authenticated');
+        setCurrentUserName(userData.nome || userData.name || userData.email);
+        setCurrentUserEmail(userData.email);
+
+        await Promise.all([
+          syncMedicamentosFavoritos(),
+          syncFarmaciasFavoritos(),
+        ]);
+      } catch (error) {
+        console.error('Erro ao verificar auth:', error);
+        await tokenStorage.delete();
       }
     };
 
@@ -556,15 +564,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           fetchFiltrosOpcoes().catch(() =>
             mergeFilterOptions(RECEITA_FILTERS, FIXED_CATEGORY_FILTERS)
           ),
-          checkAuth(),
         ]);
 
         setMedicines(catalogo.map(normalizeMedicine));
         setFilterOptions(filtros);
+
+        await checkAuth();
       } catch (error) {
         console.error('Erro na integração com FastAPI:', error);
         setMedicines([]);
-        setFilterOptions(mergeFilterOptions(RECEITA_FILTERS, FIXED_CATEGORY_FILTERS));
+        setFilterOptions(
+          mergeFilterOptions(RECEITA_FILTERS, FIXED_CATEGORY_FILTERS)
+        );
       } finally {
         setIsLoading(false);
       }
@@ -583,6 +594,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await tokenStorage.delete();
+
     setIsAuthenticated(false);
     setToken(null);
     setUser(null);
@@ -599,6 +611,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ): Promise<LoginResult> => {
     try {
       const formData = new URLSearchParams();
+
       formData.append('username', email.trim());
       formData.append('password', password.trim());
 
@@ -610,23 +623,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const data = response.data;
       const accessToken = data.access_token;
+
       await tokenStorage.set(accessToken);
 
-      let name = email;
+      let userName = email.trim();
+      let userEmail = email.trim();
+      let userData: User | null = null;
+
       try {
         const meResponse = await api.get('/users/me');
-        const userData = meResponse.data;
+
+        userData = meResponse.data;
+        userName = userData?.nome || userData?.name || userData?.email || email.trim();
+        userEmail = userData?.email || email.trim();
+
         setUser(userData);
-        name = userData.name || userData.email;
-      } catch (e) {
-        console.error('Error fetching user info after login', e);
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário após login:', error);
       }
 
       setToken(accessToken);
       setIsAuthenticated(true);
       setSessionMode('authenticated');
-      setCurrentUserName(name);
-      setCurrentUserEmail(email);
+      setCurrentUserName(userName);
+      setCurrentUserEmail(userEmail);
 
       await Promise.all([
         syncMedicamentosFavoritos(),
@@ -641,9 +661,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (error.response) {
         return {
           ok: false,
-          message: getApiMessage(error.response.data?.detail, 'Não foi possível entrar.'),
+          message: getApiMessage(
+            error.response.data?.detail,
+            'Não foi possível entrar.'
+          ),
         };
       }
+
       return {
         ok: false,
         message: 'Erro de conexão com o servidor de autenticação.',
@@ -663,7 +687,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       return {
         ok: true,
-        message: 'Cadastro enviado com sucesso.',
+        message: 'Cadastro realizado com sucesso.',
       };
     } catch (error: any) {
       if (error.response) {
@@ -675,6 +699,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       }
+
       return {
         ok: false,
         message: 'Erro de conexão com o servidor de cadastro.',
@@ -708,6 +733,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Erro ao alternar favorito:', error);
+
       setFavoriteIds((current) =>
         isCurrentlyFavorite
           ? [id, ...current]
@@ -737,6 +763,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Erro ao alternar farmácia favorita:', error);
+
       setFavoritePharmacyIds((current) =>
         isCurrentlyFavorite
           ? [id, ...current]

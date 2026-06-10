@@ -130,7 +130,7 @@ export default function FiltersScreen() {
         <Text style={styles.summaryText}>
           {temporaryFilters.length > 0
             ? `${temporaryFilters.length} filtro(s) selecionado(s)`
-            : 'Selecione uma opção enviada pelo backend'}
+            : 'Selecione uma opção ou mais'}
         </Text>
       </View>
 
