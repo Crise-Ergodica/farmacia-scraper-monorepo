@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 import { Medicamento } from '../types/api';
 import { api, setUnauthorizedCallback, TOKEN_KEY } from '../services/api';
@@ -417,8 +418,6 @@ function medicineMatchesFilter(medicine: Medicamento, filter: FilterOption) {
   return false;
 }
 
-import * as SecureStore from 'expo-secure-store';
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [medicines, setMedicines] = useState<Medicamento[]>([]);
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
@@ -441,7 +440,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const syncMedicamentosFavoritos = useCallback(async () => {
     try {
       const response = await api.get('/users/me/favoritos/medicamentos');
-      setFavoriteIds(response.data.map((item: any) => item.catalogo_id));
+      setFavoriteIds(response.data.map((item: any) => Number(item.id)));
     } catch (error) {
       console.error('Erro ao sincronizar medicamentos favoritos:', error);
     }
@@ -450,7 +449,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const syncFarmaciasFavoritos = useCallback(async () => {
     try {
       const response = await api.get('/users/me/favoritos/farmacias');
-      setFavoritePharmacyIds(response.data.map((item: any) => item.farmacia_id));
+      setFavoritePharmacyIds(response.data.map((item: any) => Number(item.id)));
     } catch (error) {
       console.error('Erro ao sincronizar farmácias favoritas:', error);
     }
@@ -553,7 +552,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         setIsLoading(true);
 
-        const [catalogo, filtros, _] = await Promise.all([
+        const [catalogo, filtros] = await Promise.all([
           fetchCatalogo(),
           fetchFiltrosOpcoes().catch(() =>
             mergeFilterOptions(RECEITA_FILTERS, FIXED_CATEGORY_FILTERS)
@@ -573,7 +572,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchInitialData();
-  }, []);
+  }, [syncMedicamentosFavoritos, syncFarmaciasFavoritos]);
 
   const continueAsGuest = () => {
     setSessionMode('guest');
@@ -882,6 +881,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     registerUser,
     logout,
     toggleFavorite,
+    togglePharmacyFavorite,
     markAsViewed,
     toggleFilter,
     applyFilters,

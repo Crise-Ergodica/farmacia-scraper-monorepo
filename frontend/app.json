@@ -9,7 +9,8 @@
     "scheme": "farmacia-scraper-frontend",
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "splash": {
       "image": "./assets/splash.png",
