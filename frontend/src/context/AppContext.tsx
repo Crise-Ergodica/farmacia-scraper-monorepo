@@ -6,10 +6,9 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import * as SecureStore from 'expo-secure-store';
 
 import { Medicamento } from '../types/api';
-import { api, setUnauthorizedCallback, TOKEN_KEY } from '../services/api';
+import { api, setUnauthorizedCallback, TOKEN_KEY, tokenStorage } from '../services/api';
 
 type SessionMode = 'guest' | 'authenticated';
 
@@ -457,7 +456,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedCallback(() => {
-      SecureStore.deleteItemAsync(TOKEN_KEY).then(() => {
+      tokenStorage.delete().then(() => {
         setIsAuthenticated(false);
         setToken(null);
         setUser(null);
@@ -525,7 +524,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const checkAuth = async () => {
-      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+      const storedToken = await tokenStorage.get();
       if (storedToken) {
         try {
           const response = await api.get('/users/me');
@@ -543,7 +542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ]);
         } catch (error) {
           console.error('Erro ao verificar auth:', error);
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
+          await tokenStorage.delete();
         }
       }
     };
@@ -583,7 +582,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await tokenStorage.delete();
     setIsAuthenticated(false);
     setToken(null);
     setUser(null);
@@ -603,7 +602,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       formData.append('username', email.trim());
       formData.append('password', password.trim());
 
-      // Use axios but explicitly wait to update token headers or we can use fetch/axios with specific headers
       const response = await api.post('/auth/jwt/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -612,7 +610,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const data = response.data;
       const accessToken = data.access_token;
-      await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
+      await tokenStorage.set(accessToken);
 
       let name = email;
       try {
@@ -696,7 +694,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const isCurrentlyFavorite = favoriteIds.includes(id);
 
-    // Optimistic UI update
     setFavoriteIds((current) =>
       isCurrentlyFavorite
         ? current.filter((item) => item !== id)
@@ -711,7 +708,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Erro ao alternar favorito:', error);
-      // Revert on failure
       setFavoriteIds((current) =>
         isCurrentlyFavorite
           ? [id, ...current]
