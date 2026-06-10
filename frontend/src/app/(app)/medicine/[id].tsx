@@ -77,7 +77,7 @@ export default function MedicineDetailScreen() {
     sessionMode,
   } = useAppContext();
 
-  const [search, setSearch] = useState('Preço Bão');
+  const [search, setSearch] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const { width } = useWindowDimensions();
