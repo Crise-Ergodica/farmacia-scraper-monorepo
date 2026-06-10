@@ -122,7 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [sessionMode, setSessionMode] = useState<SessionMode>('guest');
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([2, 5, 9, 3, 6]);
+ const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [recentIds, setRecentIds] = useState<number[]>([1, 2, 3]);
   const [selectedFilters, setSelectedFilters] = useState<MedicineCategory[]>([]);
 
@@ -188,12 +188,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSessionMode('guest');
     setCurrentUserName(null);
     setCurrentUserEmail(null);
+    setFavoriteIds([]);
   };
 
   const logout = () => {
     setSessionMode('guest');
     setCurrentUserName(null);
     setCurrentUserEmail(null);
+    setFavoriteIds([]);
   };
 
   const signIn = async (

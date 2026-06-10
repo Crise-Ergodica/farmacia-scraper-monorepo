@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+
 import {
   Image,
   Platform,
@@ -14,7 +15,7 @@ import {
 
 import { Screen } from '../../components/Screen';
 import { useAppContext } from '../../context/AppContext';
-import { palette, radius, spacing } from '../../theme';
+import { palette, radius, shadow, spacing } from '../../theme';
 import { Oferta } from '../../types/api';
 
 type OfertaComExtras = Oferta & {
@@ -50,26 +51,39 @@ function getPharmacyName(offer?: OfertaComExtras) {
     offer.farmacia_nome ||
     offer.farmacia?.nome_fantasia ||
     offer.farmacia?.razao_social ||
-    `Farmácia ID: ${offer.farmacia_id}`
+    'Farmácia disponível'
   );
 }
 
 export default function FavoritesScreen() {
-  const routerNav = useRouter();
-  const { width } = useWindowDimensions();
-  const { favoriteMedicines, toggleFavorite, markAsViewed, sessionMode } = useAppContext();
+  const router = useRouter();
 
-  const [notificationMap, setNotificationMap] = useState<Record<number, boolean>>({});
+  const { width } = useWindowDimensions();
+
+  const {
+    favoriteMedicines,
+    toggleFavorite,
+    markAsViewed,
+    sessionMode,
+  } = useAppContext();
+
+  const [notificationMap, setNotificationMap] = useState<Record<number, boolean>>(
+    {}
+  );
+
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   const isWeb = Platform.OS === 'web';
-  const isDesktop = isWeb && width >= 1200;
-  const isTablet = isWeb && width >= 900 && width < 1200;
+  const isDesktop = isWeb && width >= 1180;
+  const isTablet = isWeb && width >= 820 && width < 1180;
 
-  const cardWidth = isDesktop ? 320 : isTablet ? 280 : '100%';
+  const isAuthenticated = sessionMode === 'authenticated';
+
+  const cardWidth = isDesktop ? '31.5%' : isTablet ? '48%' : '100%';
 
   const handleOpenMedicine = (id: number) => {
     markAsViewed(id);
-    routerNav.push(`/medicine/${id}`);
+    router.push(`/medicine/${id}`);
   };
 
   const handleToggleNotification = (id: number) => {
@@ -79,24 +93,63 @@ export default function FavoritesScreen() {
     }));
   };
 
-  if (sessionMode !== 'authenticated') {
+  if (!isAuthenticated) {
     return (
       <Screen>
-        <View style={styles.lockedWrapper}>
-          <Ionicons name="lock-closed-outline" size={50} color={palette.primary} />
-          <Text style={[styles.title, isWeb && styles.titleWeb]}>Favoritos</Text>
-          <Text style={styles.lockedText}>
-            Recurso para usuários autenticados. Deseja criar uma conta ou logar em
-            uma conta existente?
-          </Text>
+        <View style={styles.lockedPage}>
+          <View style={styles.lockedCard}>
+            <View style={styles.lockedIconBox}>
+              <Ionicons name="heart-outline" size={42} color={palette.primary} />
+            </View>
 
-          <Pressable style={styles.primaryButton} onPress={() => router.push('/signup' as any)}>
-            <Text style={styles.primaryButtonText}>Criar conta</Text>
-          </Pressable>
+            <Text style={styles.lockedTitle}>Favoritos</Text>
 
-          <Pressable style={styles.secondaryButton} onPress={() => router.push('/login' as any)}>
-            <Text style={styles.secondaryButtonText}>Fazer login</Text>
-          </Pressable>
+            <Text style={styles.lockedText}>
+              Entre na sua conta para salvar remédios favoritos, acompanhar preços e ativar alertas.
+            </Text>
+
+            <View style={styles.lockedInfoBox}>
+              <View style={styles.lockedInfoRow}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={20}
+                  color={palette.success}
+                />
+
+                <Text style={styles.lockedInfoText}>
+                  Favoritos ficam disponíveis apenas para usuários autenticados.
+                </Text>
+              </View>
+
+              <View style={styles.lockedInfoRow}>
+                <Ionicons
+                  name="notifications-outline"
+                  size={20}
+                  color={palette.primary}
+                />
+
+                <Text style={styles.lockedInfoText}>
+                  Depois do login, você poderá ativar notificações de menor preço.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.lockedActions}>
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => router.push('/login' as never)}
+              >
+                <Text style={styles.primaryButtonText}>Fazer login</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() => router.push('/signup' as never)}
+              >
+                <Text style={styles.secondaryButtonText}>Criar conta</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       </Screen>
     );
@@ -104,15 +157,52 @@ export default function FavoritesScreen() {
 
   return (
     <Screen>
-      <Text style={[styles.title, isWeb && styles.titleWeb]}>Favoritos</Text>
+      <View style={[styles.headerCard, isDesktop && styles.headerCardDesktop]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerBadge}>
+            <Ionicons name="heart" size={16} color={palette.primary} />
+
+            <Text style={styles.headerBadgeText}>Meus favoritos</Text>
+          </View>
+
+          <Text style={[styles.title, isDesktop && styles.titleDesktop]}>
+            Favoritos
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Acompanhe seus remédios salvos, veja o menor preço atual e controle notificações.
+          </Text>
+        </View>
+
+        <View style={styles.headerCounter}>
+          <Text style={styles.counterValue}>{favoriteMedicines.length}</Text>
+
+          <Text style={styles.counterLabel}>
+            {favoriteMedicines.length === 1 ? 'remédio salvo' : 'remédios salvos'}
+          </Text>
+        </View>
+      </View>
 
       {favoriteMedicines.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="heart-outline" size={42} color={palette.primary} />
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="heart-outline" size={42} color={palette.primary} />
+          </View>
+
           <Text style={styles.emptyTitle}>Nenhum favorito salvo</Text>
+
           <Text style={styles.emptyText}>
-            Adicione remédios aos favoritos para acompanhar preços e alertas.
+            Toque no coração de um remédio para salvar aqui e acompanhar os preços com mais facilidade.
           </Text>
+
+          <Pressable
+            style={styles.emptyButton}
+            onPress={() => router.push('/home' as never)}
+          >
+            <Ionicons name="search-outline" size={18} color={palette.surface} />
+
+            <Text style={styles.emptyButtonText}>Procurar remédios</Text>
+          </Pressable>
         </View>
       ) : (
         <View style={[styles.grid, isWeb && styles.gridWeb]}>
@@ -121,27 +211,46 @@ export default function FavoritesScreen() {
             const notificationsEnabled = notificationMap[medicine.id] ?? true;
             const imageUrl = lowest?.imagem_url;
             const price = lowest ? Number(lowest.preco) : undefined;
+            const isHovered = hoveredId === medicine.id;
 
             return (
-              <View
+              <Pressable
                 key={medicine.id}
+                onHoverIn={() => {
+                  if (isWeb) {
+                    setHoveredId(medicine.id);
+                  }
+                }}
+                onHoverOut={() => {
+                  if (isWeb) {
+                    setHoveredId(null);
+                  }
+                }}
                 style={[
                   styles.card,
+                  {
+                    width: cardWidth,
+                  },
                   isWeb && styles.cardWeb,
-                  { width: cardWidth },
+                  isWeb && styles.cardTransition,
+                  isHovered && styles.cardHovered,
                 ]}
               >
-                <View style={[styles.imageBox, imageUrl && styles.imageBoxWithImage]}>
-                  <Pressable
-                    style={styles.imageOpenButton}
-                    onPress={() => handleOpenMedicine(medicine.id)}
-                  />
-
+                <Pressable
+                  style={[
+                    styles.imageBox,
+                    imageUrl && styles.imageBoxWithImage,
+                  ]}
+                  onPress={() => handleOpenMedicine(medicine.id)}
+                >
                   <Pressable
                     style={styles.removeButton}
-                    onPress={() => toggleFavorite(medicine.id)}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      toggleFavorite(medicine.id);
+                    }}
                   >
-                    <Ionicons name="trash-outline" size={16} color={palette.surface} />
+                    <Ionicons name="heart" size={18} color={palette.surface} />
                   </Pressable>
 
                   {imageUrl ? (
@@ -151,19 +260,36 @@ export default function FavoritesScreen() {
                       resizeMode="contain"
                     />
                   ) : (
-                    <Ionicons
-                      name="image-outline"
-                      size={isWeb ? 34 : 28}
-                      color={palette.textSoft}
-                    />
+                    <View style={styles.imageFallback}>
+                      <Ionicons
+                        name="medical-outline"
+                        size={48}
+                        color={palette.primary}
+                      />
+                    </View>
                   )}
-                </View>
+                </Pressable>
 
                 <View style={styles.cardContent}>
                   <View style={styles.notificationRow}>
-                    <Text style={[styles.notificationLabel, isWeb && styles.notificationLabelWeb]}>
-                      Receber notificação de menor preço?
-                    </Text>
+                    <View style={styles.notificationTextBox}>
+                      <Text style={styles.notificationTitle}>
+                        Alerta de preço
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.notificationLabel,
+                          notificationsEnabled
+                            ? styles.notificationEnabled
+                            : styles.notificationDisabled,
+                        ]}
+                      >
+                        {notificationsEnabled
+                          ? 'Receber notificação de menor preço'
+                          : 'Notificação desativada'}
+                      </Text>
+                    </View>
 
                     <View style={styles.switchWrapper}>
                       <Switch
@@ -183,20 +309,48 @@ export default function FavoritesScreen() {
                     style={styles.infoPressArea}
                     onPress={() => handleOpenMedicine(medicine.id)}
                   >
-                    <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
+                    <Text
+                      numberOfLines={2}
+                      style={[styles.name, isWeb && styles.nameWeb]}
+                    >
                       {medicine.nome}
                     </Text>
 
-                    <Text style={[styles.pharmacy, isWeb && styles.pharmacyWeb]}>
-                      {getPharmacyName(lowest as OfertaComExtras)}
-                    </Text>
+                    <View style={styles.pharmacyRow}>
+                      <Ionicons
+                        name="storefront-outline"
+                        size={15}
+                        color={palette.primary}
+                      />
 
-                    <Text style={[styles.price, isWeb && styles.priceWeb]}>
-                      {formatPrice(price)}
-                    </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.pharmacy, isWeb && styles.pharmacyWeb]}
+                      >
+                        {getPharmacyName(lowest as OfertaComExtras)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.priceRow}>
+                      <View>
+                        <Text style={styles.priceLabel}>Menor preço</Text>
+
+                        <Text style={[styles.price, isWeb && styles.priceWeb]}>
+                          {formatPrice(price)}
+                        </Text>
+                      </View>
+
+                      <View style={styles.openButton}>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={palette.surface}
+                        />
+                      </View>
+                    </View>
                   </Pressable>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -206,193 +360,467 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: palette.primary,
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  titleWeb: {
-    fontSize: 40,
-    marginBottom: 28,
-  },
-  lockedWrapper: {
-    width: '100%',
-    maxWidth: 540,
-    alignSelf: 'center',
-    alignItems: 'center',
+  headerCard: {
     backgroundColor: palette.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: spacing.lg,
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadow.soft,
+  },
+
+  headerCardDesktop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.xl,
+  },
+
+  headerContent: {
+    flex: 1,
+  },
+
+  headerBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: palette.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    marginBottom: spacing.md,
+  },
+
+  headerBadgeText: {
+    color: palette.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+
+  title: {
+    color: palette.text,
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '900',
+  },
+
+  titleDesktop: {
+    fontSize: 42,
+    lineHeight: 48,
+  },
+
+  subtitle: {
+    marginTop: spacing.sm,
+    color: palette.textSoft,
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: 680,
+  },
+
+  headerCounter: {
+    backgroundColor: '#F8FBFF',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#E7E7E7',
+    borderColor: '#E2EDFA',
+    padding: spacing.lg,
+  },
+
+  counterValue: {
+    color: palette.primaryDark,
+    fontSize: 34,
+    fontWeight: '900',
+  },
+
+  counterLabel: {
+    marginTop: 2,
+    color: palette.textSoft,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  lockedPage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: spacing.xl,
+  },
+
+  lockedCard: {
+    width: '100%',
+    maxWidth: 560,
+    backgroundColor: palette.surface,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: palette.border,
     padding: spacing.xl,
+    alignItems: 'center',
+    ...shadow.medium,
+  },
+
+  lockedIconBox: {
+    width: 86,
+    height: 86,
+    borderRadius: 30,
+    backgroundColor: palette.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
+  lockedTitle: {
+    color: palette.text,
+    fontSize: 32,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+
+  lockedText: {
+    marginTop: spacing.sm,
+    textAlign: 'center',
+    color: palette.textSoft,
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: 440,
+  },
+
+  lockedInfoBox: {
+    width: '100%',
+    backgroundColor: '#F8FBFF',
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: '#E2EDFA',
+    padding: spacing.lg,
+    gap: spacing.md,
     marginTop: spacing.xl,
   },
-  lockedText: {
-    textAlign: 'center',
-    color: palette.text,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: spacing.xl,
+
+  lockedInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
+
+  lockedInfoText: {
+    flex: 1,
+    color: palette.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+
+  lockedActions: {
+    width: '100%',
+    gap: spacing.md,
+    marginTop: spacing.xl,
+  },
+
   primaryButton: {
     width: '100%',
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: radius.pill,
     backgroundColor: palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
   },
+
   primaryButtonText: {
     color: palette.surface,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
+
   secondaryButton: {
     width: '100%',
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: radius.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: palette.primary,
     backgroundColor: palette.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   secondaryButtonText: {
     color: palette.primary,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
+
   emptyState: {
+    backgroundColor: palette.surface,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 56,
-    gap: spacing.md,
+    marginTop: spacing.lg,
+    ...shadow.soft,
   },
+
+  emptyIconBox: {
+    width: 82,
+    height: 82,
+    borderRadius: 28,
+    backgroundColor: palette.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '900',
     color: palette.text,
+    textAlign: 'center',
   },
+
   emptyText: {
+    marginTop: spacing.sm,
     fontSize: 15,
     color: palette.textSoft,
     textAlign: 'center',
-    maxWidth: 420,
-    lineHeight: 24,
+    maxWidth: 440,
+    lineHeight: 22,
   },
+
+  emptyButton: {
+    marginTop: spacing.xl,
+    minHeight: 50,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
+    backgroundColor: palette.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+
+  emptyButtonText: {
+    color: palette.surface,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+
   grid: {
     gap: spacing.lg,
   },
+
   gridWeb: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     rowGap: 28,
     columnGap: 28,
   },
+
   card: {
     backgroundColor: palette.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: palette.border,
     overflow: 'hidden',
+    padding: spacing.md,
+    ...shadow.soft,
   },
+
   cardWeb: {
-    padding: 14,
+    minHeight: 470,
+    cursor: 'default' as any,
   },
+
+  cardTransition: {
+    transitionDuration: '180ms' as any,
+    transitionProperty: 'transform, box-shadow, border-color' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  cardHovered: {
+    borderColor: palette.primary,
+    transform: [
+      {
+        translateY: -6,
+      },
+      {
+        scale: 1.01,
+      },
+    ],
+    shadowOpacity: 0.15,
+    shadowRadius: 26,
+    shadowOffset: {
+      width: 0,
+      height: 14,
+    },
+    elevation: 8,
+  },
+
   imageBox: {
     width: '100%',
-    height: 290,
+    height: 250,
     borderRadius: radius.lg,
-    backgroundColor: '#ECECEC',
+    backgroundColor: palette.surfaceBlue,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     marginBottom: spacing.md,
     overflow: 'hidden',
+    cursor: 'pointer' as any,
   },
+
   imageBoxWithImage: {
     backgroundColor: palette.surface,
     borderWidth: 1,
     borderColor: '#E8E8E8',
   },
+
   productImage: {
     width: '100%',
     height: '100%',
   },
-  imageOpenButton: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
+
+  imageFallback: {
+    width: '72%',
+    height: '72%',
+    borderRadius: radius.xl,
+    backgroundColor: palette.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   removeButton: {
     position: 'absolute',
     top: 10,
     right: 10,
-    width: 30,
-    height: 30,
+    width: 38,
+    height: 38,
     borderRadius: radius.pill,
     backgroundColor: palette.danger,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3,
+    borderWidth: 2,
+    borderColor: palette.surface,
   },
+
   cardContent: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
+
   notificationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
+    backgroundColor: '#F8FBFF',
+    borderWidth: 1,
+    borderColor: '#E2EDFA',
+    borderRadius: radius.lg,
+    padding: spacing.md,
   },
-  notificationLabel: {
+
+  notificationTextBox: {
     flex: 1,
+  },
+
+  notificationTitle: {
+    color: palette.text,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+
+  notificationLabel: {
+    marginTop: 2,
     fontSize: 12,
-    lineHeight: 18,
-    color: '#69C36D',
-    fontWeight: '600',
+    lineHeight: 17,
+    fontWeight: '700',
   },
-  notificationLabelWeb: {
-    fontSize: 14,
-    lineHeight: 20,
+
+  notificationEnabled: {
+    color: palette.success,
   },
+
+  notificationDisabled: {
+    color: palette.textSoft,
+  },
+
   switchWrapper: {
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 56,
   },
+
   switchWeb: {
-    transform: [{ scaleX: 1.15 }, { scaleY: 1.15 }],
+    transform: [{ scaleX: 1.08 }, { scaleY: 1.08 }],
   },
+
   infoPressArea: {
-    gap: spacing.xs,
+    gap: spacing.sm,
+    cursor: 'pointer' as any,
   },
+
   name: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '900',
     color: palette.text,
   },
+
   nameWeb: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 29,
   },
+
+  pharmacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
   pharmacy: {
+    flex: 1,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '800',
     color: palette.primary,
   },
+
   pharmacyWeb: {
-    fontSize: 15,
+    fontSize: 14,
   },
+
+  priceRow: {
+    marginTop: spacing.xs,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: spacing.md,
+  },
+
+  priceLabel: {
+    color: palette.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+
   price: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '900',
     color: palette.text,
   },
+
   priceWeb: {
-    fontSize: 34,
+    fontSize: 32,
+  },
+
+  openButton: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
