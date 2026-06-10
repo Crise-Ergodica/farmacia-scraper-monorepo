@@ -58,6 +58,7 @@ type AppContextValue = {
   recentIds: number[];
   selectedFilters: MedicineCategory[];
   filterOptions: MedicineCategory[];
+  updateProfile: (name: string, email: string) => void;
   continueAsGuest: () => void;
   signIn: (email: string, password: string) => Promise<LoginResult>;
   registerUser: (payload: RegisterPayload) => Promise<RegisterResult>;
@@ -274,6 +275,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+    const updateProfile = (name: string, email: string) => {
+    setCurrentUserName(name.trim());
+    setCurrentUserEmail(email.trim());
+  };
+
   const toggleFavorite = (id: number) => {
     setFavoriteIds((current) =>
       current.includes(id)
@@ -401,6 +407,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
   const value: AppContextValue = {
+    updateProfile,
     medicines,
     isLoading,
     sessionMode,
