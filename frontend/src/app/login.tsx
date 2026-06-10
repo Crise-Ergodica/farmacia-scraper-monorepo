@@ -16,6 +16,111 @@ import { Screen } from '../components/Screen';
 import { useAppContext } from '../context/AppContext';
 import { palette, radius, spacing } from '../theme';
 
+function translateBackendMessage(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes('valid email') ||
+    normalized.includes('email address') ||
+    normalized.includes('@-sign') ||
+    normalized.includes('must have an @') ||
+    normalized.includes('value is not a valid email') ||
+    normalized.includes('input should be a valid email')
+  ) {
+    return 'Digite um email válido. O email precisa conter @.';
+  }
+
+  if (
+    normalized.includes('field required') ||
+    normalized.includes('missing') ||
+    normalized.includes('required')
+  ) {
+    return 'Preencha todos os campos obrigatórios.';
+  }
+
+  if (
+    normalized.includes('incorrect') ||
+    normalized.includes('unauthorized') ||
+    normalized.includes('invalid credentials') ||
+    normalized.includes('invalid login') ||
+    normalized.includes('invalid email or password')
+  ) {
+    return 'Email ou senha incorretos.';
+  }
+
+  if (normalized.includes('invalid') && normalized.includes('password')) {
+    return 'Senha inválida.';
+  }
+
+  if (
+    normalized.includes('user not found') ||
+    normalized.includes('not found')
+  ) {
+    return 'Usuário não encontrado.';
+  }
+
+  if (
+    normalized.includes('value error') ||
+    normalized.includes('validation error')
+  ) {
+    return 'Confira os dados informados e tente novamente.';
+  }
+
+  return message;
+}
+
+function getReadableMessage(value: unknown, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  if (typeof value === 'string') {
+    return translateBackendMessage(value);
+  }
+
+  if (Array.isArray(value)) {
+    const messages = value
+      .map((item) => {
+        if (typeof item === 'string') {
+          return translateBackendMessage(item);
+        }
+
+        if (item && typeof item === 'object' && 'msg' in item) {
+          return translateBackendMessage(String((item as { msg: unknown }).msg));
+        }
+
+        if (item && typeof item === 'object' && 'message' in item) {
+          return translateBackendMessage(
+            String((item as { message: unknown }).message)
+          );
+        }
+
+        return fallback;
+      })
+      .filter(Boolean);
+
+    return messages.length ? messages.join('\n') : fallback;
+  }
+
+  if (typeof value === 'object' && 'msg' in value) {
+    return translateBackendMessage(String((value as { msg: unknown }).msg));
+  }
+
+  if (typeof value === 'object' && 'message' in value) {
+    return translateBackendMessage(
+      String((value as { message: unknown }).message)
+    );
+  }
+
+  return fallback;
+}
+
+function isValidEmail(value: string) {
+  const email = value.trim();
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export default function LoginScreen() {
   const { continueAsGuest, signIn } = useAppContext();
 
@@ -56,26 +161,44 @@ export default function LoginScreen() {
       return;
     }
 
-    setIsSubmitting(true);
-
-    const result = await signIn(email, password);
-
-    setIsSubmitting(false);
-
-    if (!result.ok) {
+    if (!isValidEmail(email)) {
       setFeedback({
         type: 'error',
-        text: result.message,
+        text: 'Digite um email válido. O email precisa conter @ e domínio.',
       });
       return;
     }
 
-    setFeedback({
-      type: 'success',
-      text: result.message,
-    });
+    setIsSubmitting(true);
 
-    router.replace('/home');
+    try {
+      const result = await signIn(email, password);
+
+      if (!result.ok) {
+        setFeedback({
+          type: 'error',
+          text: getReadableMessage(
+            result.message,
+            'Não foi possível entrar. Verifique email e senha.'
+          ),
+        });
+        return;
+      }
+
+      setFeedback({
+        type: 'success',
+        text: getReadableMessage(result.message, 'Login realizado com sucesso.'),
+      });
+
+      router.replace('/home');
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        text: 'Erro ao tentar entrar. Tente novamente.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -90,10 +213,6 @@ export default function LoginScreen() {
       >
         <View style={[styles.page, isWide && styles.pageWeb]}>
           <View style={[styles.hero, !isWide && styles.heroMobile]}>
-            <Pressable style={styles.backButton} onPress={() => router.replace('/')}>
-              <Ionicons name="chevron-back" size={22} color={palette.text} />
-            </Pressable>
-
             <View style={styles.logoBox}>
               <Text style={styles.logoText}>P</Text>
             </View>
@@ -111,21 +230,34 @@ export default function LoginScreen() {
                 <View style={styles.benefitIcon}>
                   <Ionicons name="search-outline" size={18} color={palette.primary} />
                 </View>
-                <Text style={styles.benefitText}>Busca rápida de medicamentos</Text>
+
+                <Text style={styles.benefitText}>
+                  Busca rápida de medicamentos
+                </Text>
               </View>
 
               <View style={styles.benefitItem}>
                 <View style={styles.benefitIcon}>
                   <Ionicons name="heart-outline" size={18} color={palette.primary} />
                 </View>
-                <Text style={styles.benefitText}>Favoritos para usuários logados</Text>
+
+                <Text style={styles.benefitText}>
+                  Favoritos para usuários logados
+                </Text>
               </View>
 
               <View style={styles.benefitItem}>
                 <View style={styles.benefitIcon}>
-                  <Ionicons name="pricetag-outline" size={18} color={palette.primary} />
+                  <Ionicons
+                    name="pricetag-outline"
+                    size={18}
+                    color={palette.primary}
+                  />
                 </View>
-                <Text style={styles.benefitText}>Comparação de menor preço</Text>
+
+                <Text style={styles.benefitText}>
+                  Comparação de menor preço
+                </Text>
               </View>
             </View>
           </View>
@@ -168,7 +300,11 @@ export default function LoginScreen() {
                   passwordFocused && styles.inputWrapperFocused,
                 ]}
               >
-                <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={palette.primary}
+                />
 
                 <TextInput
                   value={password}
@@ -219,8 +355,10 @@ export default function LoginScreen() {
             ) : null}
 
             <Pressable
-              style={[
+              style={({ pressed, hovered }) => [
                 styles.button,
+                isWeb && hovered && styles.buttonHovered,
+                pressed && styles.buttonPressed,
                 isSubmitting && styles.buttonDisabled,
               ]}
               onPress={handleLogin}
@@ -232,7 +370,11 @@ export default function LoginScreen() {
             </Pressable>
 
             <Pressable
-              style={styles.guestButton}
+              style={({ pressed, hovered }) => [
+                styles.guestButton,
+                isWeb && hovered && styles.guestButtonHovered,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => {
                 continueAsGuest();
                 router.replace('/home');
@@ -243,12 +385,18 @@ export default function LoginScreen() {
 
             <View style={styles.dividerRow}>
               <View style={styles.divider} />
+
               <Text style={styles.dividerText}>ou</Text>
+
               <View style={styles.divider} />
             </View>
 
             <Pressable
-              style={styles.createAccountButton}
+              style={({ pressed, hovered }) => [
+                styles.createAccountButton,
+                isWeb && hovered && styles.createAccountButtonHovered,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => router.push('/signup' as never)}
             >
               <Text style={styles.createAccountText}>Criar conta</Text>
@@ -298,18 +446,6 @@ const styles = StyleSheet.create({
 
   heroMobile: {
     maxWidth: '100%',
-  },
-
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
   },
 
   logoBox: {
@@ -502,6 +638,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.xl,
+    transitionDuration: '160ms' as any,
+    transitionProperty: 'transform, opacity, background-color' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  buttonHovered: {
+    backgroundColor: palette.primaryDark,
+    transform: [
+      {
+        translateY: -2,
+      },
+    ],
+  },
+
+  buttonPressed: {
+    opacity: 0.86,
+    transform: [
+      {
+        scale: 0.98,
+      },
+    ],
   },
 
   buttonDisabled: {
@@ -521,6 +678,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.md,
+    transitionDuration: '160ms' as any,
+    transitionProperty: 'transform, opacity, background-color' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  guestButtonHovered: {
+    backgroundColor: '#CFE6FF',
+    transform: [
+      {
+        translateY: -2,
+      },
+    ],
   },
 
   guestButtonText: {
@@ -557,6 +726,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.lg,
+    transitionDuration: '160ms' as any,
+    transitionProperty: 'transform, opacity, background-color' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  createAccountButtonHovered: {
+    backgroundColor: palette.primarySoft,
+    transform: [
+      {
+        translateY: -2,
+      },
+    ],
   },
 
   createAccountText: {
