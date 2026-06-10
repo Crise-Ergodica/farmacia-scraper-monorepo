@@ -1,6 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,10 +13,25 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { z } from 'zod';
 
 import { Screen } from '../components/Screen';
 import { useAppContext } from '../context/AppContext';
 import { palette, radius, spacing } from '../theme';
+
+const signupSchema = z
+  .object({
+    name: z.string().trim().min(2, 'O nome deve ter no mínimo 2 caracteres'),
+    email: z.string().email('Digite um email válido'),
+    password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'As senhas não coincidem',
+    path: ['confirmPassword'],
+  });
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupScreen() {
   const { registerUser } = useAppContext();
@@ -24,11 +41,20 @@ export default function SignupScreen() {
   const isWeb = Platform.OS === 'web';
   const isWide = isWeb && width >= 900;
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,45 +64,28 @@ export default function SignupScreen() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSignup = async () => {
+  const onSubmit = async (data: SignupFormValues) => {
     setMessage('');
     setMessageType('error');
 
-    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setMessage('Preencha todos os campos.');
-      return;
-    }
-
-    if (!email.includes('@')) {
-      setMessage('Digite um email válido.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setMessage('A senha precisa ter pelo menos 6 caracteres.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setMessage('As senhas não coincidem.');
-      return;
-    }
-
-    setIsSubmitting(true);
-
     const result = await registerUser({
-      name,
-      email,
-      password,
-      confirmPassword,
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
     });
 
-    setIsSubmitting(false);
-
-    setMessage(result.message);
-    setMessageType(result.ok ? 'success' : 'error');
+    if (result.ok) {
+      setMessageType('success');
+      setMessage(result.message);
+      setTimeout(() => {
+        router.replace('/(app)/home' as never);
+      }, 1000);
+    } else {
+      setMessageType('error');
+      setMessage(result.message);
+      setError('root', { message: result.message });
+    }
   };
 
   return (
@@ -135,110 +144,156 @@ export default function SignupScreen() {
             </View>
 
             <View style={styles.form}>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  focusedField === 'name' && styles.inputWrapperFocused,
-                ]}
-              >
-                <Ionicons name="person-outline" size={20} color={palette.primary} />
-
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Nome"
-                  placeholderTextColor={palette.muted}
-                  textContentType="name"
-                  style={[styles.input, isWeb && styles.inputWeb]}
-                  onFocus={() => setFocusedField('name')}
-                  onBlur={() => setFocusedField(null)}
+              <View>
+                <Controller
+                  control={control}
+                  name="name"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        focusedField === 'name' && styles.inputWrapperFocused,
+                        errors.name && styles.inputWrapperError,
+                      ]}
+                    >
+                      <Ionicons name="person-outline" size={20} color={palette.primary} />
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Nome"
+                        placeholderTextColor={palette.muted}
+                        textContentType="name"
+                        style={[styles.input, isWeb && styles.inputWeb]}
+                        onFocus={() => setFocusedField('name')}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          onBlur();
+                        }}
+                      />
+                    </View>
+                  )}
                 />
+                {errors.name && <Text style={styles.helperText}>{errors.name.message}</Text>}
               </View>
 
-              <View
-                style={[
-                  styles.inputWrapper,
-                  focusedField === 'email' && styles.inputWrapperFocused,
-                ]}
-              >
-                <Ionicons name="mail-outline" size={20} color={palette.primary} />
-
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
-                  placeholderTextColor={palette.muted}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  style={[styles.input, isWeb && styles.inputWeb]}
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
+              <View>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        focusedField === 'email' && styles.inputWrapperFocused,
+                        errors.email && styles.inputWrapperError,
+                      ]}
+                    >
+                      <Ionicons name="mail-outline" size={20} color={palette.primary} />
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Email"
+                        placeholderTextColor={palette.muted}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        textContentType="emailAddress"
+                        style={[styles.input, isWeb && styles.inputWeb]}
+                        onFocus={() => setFocusedField('email')}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          onBlur();
+                        }}
+                      />
+                    </View>
+                  )}
                 />
+                {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
               </View>
 
-              <View
-                style={[
-                  styles.inputWrapper,
-                  focusedField === 'password' && styles.inputWrapperFocused,
-                ]}
-              >
-                <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
-
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Senha"
-                  placeholderTextColor={palette.muted}
-                  secureTextEntry={!showPassword}
-                  textContentType="newPassword"
-                  style={[styles.input, isWeb && styles.inputWeb]}
-                  onFocus={() => setFocusedField('password')}
-                  onBlur={() => setFocusedField(null)}
+              <View>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        focusedField === 'password' && styles.inputWrapperFocused,
+                        errors.password && styles.inputWrapperError,
+                      ]}
+                    >
+                      <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Senha"
+                        placeholderTextColor={palette.muted}
+                        secureTextEntry={!showPassword}
+                        textContentType="newPassword"
+                        style={[styles.input, isWeb && styles.inputWeb]}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          onBlur();
+                        }}
+                      />
+                      <Pressable
+                        style={styles.eyeButton}
+                        onPress={() => setShowPassword((current) => !current)}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={21}
+                          color={palette.textSoft}
+                        />
+                      </Pressable>
+                    </View>
+                  )}
                 />
-
-                <Pressable
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword((current) => !current)}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={21}
-                    color={palette.textSoft}
-                  />
-                </Pressable>
+                {errors.password && <Text style={styles.helperText}>{errors.password.message}</Text>}
               </View>
 
-              <View
-                style={[
-                  styles.inputWrapper,
-                  focusedField === 'confirmPassword' && styles.inputWrapperFocused,
-                ]}
-              >
-                <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
-
-                <TextInput
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Confirmar senha"
-                  placeholderTextColor={palette.muted}
-                  secureTextEntry={!showConfirmPassword}
-                  textContentType="newPassword"
-                  style={[styles.input, isWeb && styles.inputWeb]}
-                  onFocus={() => setFocusedField('confirmPassword')}
-                  onBlur={() => setFocusedField(null)}
+              <View>
+                <Controller
+                  control={control}
+                  name="confirmPassword"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        focusedField === 'confirmPassword' && styles.inputWrapperFocused,
+                        errors.confirmPassword && styles.inputWrapperError,
+                      ]}
+                    >
+                      <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Confirmar senha"
+                        placeholderTextColor={palette.muted}
+                        secureTextEntry={!showConfirmPassword}
+                        textContentType="newPassword"
+                        style={[styles.input, isWeb && styles.inputWeb]}
+                        onFocus={() => setFocusedField('confirmPassword')}
+                        onBlur={() => {
+                          setFocusedField(null);
+                          onBlur();
+                        }}
+                      />
+                      <Pressable
+                        style={styles.eyeButton}
+                        onPress={() => setShowConfirmPassword((current) => !current)}
+                      >
+                        <Ionicons
+                          name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={21}
+                          color={palette.textSoft}
+                        />
+                      </Pressable>
+                    </View>
+                  )}
                 />
-
-                <Pressable
-                  style={styles.eyeButton}
-                  onPress={() => setShowConfirmPassword((current) => !current)}
-                >
-                  <Ionicons
-                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={21}
-                    color={palette.textSoft}
-                  />
-                </Pressable>
+                {errors.confirmPassword && <Text style={styles.helperText}>{errors.confirmPassword.message}</Text>}
               </View>
             </View>
 
@@ -267,7 +322,7 @@ export default function SignupScreen() {
 
             <Pressable
               style={[styles.button, isSubmitting && styles.buttonDisabled]}
-              onPress={handleSignup}
+              onPress={handleSubmit(onSubmit)}
               disabled={isSubmitting}
             >
               <Text style={styles.buttonText}>
@@ -463,6 +518,18 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     borderColor: palette.primary,
     borderWidth: 2,
+  },
+
+  inputWrapperError: {
+    borderColor: palette.danger,
+    borderWidth: 1,
+  },
+
+  helperText: {
+    color: palette.danger,
+    fontSize: 13,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
 
   input: {

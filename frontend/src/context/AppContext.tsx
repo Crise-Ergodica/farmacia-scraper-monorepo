@@ -48,6 +48,14 @@ type RegisterResult = {
   message: string;
 };
 
+export type User = {
+  id: string;
+  email: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  is_verified: boolean;
+};
+
 type BackendMedicamento = Partial<Medicamento> & {
   name_search?: string;
 };
@@ -68,6 +76,9 @@ type FiltrosOpcoesResponse = {
 type AppContextValue = {
   medicines: Medicamento[];
   isLoading: boolean;
+  isAuthenticated: boolean;
+  token: string | null;
+  user: User | null;
   sessionMode: SessionMode;
   currentUserName: string | null;
   currentUserEmail: string | null;
@@ -405,6 +416,10 @@ function medicineMatchesFilter(medicine: Medicamento, filter: FilterOption) {
   return false;
 }
 
+const TOKEN_KEY = 'auth_token';
+
+import * as SecureStore from 'expo-secure-store';
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [medicines, setMedicines] = useState<Medicamento[]>([]);
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
@@ -413,6 +428,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [sessionMode, setSessionMode] = useState<SessionMode>('guest');
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
@@ -480,15 +498,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return buildFilterOptions(data);
     };
 
+    const checkAuth = async () => {
+      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (storedToken) {
+        try {
+          const response = await fetch(`${API_URL}/users/me`, {
+            headers: { Authorization: `Bearer ${storedToken}` },
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            setToken(storedToken);
+            setIsAuthenticated(true);
+            setSessionMode('authenticated');
+            setCurrentUserName(userData.name || userData.email);
+            setCurrentUserEmail(userData.email);
+          } else {
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar auth:', error);
+        }
+      }
+    };
+
     const fetchInitialData = async () => {
       try {
         setIsLoading(true);
 
-        const [catalogo, filtros] = await Promise.all([
+        const [catalogo, filtros, _] = await Promise.all([
           fetchCatalogo(),
           fetchFiltrosOpcoes().catch(() =>
             mergeFilterOptions(RECEITA_FILTERS, FIXED_CATEGORY_FILTERS)
           ),
+          checkAuth(),
         ]);
 
         setMedicines(catalogo.map(normalizeMedicine));
@@ -512,7 +556,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setFavoriteIds([]);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    setIsAuthenticated(false);
+    setToken(null);
+    setUser(null);
     setSessionMode('guest');
     setCurrentUserName(null);
     setCurrentUserEmail(null);
@@ -524,15 +572,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     password: string
   ): Promise<LoginResult> => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const formData = new URLSearchParams();
+      formData.append('username', email.trim());
+      formData.append('password', password.trim());
+
+      const response = await fetch(`${API_URL}/auth/jwt/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password.trim(),
-        }),
+        body: formData.toString(),
       });
 
       const data = await response.json();
@@ -544,13 +593,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      const accessToken = data.access_token;
+      await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
+
+      const meResponse = await fetch(`${API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      let name = email;
+      if (meResponse.ok) {
+        const userData = await meResponse.json();
+        setUser(userData);
+        name = userData.name || userData.email;
+      }
+
+      setToken(accessToken);
+      setIsAuthenticated(true);
       setSessionMode('authenticated');
-      setCurrentUserName(data.name);
-      setCurrentUserEmail(data.email);
+      setCurrentUserName(name);
+      setCurrentUserEmail(email);
 
       return {
         ok: true,
-        message: getApiMessage(data.message, 'Login realizado com sucesso.'),
+        message: 'Login realizado com sucesso.',
       };
     } catch (error) {
       return {
@@ -570,10 +635,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: payload.name.trim(),
+          nome: payload.name.trim(),
           email: payload.email.trim(),
           password: payload.password,
-          confirm_password: payload.confirmPassword,
         }),
       });
 
@@ -591,7 +655,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       return {
         ok: true,
-        message: getApiMessage(data.message, 'Cadastro enviado com sucesso.'),
+        message: 'Cadastro enviado com sucesso.',
       };
     } catch (error) {
       return {
@@ -733,6 +797,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value: AppContextValue = {
     medicines,
     isLoading,
+    isAuthenticated,
+    token,
+    user,
     sessionMode,
     currentUserName,
     currentUserEmail,

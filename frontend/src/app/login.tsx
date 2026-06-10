@@ -1,6 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,10 +13,18 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { z } from 'zod';
 
 import { Screen } from '../components/Screen';
 import { useAppContext } from '../context/AppContext';
 import { palette, radius, spacing } from '../theme';
+
+const loginSchema = z.object({
+  email: z.string().email('Digite um email válido'),
+  password: z.string().min(1, 'Senha é obrigatória'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 function translateBackendMessage(message: string) {
   const normalized = message.toLowerCase();
@@ -129,50 +139,35 @@ export default function LoginScreen() {
   const isWeb = Platform.OS === 'web';
   const isWide = isWeb && width >= 900;
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+    getValues,
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   const [showPassword, setShowPassword] = useState(false);
 
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [feedback, setFeedback] = useState<{
     type: 'error' | 'success';
     text: string;
   } | null>(null);
 
-  const handleLogin = async () => {
+  const handleLogin = async (data: LoginFormValues) => {
     setFeedback(null);
 
-    if (!email.trim() && !password.trim()) {
-      continueAsGuest();
-      router.replace('/home');
-      return;
-    }
-
-    if (!email.trim() || !password.trim()) {
-      setFeedback({
-        type: 'error',
-        text: 'Preencha email e senha ou entre como convidado deixando os dois vazios.',
-      });
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      setFeedback({
-        type: 'error',
-        text: 'Digite um email válido. O email precisa conter @ e domínio.',
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
     try {
-      const result = await signIn(email, password);
+      const result = await signIn(data.email, data.password);
 
       if (!result.ok) {
         setFeedback({
@@ -182,6 +177,7 @@ export default function LoginScreen() {
             'Não foi possível entrar. Verifique email e senha.'
           ),
         });
+        setError('root', { message: result.message });
         return;
       }
 
@@ -190,14 +186,25 @@ export default function LoginScreen() {
         text: getReadableMessage(result.message, 'Login realizado com sucesso.'),
       });
 
-      router.replace('/home');
+      router.replace('/(app)/home' as never);
     } catch (error) {
       setFeedback({
         type: 'error',
         text: 'Erro ao tentar entrar. Tente novamente.',
       });
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  const onGuestPress = () => {
+    const { email, password } = getValues();
+    if (!email.trim() && !password.trim()) {
+      continueAsGuest();
+      router.replace('/(app)/home' as never);
+    } else {
+      setFeedback({
+        type: 'error',
+        text: 'Para entrar como convidado, deixe os campos vazios.',
+      });
     }
   };
 
@@ -272,62 +279,81 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.form}>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  emailFocused && styles.inputWrapperFocused,
-                ]}
-              >
-                <Ionicons name="mail-outline" size={20} color={palette.primary} />
-
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
-                  placeholderTextColor={palette.muted}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  style={[styles.input, isWeb && styles.inputWeb]}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
+              <View>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        emailFocused && styles.inputWrapperFocused,
+                        errors.email && styles.inputWrapperError,
+                      ]}
+                    >
+                      <Ionicons name="mail-outline" size={20} color={palette.primary} />
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Email"
+                        placeholderTextColor={palette.muted}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        textContentType="emailAddress"
+                        style={[styles.input, isWeb && styles.inputWeb]}
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => {
+                          setEmailFocused(false);
+                          onBlur();
+                        }}
+                      />
+                    </View>
+                  )}
                 />
+                {errors.email && <Text style={styles.inputHelperText}>{errors.email.message}</Text>}
               </View>
 
-              <View
-                style={[
-                  styles.inputWrapper,
-                  passwordFocused && styles.inputWrapperFocused,
-                ]}
-              >
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={palette.primary}
+              <View>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <View
+                      style={[
+                        styles.inputWrapper,
+                        passwordFocused && styles.inputWrapperFocused,
+                        errors.password && styles.inputWrapperError,
+                      ]}
+                    >
+                      <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
+                      <TextInput
+                        value={value}
+                        onChangeText={onChange}
+                        placeholder="Senha"
+                        placeholderTextColor={palette.muted}
+                        secureTextEntry={!showPassword}
+                        textContentType="password"
+                        style={[styles.input, isWeb && styles.inputWeb]}
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => {
+                          setPasswordFocused(false);
+                          onBlur();
+                        }}
+                      />
+                      <Pressable
+                        style={styles.eyeButton}
+                        onPress={() => setShowPassword((current) => !current)}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={21}
+                          color={palette.textSoft}
+                        />
+                      </Pressable>
+                    </View>
+                  )}
                 />
-
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Senha"
-                  placeholderTextColor={palette.muted}
-                  secureTextEntry={!showPassword}
-                  textContentType="password"
-                  style={[styles.input, isWeb && styles.inputWeb]}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                />
-
-                <Pressable
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword((current) => !current)}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={21}
-                    color={palette.textSoft}
-                  />
-                </Pressable>
+                {errors.password && <Text style={styles.inputHelperText}>{errors.password.message}</Text>}
               </View>
             </View>
 
@@ -355,13 +381,12 @@ export default function LoginScreen() {
             ) : null}
 
             <Pressable
-              style={({ pressed, hovered }) => [
+              style={({ pressed }) => [
                 styles.button,
-                isWeb && hovered && styles.buttonHovered,
                 pressed && styles.buttonPressed,
                 isSubmitting && styles.buttonDisabled,
               ]}
-              onPress={handleLogin}
+              onPress={handleSubmit(handleLogin)}
               disabled={isSubmitting}
             >
               <Text style={styles.buttonText}>
@@ -370,15 +395,11 @@ export default function LoginScreen() {
             </Pressable>
 
             <Pressable
-              style={({ pressed, hovered }) => [
+              style={({ pressed }) => [
                 styles.guestButton,
-                isWeb && hovered && styles.guestButtonHovered,
                 pressed && styles.buttonPressed,
               ]}
-              onPress={() => {
-                continueAsGuest();
-                router.replace('/home');
-              }}
+              onPress={onGuestPress}
             >
               <Text style={styles.guestButtonText}>Continuar como convidado</Text>
             </Pressable>
@@ -392,9 +413,8 @@ export default function LoginScreen() {
             </View>
 
             <Pressable
-              style={({ pressed, hovered }) => [
+              style={({ pressed }) => [
                 styles.createAccountButton,
-                isWeb && hovered && styles.createAccountButtonHovered,
                 pressed && styles.buttonPressed,
               ]}
               onPress={() => router.push('/signup' as never)}
@@ -578,6 +598,18 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     borderColor: palette.primary,
     borderWidth: 2,
+  },
+
+  inputWrapperError: {
+    borderColor: palette.danger,
+    borderWidth: 1,
+  },
+
+  inputHelperText: {
+    color: palette.danger,
+    fontSize: 13,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
 
   input: {

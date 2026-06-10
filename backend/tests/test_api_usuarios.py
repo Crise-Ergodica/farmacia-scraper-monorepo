@@ -13,7 +13,7 @@ import uuid
 
 # Mock DB Session
 class MockAsyncSession:
-    async def get(self, model, id):
+    def get(self, model, id, **kwargs):
         return None  # Simulate item not found (404)
 
 async def override_get_db():
