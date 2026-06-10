@@ -41,7 +41,7 @@ export default function HomeScreen() {
     2: 1,
   });
 
-  const itemsPerPage = isWeb ? 8 : 4;
+  const itemsPerPage = isWeb ? 8 : 6;
 
   useEffect(() => {
     setPageByPharmacy({
@@ -199,21 +199,22 @@ export default function HomeScreen() {
     return (
       <Screen contentStyle={styles.loadingContainer}>
         <ActivityIndicator size="large" color={palette.primary} />
-
         <Text style={styles.loadingText}>Carregando medicamentos...</Text>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <SearchBar
-        value={search}
-        onChangeText={setSearch}
-        onSubmit={() => {}}
-        onFilter={() => router.push('/filters')}
-        placeholder="Preço Bão"
-      />
+    <Screen contentStyle={styles.screenContent}>
+      <View style={styles.searchWrapper}>
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          onSubmit={() => {}}
+          onFilter={() => router.push('/filters')}
+          placeholder="Preço Bão"
+        />
+      </View>
 
       {totalResults === 0 ? (
         <View style={styles.noResultsBox}>
@@ -235,12 +236,22 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  screenContent: {
+    paddingTop: Platform.OS === 'web' ? spacing.md : 18,
+    paddingBottom: Platform.OS === 'web' ? spacing.xl : 118,
+  },
+
+  searchWrapper: {
+    marginTop: Platform.OS === 'web' ? 0 : 6,
+    marginBottom: Platform.OS === 'web' ? spacing.sm : spacing.md,
+  },
+
   section: {
-    marginTop: spacing.xl,
+    marginTop: Platform.OS === 'web' ? spacing.xl : spacing.lg,
   },
 
   sectionHeader: {
-    marginBottom: spacing.md,
+    marginBottom: Platform.OS === 'web' ? spacing.md : spacing.sm,
   },
 
   title: {
@@ -262,12 +273,12 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    rowGap: spacing.lg,
-    columnGap: spacing.md,
+    justifyContent: 'space-between',
+    rowGap: 14,
   },
 
   gridWeb: {
+    justifyContent: 'flex-start',
     rowGap: 28,
     columnGap: 24,
   },
@@ -311,7 +322,8 @@ const styles = StyleSheet.create({
   },
 
   pagination: {
-    marginTop: spacing.lg,
+    marginTop: Platform.OS === 'web' ? spacing.lg : spacing.md,
+    marginBottom: Platform.OS === 'web' ? 0 : spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -319,8 +331,8 @@ const styles = StyleSheet.create({
   },
 
   pageButton: {
-    minWidth: 100,
-    height: 42,
+    minWidth: Platform.OS === 'web' ? 100 : 92,
+    height: Platform.OS === 'web' ? 42 : 40,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     backgroundColor: palette.primary,
@@ -353,7 +365,7 @@ const styles = StyleSheet.create({
   pageButtonText: {
     color: palette.surface,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: Platform.OS === 'web' ? 14 : 13,
   },
 
   pageButtonTextDisabled: {
@@ -361,7 +373,7 @@ const styles = StyleSheet.create({
   },
 
   pageInfo: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'web' ? 14 : 13,
     color: palette.text,
     fontWeight: '600',
   },

@@ -1,92 +1,56 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Animated,
   Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useAppContext } from '../context/AppContext';
-import { palette, radius, shadow, spacing } from '../theme';
 import { Medicamento } from '../types/api';
-import { AuthRequiredModal } from './AuthRequiredModal';
+import { palette, radius, spacing } from '../theme';
 
 type MedicineCardProps = {
   medicine: Medicamento;
-  onPress: () => void;
+  onPress?: () => void;
   compact?: boolean;
 };
+
+function formatPrice(value: number) {
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
 
 export function MedicineCard({
   medicine,
   onPress,
   compact = false,
 }: MedicineCardProps) {
-  const { width } = useWindowDimensions();
+  const { favoriteIds, toggleFavorite, sessionMode } = useAppContext();
 
   const isWeb = Platform.OS === 'web';
-
-  const { sessionMode, favoriteIds, toggleFavorite } = useAppContext();
-
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFavoriteHovered, setIsFavoriteHovered] = useState(false);
-
-  const favoriteScale = useRef(new Animated.Value(1)).current;
-
-  const lowest =
-    medicine.ofertas && medicine.ofertas.length > 0
-      ? medicine.ofertas.reduce(
-          (min, curr) => (Number(curr.preco) < Number(min.preco) ? curr : min),
-          medicine.ofertas[0]
-        )
-      : null;
-
-  const compactWidth =
-    isWeb && width >= 1280
-      ? '23.4%'
-      : isWeb && width >= 980
-      ? '31.5%'
-      : isWeb
-      ? '48%'
-      : '31%';
-
-  const priceDisplay = lowest
-    ? `R$ ${Number(lowest.preco).toFixed(2).replace('.', ',')}`
-    : '--';
-
-  const imageUrl = lowest?.imagem_url;
-
   const isFavorite = favoriteIds.includes(medicine.id);
 
-  const runFavoriteAnimation = () => {
-    favoriteScale.stopAnimation();
+  const lowestOffer = useMemo(() => {
+    if (!medicine.ofertas || medicine.ofertas.length === 0) {
+      return null;
+    }
 
-    Animated.sequence([
-      Animated.timing(favoriteScale, {
-        toValue: 1.28,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-      Animated.spring(favoriteScale, {
-        toValue: 1,
-        friction: 3,
-        tension: 120,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+    return medicine.ofertas.reduce((lowest, current) =>
+      Number(current.preco) < Number(lowest.preco) ? current : lowest
+    );
+  }, [medicine.ofertas]);
+
+  const imageUrl = lowestOffer?.imagem_url || medicine.ofertas?.[0]?.imagem_url;
+  const subtitle = medicine.laboratorio?.trim() || 'Não informado';
 
   const handleFavoritePress = () => {
-    runFavoriteAnimation();
-
     if (sessionMode !== 'authenticated') {
-      setShowAuthModal(true);
       return;
     }
 
@@ -94,331 +58,288 @@ export function MedicineCard({
   };
 
   return (
-    <>
-      <Pressable
-        onPress={onPress}
-        onHoverIn={() => {
-          if (isWeb) {
-            setIsHovered(true);
-          }
-        }}
-        onHoverOut={() => {
-          if (isWeb) {
-            setIsHovered(false);
-          }
-        }}
-        style={[
-          styles.card,
-          compact ? styles.compactCard : styles.fullCard,
-          compact && { width: compactWidth },
-          isWeb && styles.cardWeb,
-          isWeb && styles.cardTransition,
-          isHovered && styles.cardHovered,
-        ]}
-      >
-        <Pressable
-          style={[
-            styles.favoriteButton,
-            isWeb && styles.favoriteButtonTransition,
-            isFavoriteHovered && styles.favoriteButtonHovered,
-            isFavorite && styles.favoriteButtonActive,
-          ]}
-          onPress={handleFavoritePress}
-          onHoverIn={() => {
-            if (isWeb) {
-              setIsFavoriteHovered(true);
-            }
-          }}
-          onHoverOut={() => {
-            if (isWeb) {
-              setIsFavoriteHovered(false);
-            }
-          }}
-        >
-          <Animated.View
-            style={[
-              styles.favoriteAnimatedContent,
-              {
-                transform: [
-                  {
-                    scale: favoriteScale,
-                  },
-                ],
-              },
-              isFavorite && styles.favoriteAnimatedContentActive,
-            ]}
-          >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={19}
-              color={isFavorite ? palette.danger : palette.textSoft}
-            />
-          </Animated.View>
-        </Pressable>
-
+    <Pressable
+      onPress={onPress}
+      style={({ pressed, hovered }) => [
+        styles.card,
+        compact && styles.cardCompact,
+        compact && !isWeb && styles.cardCompactMobile,
+        compact && isWeb && styles.cardCompactWeb,
+        isWeb && hovered && styles.cardHovered,
+        pressed && styles.cardPressed,
+      ]}
+    >
+      <View style={styles.imageWrapper}>
         <View
           style={[
             styles.imageBox,
-            compact && styles.compactImageBox,
-            compact && isWeb && styles.compactImageBoxWeb,
-            isWeb && styles.imageTransition,
-            isHovered && styles.imageBoxHovered,
+            compact && styles.imageBoxCompact,
+            compact && !isWeb && styles.imageBoxCompactMobile,
           ]}
         >
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}
-              style={styles.medicineImage}
+              style={styles.image}
               resizeMode="contain"
             />
           ) : (
-            <View style={styles.imageFallback}>
-              <Ionicons
-                name="medical-outline"
-                size={compact && isWeb ? 58 : 38}
-                color={palette.primary}
-              />
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="medical-outline" size={28} color={palette.primary} />
             </View>
           )}
         </View>
 
-        <View style={styles.info}>
-          <Text numberOfLines={2} style={[styles.name, isWeb && styles.nameWeb]}>
-            {medicine.nome}
-          </Text>
+        <Pressable
+          onPress={handleFavoritePress}
+          style={({ pressed, hovered }) => [
+            styles.favoriteButton,
+            isWeb && hovered && styles.favoriteButtonHovered,
+            pressed && styles.favoriteButtonPressed,
+            sessionMode !== 'authenticated' && styles.favoriteButtonDisabled,
+          ]}
+        >
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={compact && !isWeb ? 16 : 18}
+            color={isFavorite ? palette.primary : palette.textSoft}
+          />
+        </Pressable>
+      </View>
 
-          <Text
-            numberOfLines={1}
-            style={[styles.pharmacy, isWeb && styles.pharmacyWeb]}
-          >
-            {medicine.laboratorio || 'Não informado'}
-          </Text>
+      <Text
+        numberOfLines={compact && !isWeb ? 3 : 2}
+        style={[
+          styles.title,
+          compact && styles.titleCompact,
+          compact && !isWeb && styles.titleCompactMobile,
+        ]}
+      >
+        {medicine.nome}
+      </Text>
 
-          <View style={styles.footer}>
-            <View>
-              <Text style={styles.priceLabel}>Menor preço</Text>
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.subtitle,
+          compact && styles.subtitleCompact,
+          compact && !isWeb && styles.subtitleCompactMobile,
+        ]}
+      >
+        {subtitle}
+      </Text>
 
-              <Text style={[styles.price, isWeb && styles.priceWeb]}>
-                {priceDisplay}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Pressable>
+      <View style={styles.priceBlock}>
+        <Text
+          style={[
+            styles.priceLabel,
+            compact && styles.priceLabelCompact,
+            compact && !isWeb && styles.priceLabelCompactMobile,
+          ]}
+        >
+          Menor preço
+        </Text>
 
-      <AuthRequiredModal
-        visible={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
-    </>
+        <Text
+          style={[
+            styles.priceValue,
+            compact && styles.priceValueCompact,
+            compact && !isWeb && styles.priceValueCompactMobile,
+          ]}
+        >
+          {lowestOffer ? formatPrice(Number(lowestOffer.preco)) : 'Não informado'}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    minWidth: 0,
-    position: 'relative',
-  },
-
-  fullCard: {
-    width: '100%',
-  },
-
-  compactCard: {
-    width: '31%',
-  },
-
-  cardWeb: {
+    width: Platform.OS === 'web' ? 220 : 170,
     backgroundColor: palette.surface,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: palette.border,
-    borderRadius: radius.xl,
     padding: spacing.md,
-    cursor: 'pointer' as any,
-    ...shadow.soft,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    elevation: 3,
   },
 
-  cardTransition: {
-    transitionDuration: '180ms' as any,
-    transitionProperty: 'transform, box-shadow, border-color' as any,
-    transitionTimingFunction: 'ease-out' as any,
+  cardCompact: {
+    padding: Platform.OS === 'web' ? spacing.md : 10,
+  },
+
+  cardCompactMobile: {
+    width: '31.6%',
+    minWidth: '31.6%',
+    maxWidth: '31.6%',
+    borderRadius: 20,
+    padding: 8,
+  },
+
+  cardCompactWeb: {
+    width: 220,
   },
 
   cardHovered: {
-    borderColor: palette.primary,
     transform: [
       {
-        translateY: -6,
-      },
-      {
-        scale: 1.015,
+        translateY: -3,
       },
     ],
-    shadowOpacity: 0.16,
-    shadowRadius: 28,
-    shadowOffset: {
-      width: 0,
-      height: 16,
-    },
-    elevation: 8,
+    shadowOpacity: 0.1,
+  },
+
+  cardPressed: {
+    opacity: 0.9,
+    transform: [
+      {
+        scale: 0.985,
+      },
+    ],
+  },
+
+  imageWrapper: {
+    position: 'relative',
+  },
+
+  imageBox: {
+    height: 144,
+    borderRadius: radius.lg,
+    backgroundColor: '#F6F7FB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+
+  imageBoxCompact: {
+    height: Platform.OS === 'web' ? 138 : 98,
+  },
+
+  imageBoxCompactMobile: {
+    height: 82,
+    borderRadius: 18,
+  },
+
+  image: {
+    width: '84%',
+    height: '84%',
+  },
+
+  imagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   favoriteButton: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    zIndex: 3,
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    top: 8,
+    right: 8,
+    width: Platform.OS === 'web' ? 34 : 30,
+    height: Platform.OS === 'web' ? 34 : 30,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFFEE',
     borderWidth: 1,
     borderColor: palette.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  favoriteButtonTransition: {
-    transitionDuration: '180ms' as any,
-    transitionProperty: 'transform, background-color, border-color, box-shadow' as any,
-    transitionTimingFunction: 'ease-out' as any,
-  },
-
   favoriteButtonHovered: {
     backgroundColor: palette.primarySoft,
-    borderColor: palette.primary,
+  },
+
+  favoriteButtonPressed: {
+    opacity: 0.85,
     transform: [
       {
-        scale: 1.08,
-      },
-    ],
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    elevation: 6,
-  },
-
-  favoriteButtonActive: {
-    backgroundColor: '#FFF3F3',
-    borderColor: '#F2B5B5',
-  },
-
-  favoriteAnimatedContent: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  favoriteAnimatedContentActive: {
-    backgroundColor: '#FFECEC',
-  },
-
-  imageBox: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: radius.lg,
-    backgroundColor: palette.surfaceBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
-  },
-
-  imageTransition: {
-    transitionDuration: '180ms' as any,
-    transitionProperty: 'background-color, transform' as any,
-    transitionTimingFunction: 'ease-out' as any,
-  },
-
-  imageBoxHovered: {
-    backgroundColor: palette.primarySoft,
-    transform: [
-      {
-        scale: 1.02,
+        scale: 0.96,
       },
     ],
   },
 
-  compactImageBox: {
-    aspectRatio: 1,
+  favoriteButtonDisabled: {
+    opacity: 0.75,
   },
 
-  compactImageBoxWeb: {
-    aspectRatio: undefined,
-    height: 220,
-    borderRadius: radius.lg,
-    marginBottom: spacing.md,
-  },
-
-  medicineImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: radius.md,
-  },
-
-  imageFallback: {
-    width: '72%',
-    height: '72%',
-    borderRadius: radius.xl,
-    backgroundColor: palette.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  info: {
-    gap: spacing.xs,
-  },
-
-  name: {
-    color: palette.text,
-    fontSize: 12,
+  title: {
+    marginTop: spacing.md,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '700',
-    marginBottom: 2,
+    color: palette.text,
   },
 
-  nameWeb: {
-    fontSize: 17,
-    lineHeight: 23,
-    marginBottom: 2,
+  titleCompact: {
+    marginTop: 10,
+    fontSize: Platform.OS === 'web' ? 16 : 13,
+    lineHeight: Platform.OS === 'web' ? 22 : 18,
   },
 
-  pharmacy: {
-    fontSize: 10,
+  titleCompactMobile: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 16,
+    minHeight: 48,
+  },
+
+  subtitle: {
+    marginTop: 6,
     color: palette.textSoft,
-    marginBottom: 4,
+    fontSize: 14,
+    lineHeight: 20,
   },
 
-  pharmacyWeb: {
-    fontSize: 13,
-    marginBottom: 8,
+  subtitleCompact: {
+    fontSize: Platform.OS === 'web' ? 13 : 11,
+    lineHeight: Platform.OS === 'web' ? 18 : 15,
   },
 
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-start',
-    gap: spacing.sm,
+  subtitleCompactMobile: {
+    marginTop: 4,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+
+  priceBlock: {
+    marginTop: spacing.sm,
   },
 
   priceLabel: {
-    fontSize: 11,
+    fontSize: 13,
     color: palette.textSoft,
     fontWeight: '600',
-    marginBottom: 2,
   },
 
-  price: {
-    color: palette.primaryDark,
+  priceLabelCompact: {
+    fontSize: Platform.OS === 'web' ? 12 : 10,
+  },
+
+  priceLabelCompactMobile: {
+    fontSize: 9,
+  },
+
+  priceValue: {
+    marginTop: 4,
+    fontSize: 24,
+    color: palette.primary,
     fontWeight: '900',
-    fontSize: 14,
   },
 
-  priceWeb: {
-    fontSize: 26,
+  priceValueCompact: {
+    fontSize: Platform.OS === 'web' ? 22 : 16,
+  },
+
+  priceValueCompactMobile: {
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 15,
   },
 });
