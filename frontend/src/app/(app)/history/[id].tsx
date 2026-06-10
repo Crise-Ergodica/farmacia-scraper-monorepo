@@ -27,10 +27,9 @@ import {
   Medicamento,
   Oferta,
 } from '../../../types/api';
+import { api } from '../../../services/api';
 
 import { palette, radius, spacing } from '../../../theme';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 const PHARMACY_COLORS = [
   '#1688F6',
@@ -268,13 +267,8 @@ export default function HistoryScreen() {
       setHistoryMessage('');
 
       try {
-        const response = await fetch(`${API_URL}/catalogo/${medicineId}/historico`);
-
-        if (!response.ok) {
-          throw new Error('Endpoint de histórico ainda não disponível');
-        }
-
-        const data = await response.json();
+        const response = await api.get(`/catalogo/${medicineId}/historico`);
+        const data = response.data;
         const normalized = normalizeHistoryPayload(data);
 
         if (!normalized.length) {

@@ -633,9 +633,9 @@ const styles = StyleSheet.create({
   },
 
   cardTransition: {
-    transitionDuration: '180ms' as any,
-    transitionProperty: 'transform, box-shadow, border-color' as any,
-    transitionTimingFunction: 'ease-out' as any,
+
+
+
   },
 
   cardHovered: {

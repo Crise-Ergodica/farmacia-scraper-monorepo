@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 
 import { Medicamento } from '../types/api';
+import { api, setUnauthorizedCallback, TOKEN_KEY } from '../services/api';
 
 type SessionMode = 'guest' | 'authenticated';
 
@@ -83,6 +84,7 @@ type AppContextValue = {
   currentUserName: string | null;
   currentUserEmail: string | null;
   favoriteIds: number[];
+  favoritePharmacyIds: number[];
   recentIds: number[];
   selectedFilters: FilterOption[];
   filterOptions: FilterOption[];
@@ -91,7 +93,8 @@ type AppContextValue = {
   signIn: (email: string, password: string) => Promise<LoginResult>;
   registerUser: (payload: RegisterPayload) => Promise<RegisterResult>;
   logout: () => void;
-  toggleFavorite: (id: number) => void;
+  toggleFavorite: (id: number) => Promise<void>;
+  togglePharmacyFavorite?: (id: number) => Promise<void>;
   markAsViewed: (id: number) => void;
   toggleFilter: (filter: FilterOption) => void;
   applyFilters: (filters: FilterOption[]) => void;
@@ -105,8 +108,6 @@ type AppContextValue = {
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 const RECEITA_FILTERS: FilterOption[] = [
   {
@@ -416,8 +417,6 @@ function medicineMatchesFilter(medicine: Medicamento, filter: FilterOption) {
   return false;
 }
 
-const TOKEN_KEY = 'auth_token';
-
 import * as SecureStore from 'expo-secure-store';
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -435,8 +434,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const [favoritePharmacyIds, setFavoritePharmacyIds] = useState<number[]>([]);
   const [recentIds, setRecentIds] = useState<number[]>([1, 2, 3]);
   const [selectedFilters, setSelectedFilters] = useState<FilterOption[]>([]);
+
+  const syncMedicamentosFavoritos = useCallback(async () => {
+    try {
+      const response = await api.get('/users/me/favoritos/medicamentos');
+      setFavoriteIds(response.data.map((item: any) => item.catalogo_id));
+    } catch (error) {
+      console.error('Erro ao sincronizar medicamentos favoritos:', error);
+    }
+  }, []);
+
+  const syncFarmaciasFavoritos = useCallback(async () => {
+    try {
+      const response = await api.get('/users/me/favoritos/farmacias');
+      setFavoritePharmacyIds(response.data.map((item: any) => item.farmacia_id));
+    } catch (error) {
+      console.error('Erro ao sincronizar farmácias favoritas:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedCallback(() => {
+      SecureStore.deleteItemAsync(TOKEN_KEY).then(() => {
+        setIsAuthenticated(false);
+        setToken(null);
+        setUser(null);
+        setSessionMode('guest');
+        setCurrentUserName(null);
+        setCurrentUserEmail(null);
+        setFavoriteIds([]);
+        setFavoritePharmacyIds([]);
+      });
+    });
+  }, []);
 
   useEffect(() => {
     const fetchCatalogoPage = async (limit: number, offset: number) => {
@@ -445,14 +478,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       params.set('limit', String(limit));
       params.set('offset', String(offset));
 
-      const response = await fetch(`${API_URL}/catalogo?${params.toString()}`);
+      const response = await api.get(`/catalogo?${params.toString()}`);
 
-      if (!response.ok) {
-        throw new Error('Falha ao buscar catálogo');
-      }
-
-      const data: CatalogoResponse | BackendMedicamento[] =
-        await response.json();
+      const data: CatalogoResponse | BackendMedicamento[] = response.data;
 
       return data;
     };
@@ -463,38 +491,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       let allItems: BackendMedicamento[] = [];
 
       while (true) {
-        const data = await fetchCatalogoPage(limit, offset);
-        const items = getCatalogoItems(data);
+        try {
+          const data = await fetchCatalogoPage(limit, offset);
+          const items = getCatalogoItems(data);
 
-        allItems = [...allItems, ...items];
+          allItems = [...allItems, ...items];
 
-        const total = Array.isArray(data)
-          ? items.length
-          : Number(data.total || 0);
+          const total = Array.isArray(data)
+            ? items.length
+            : Number(data.total || 0);
 
-        if (!items.length) {
+          if (!items.length) {
+            break;
+          }
+
+          if (!total || offset + limit >= total) {
+            break;
+          }
+
+          offset += limit;
+        } catch (error) {
+          console.error('Falha ao buscar catálogo', error);
           break;
         }
-
-        if (!total || offset + limit >= total) {
-          break;
-        }
-
-        offset += limit;
       }
 
       return allItems;
     };
 
     const fetchFiltrosOpcoes = async () => {
-      const response = await fetch(`${API_URL}/catalogo/filtros/opcoes`);
-
-      if (!response.ok) {
-        throw new Error('Falha ao buscar opções de filtro');
-      }
-
-      const data: FiltrosOpcoesResponse = await response.json();
-
+      const response = await api.get('/catalogo/filtros/opcoes');
+      const data: FiltrosOpcoesResponse = response.data;
       return buildFilterOptions(data);
     };
 
@@ -502,23 +529,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
       if (storedToken) {
         try {
-          const response = await fetch(`${API_URL}/users/me`, {
-            headers: { Authorization: `Bearer ${storedToken}` },
-          });
+          const response = await api.get('/users/me');
+          const userData = response.data;
+          setUser(userData);
+          setToken(storedToken);
+          setIsAuthenticated(true);
+          setSessionMode('authenticated');
+          setCurrentUserName(userData.name || userData.email);
+          setCurrentUserEmail(userData.email);
 
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-            setToken(storedToken);
-            setIsAuthenticated(true);
-            setSessionMode('authenticated');
-            setCurrentUserName(userData.name || userData.email);
-            setCurrentUserEmail(userData.email);
-          } else {
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
-          }
+          await Promise.all([
+            syncMedicamentosFavoritos(),
+            syncFarmaciasFavoritos(),
+          ]);
         } catch (error) {
           console.error('Erro ao verificar auth:', error);
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
         }
       }
     };
@@ -554,6 +580,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserName(null);
     setCurrentUserEmail(null);
     setFavoriteIds([]);
+    setFavoritePharmacyIds([]);
   };
 
   const logout = async () => {
@@ -565,6 +592,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserName(null);
     setCurrentUserEmail(null);
     setFavoriteIds([]);
+    setFavoritePharmacyIds([]);
   };
 
   const signIn = async (
@@ -576,35 +604,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       formData.append('username', email.trim());
       formData.append('password', password.trim());
 
-      const response = await fetch(`${API_URL}/auth/jwt/login`, {
-        method: 'POST',
+      // Use axios but explicitly wait to update token headers or we can use fetch/axios with specific headers
+      const response = await api.post('/auth/jwt/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: formData.toString(),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          message: getApiMessage(data.detail, 'Não foi possível entrar.'),
-        };
-      }
-
+      const data = response.data;
       const accessToken = data.access_token;
       await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
 
-      const meResponse = await fetch(`${API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
       let name = email;
-      if (meResponse.ok) {
-        const userData = await meResponse.json();
+      try {
+        const meResponse = await api.get('/users/me');
+        const userData = meResponse.data;
         setUser(userData);
         name = userData.name || userData.email;
+      } catch (e) {
+        console.error('Error fetching user info after login', e);
       }
 
       setToken(accessToken);
@@ -613,11 +631,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCurrentUserName(name);
       setCurrentUserEmail(email);
 
+      await Promise.all([
+        syncMedicamentosFavoritos(),
+        syncFarmaciasFavoritos(),
+      ]);
+
       return {
         ok: true,
         message: 'Login realizado com sucesso.',
       };
-    } catch (error) {
+    } catch (error: any) {
+      if (error.response) {
+        return {
+          ok: false,
+          message: getApiMessage(error.response.data?.detail, 'Não foi possível entrar.'),
+        };
+      }
       return {
         ok: false,
         message: 'Erro de conexão com o servidor de autenticação.',
@@ -629,35 +658,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     payload: RegisterPayload
   ): Promise<RegisterResult> => {
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nome: payload.name.trim(),
-          email: payload.email.trim(),
-          password: payload.password,
-        }),
+      await api.post('/auth/register', {
+        nome: payload.name.trim(),
+        email: payload.email.trim(),
+        password: payload.password,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          message: getApiMessage(
-            data.detail,
-            'Não foi possível concluir o cadastro.'
-          ),
-        };
-      }
 
       return {
         ok: true,
         message: 'Cadastro enviado com sucesso.',
       };
-    } catch (error) {
+    } catch (error: any) {
+      if (error.response) {
+        return {
+          ok: false,
+          message: getApiMessage(
+            error.response.data?.detail,
+            'Não foi possível concluir o cadastro.'
+          ),
+        };
+      }
       return {
         ok: false,
         message: 'Erro de conexão com o servidor de cadastro.',
@@ -670,16 +690,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserEmail(email.trim());
   };
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = async (id: number) => {
     if (sessionMode !== 'authenticated') {
       return;
     }
 
+    const isCurrentlyFavorite = favoriteIds.includes(id);
+
+    // Optimistic UI update
     setFavoriteIds((current) =>
-      current.includes(id)
+      isCurrentlyFavorite
         ? current.filter((item) => item !== id)
         : [id, ...current]
     );
+
+    try {
+      if (isCurrentlyFavorite) {
+        await api.delete(`/users/me/favoritos/medicamentos/${id}`);
+      } else {
+        await api.post(`/users/me/favoritos/medicamentos/${id}`);
+      }
+    } catch (error) {
+      console.error('Erro ao alternar favorito:', error);
+      // Revert on failure
+      setFavoriteIds((current) =>
+        isCurrentlyFavorite
+          ? [id, ...current]
+          : current.filter((item) => item !== id)
+      );
+    }
+  };
+
+  const togglePharmacyFavorite = async (id: number) => {
+    if (sessionMode !== 'authenticated') {
+      return;
+    }
+
+    const isCurrentlyFavorite = favoritePharmacyIds.includes(id);
+
+    setFavoritePharmacyIds((current) =>
+      isCurrentlyFavorite
+        ? current.filter((item) => item !== id)
+        : [id, ...current]
+    );
+
+    try {
+      if (isCurrentlyFavorite) {
+        await api.delete(`/users/me/favoritos/farmacias/${id}`);
+      } else {
+        await api.post(`/users/me/favoritos/farmacias/${id}`);
+      }
+    } catch (error) {
+      console.error('Erro ao alternar farmácia favorita:', error);
+      setFavoritePharmacyIds((current) =>
+        isCurrentlyFavorite
+          ? [id, ...current]
+          : current.filter((item) => item !== id)
+      );
+    }
   };
 
   const markAsViewed = (id: number) => {
@@ -804,6 +872,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUserName,
     currentUserEmail,
     favoriteIds,
+    favoritePharmacyIds,
     recentIds,
     selectedFilters,
     filterOptions,

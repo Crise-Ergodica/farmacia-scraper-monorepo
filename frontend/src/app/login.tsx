@@ -381,9 +381,9 @@ export default function LoginScreen() {
             ) : null}
 
             <Pressable
-              style={({ pressed }) => [
+              style={(state: { pressed: boolean }) => [
                 styles.button,
-                pressed && styles.buttonPressed,
+                state.pressed && styles.buttonPressed,
                 isSubmitting && styles.buttonDisabled,
               ]}
               onPress={handleSubmit(handleLogin)}
@@ -395,9 +395,9 @@ export default function LoginScreen() {
             </Pressable>
 
             <Pressable
-              style={({ pressed }) => [
+              style={(state: { pressed: boolean }) => [
                 styles.guestButton,
-                pressed && styles.buttonPressed,
+                state.pressed && styles.buttonPressed,
               ]}
               onPress={onGuestPress}
             >
@@ -413,9 +413,9 @@ export default function LoginScreen() {
             </View>
 
             <Pressable
-              style={({ pressed }) => [
+              style={(state: { pressed: boolean }) => [
                 styles.createAccountButton,
-                pressed && styles.buttonPressed,
+                state.pressed && styles.buttonPressed,
               ]}
               onPress={() => router.push('/signup' as never)}
             >
@@ -670,9 +670,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.xl,
-    transitionDuration: '160ms' as any,
-    transitionProperty: 'transform, opacity, background-color' as any,
-    transitionTimingFunction: 'ease-out' as any,
+
+
+
   },
 
   buttonHovered: {
@@ -710,9 +710,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.md,
-    transitionDuration: '160ms' as any,
-    transitionProperty: 'transform, opacity, background-color' as any,
-    transitionTimingFunction: 'ease-out' as any,
+
+
+
   },
 
   guestButtonHovered: {
@@ -758,9 +758,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.lg,
-    transitionDuration: '160ms' as any,
-    transitionProperty: 'transform, opacity, background-color' as any,
-    transitionTimingFunction: 'ease-out' as any,
+
+
+
   },
 
   createAccountButtonHovered: {

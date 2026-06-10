@@ -163,10 +163,10 @@ export default function FiltersScreen() {
 
       <View style={styles.actionsRow}>
         <Pressable
-          style={({ pressed, hovered }) => [
+          style={(state: { pressed: boolean; hovered?: boolean }) => [
             styles.clearButton,
-            isWeb && hovered && styles.clearButtonHovered,
-            pressed && styles.buttonPressed,
+            isWeb && state.hovered && styles.clearButtonHovered,
+            state.pressed && styles.buttonPressed,
           ]}
           onPress={handleClear}
         >
@@ -174,10 +174,10 @@ export default function FiltersScreen() {
         </Pressable>
 
         <Pressable
-          style={({ pressed, hovered }) => [
+          style={(state: { pressed: boolean; hovered?: boolean }) => [
             styles.applyButton,
-            isWeb && hovered && styles.applyButtonHovered,
-            pressed && styles.buttonPressed,
+            isWeb && state.hovered && styles.applyButtonHovered,
+            state.pressed && styles.buttonPressed,
           ]}
           onPress={handleApply}
         >
