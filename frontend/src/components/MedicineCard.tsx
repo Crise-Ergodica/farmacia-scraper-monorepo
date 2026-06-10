@@ -34,8 +34,8 @@ export function MedicineCard({
   const { sessionMode, favoriteIds, toggleFavorite } = useAppContext();
 
   const [showAuthModal, setShowAuthModal] = useState(false);
-
   const [isHovered, setIsHovered] = useState(false);
+  const [isFavoriteHovered, setIsFavoriteHovered] = useState(false);
 
   const favoriteScale = useRef(new Animated.Value(1)).current;
 
@@ -116,7 +116,25 @@ export function MedicineCard({
           isHovered && styles.cardHovered,
         ]}
       >
-        <Pressable style={styles.favoriteButton} onPress={handleFavoritePress}>
+        <Pressable
+          style={[
+            styles.favoriteButton,
+            isWeb && styles.favoriteButtonTransition,
+            isFavoriteHovered && styles.favoriteButtonHovered,
+            isFavorite && styles.favoriteButtonActive,
+          ]}
+          onPress={handleFavoritePress}
+          onHoverIn={() => {
+            if (isWeb) {
+              setIsFavoriteHovered(true);
+            }
+          }}
+          onHoverOut={() => {
+            if (isWeb) {
+              setIsFavoriteHovered(false);
+            }
+          }}
+        >
           <Animated.View
             style={[
               styles.favoriteAnimatedContent,
@@ -173,7 +191,7 @@ export function MedicineCard({
             numberOfLines={1}
             style={[styles.pharmacy, isWeb && styles.pharmacyWeb]}
           >
-            {medicine.laboratorio || 'Laboratório não informado'}
+            {medicine.laboratorio || 'Não informado'}
           </Text>
 
           <View style={styles.footer}>
@@ -183,20 +201,6 @@ export function MedicineCard({
               <Text style={[styles.price, isWeb && styles.priceWeb]}>
                 {priceDisplay}
               </Text>
-            </View>
-
-            <View
-              style={[
-                styles.openButton,
-                isWeb && styles.openButtonTransition,
-                isHovered && styles.openButtonHovered,
-              ]}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={palette.surface}
-              />
             </View>
           </View>
         </View>
@@ -272,6 +276,34 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  favoriteButtonTransition: {
+    transitionDuration: '180ms' as any,
+    transitionProperty: 'transform, background-color, border-color, box-shadow' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  favoriteButtonHovered: {
+    backgroundColor: palette.primarySoft,
+    borderColor: palette.primary,
+    transform: [
+      {
+        scale: 1.08,
+      },
+    ],
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    elevation: 6,
+  },
+
+  favoriteButtonActive: {
+    backgroundColor: '#FFF3F3',
+    borderColor: '#F2B5B5',
   },
 
   favoriteAnimatedContent: {
@@ -369,7 +401,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     gap: spacing.sm,
   },
 
@@ -388,29 +420,5 @@ const styles = StyleSheet.create({
 
   priceWeb: {
     fontSize: 26,
-  },
-
-  openButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    backgroundColor: palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  openButtonTransition: {
-    transitionDuration: '180ms' as any,
-    transitionProperty: 'transform, background-color' as any,
-    transitionTimingFunction: 'ease-out' as any,
-  },
-
-  openButtonHovered: {
-    backgroundColor: palette.primaryDark,
-    transform: [
-      {
-        scale: 1.08,
-      },
-    ],
   },
 });
