@@ -60,13 +60,13 @@ export function MedicineCard({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed, hovered }) => [
+      style={(state: { pressed: boolean; hovered?: boolean }) => [
         styles.card,
         compact && styles.cardCompact,
         compact && !isWeb && styles.cardCompactMobile,
         compact && isWeb && styles.cardCompactWeb,
-        isWeb && hovered && styles.cardHovered,
-        pressed && styles.cardPressed,
+        isWeb && state.hovered && styles.cardHovered,
+        state.pressed && styles.cardPressed,
       ]}
     >
       <View style={styles.imageWrapper}>
@@ -92,10 +92,10 @@ export function MedicineCard({
 
         <Pressable
           onPress={handleFavoritePress}
-          style={({ pressed, hovered }) => [
+          style={(state: { pressed: boolean; hovered?: boolean }) => [
             styles.favoriteButton,
-            isWeb && hovered && styles.favoriteButtonHovered,
-            pressed && styles.favoriteButtonPressed,
+            isWeb && state.hovered && styles.favoriteButtonHovered,
+            state.pressed && styles.favoriteButtonPressed,
             sessionMode !== 'authenticated' && styles.favoriteButtonDisabled,
           ]}
         >

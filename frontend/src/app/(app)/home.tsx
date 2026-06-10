@@ -140,10 +140,10 @@ export default function HomeScreen() {
             {totalPages > 1 ? (
               <View style={styles.pagination}>
                 <Pressable
-                  style={({ pressed, hovered }) => [
+                  style={(state: { pressed: boolean; hovered?: boolean }) => [
                     styles.pageButton,
-                    isWeb && hovered && styles.pageButtonHovered,
-                    pressed && styles.pageButtonPressed,
+                    isWeb && state.hovered && styles.pageButtonHovered,
+                    state.pressed && styles.pageButtonPressed,
                     currentPage === 1 && styles.pageButtonDisabled,
                   ]}
                   disabled={currentPage === 1}
@@ -166,10 +166,10 @@ export default function HomeScreen() {
                 </Text>
 
                 <Pressable
-                  style={({ pressed, hovered }) => [
+                  style={(state: { pressed: boolean; hovered?: boolean }) => [
                     styles.pageButton,
-                    isWeb && hovered && styles.pageButtonHovered,
-                    pressed && styles.pageButtonPressed,
+                    isWeb && state.hovered && styles.pageButtonHovered,
+                    state.pressed && styles.pageButtonPressed,
                     currentPage === totalPages && styles.pageButtonDisabled,
                   ]}
                   disabled={currentPage === totalPages}
