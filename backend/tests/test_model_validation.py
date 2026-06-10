@@ -2,6 +2,36 @@ import pytest
 from pydantic import ValidationError
 from app.schemas.oferta import ProdutoExtraidoSchema
 from app.schemas.catalogo import CatalogoBaseSchema
+from app.schemas.usuario import UsuarioCreate
+
+def test_usuario_create_schema_validacao_sucesso():
+    dados = {
+        "email": "teste@precobao.com",
+        "password": "senha_segura",
+        "nome": "  Usuário Teste  "
+    }
+    usuario = UsuarioCreate.model_validate(dados)
+    assert usuario.email == "teste@precobao.com"
+    assert usuario.nome == "Usuário Teste" # Verifica o strip_whitespace
+
+def test_usuario_create_schema_nome_obrigatorio():
+    dados = {
+        "email": "teste@precobao.com",
+        "password": "senha_segura"
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        UsuarioCreate.model_validate(dados)
+    assert "Field required" in str(exc_info.value) or "field required" in str(exc_info.value)
+
+def test_usuario_create_schema_nome_vazio_invalido():
+    dados = {
+        "email": "teste@precobao.com",
+        "password": "senha_segura",
+        "nome": "   "
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        UsuarioCreate.model_validate(dados)
+    assert "Nome não pode estar vazio" in str(exc_info.value)
 
 def test_produto_extraido_schema_validacao_sucesso():
     dados = {

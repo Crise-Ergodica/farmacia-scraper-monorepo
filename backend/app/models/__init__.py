@@ -26,6 +26,7 @@ from .catalogo import CatalogoBase
 from .oferta_farmacia import OfertaFarmacia
 from .historico import HistoricoPreco
 from .anvisa import AnvisaMedicamento
+from .usuario import Usuario, usuario_medicamento_favorito, usuario_farmacia_favorita
 
 __all__ = [
     "Base",
@@ -34,4 +35,7 @@ __all__ = [
     "OfertaFarmacia",
     "HistoricoPreco",
     "AnvisaMedicamento",
+    "Usuario",
+    "usuario_medicamento_favorito",
+    "usuario_farmacia_favorita",
 ]
