@@ -6,6 +6,22 @@ from sqlalchemy import String, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import ARRAY  # Importação específica para o Postgres
+from sqlalchemy import TypeDecorator, String
+import json
+
+class SQLiteArray(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
 
 from .base import Base
 from .oferta_farmacia import OfertaFarmacia
@@ -25,7 +41,7 @@ class CatalogoBase(Base):
     laboratorio: Mapped[str] = mapped_column(String(100), index=True, default="Não informado")
     exige_receita: Mapped[bool] = mapped_column(Boolean, default=False)
     
-    categorias: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    categorias: Mapped[list[str]] = mapped_column(ARRAY(String).with_variant(SQLiteArray, 'sqlite'), default=list)
     
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
