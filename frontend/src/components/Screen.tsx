@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import { useAppContext } from '../context/AppContext';
-import { palette, radius, spacing } from '../theme';
+import { palette, radius, shadow, spacing } from '../theme';
 
 type ScreenProps = {
   children: ReactNode;
@@ -30,7 +30,9 @@ export function Screen({
   contentStyle,
 }: ScreenProps) {
   const pathname = usePathname();
+
   const { sessionMode, currentUserName, logout } = useAppContext();
+
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
   const isWeb = Platform.OS === 'web';
@@ -52,31 +54,35 @@ export function Screen({
     router.replace('/login');
   };
 
-  const ContentWrapper = scroll ? ScrollView : View;
+  const contentStyles = [
+    styles.content,
+    isWeb && styles.contentWeb,
+    hideBottomNav && styles.contentWithoutBottomNav,
+    contentStyle,
+  ];
 
   return (
     <View style={styles.root}>
-      <ContentWrapper
-        style={styles.flex}
-        contentContainerStyle={[
-          styles.content,
-          isWeb && styles.contentWeb,
-          hideBottomNav && styles.contentWithoutBottomNav,
-          contentStyle,
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ContentWrapper>
+      {scroll ? (
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={contentStyles}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={[styles.flex, contentStyles]}>{children}</View>
+      )}
 
       {!hideBottomNav ? (
         <View style={styles.bottomNavWrapper}>
-          <View style={styles.bottomNav}>
+          <View style={[styles.bottomNav, isWeb && styles.bottomNavWeb]}>
             <Pressable
               style={styles.navButton}
               onPress={() => setSidebarVisible(true)}
             >
-              <Ionicons name="menu" size={22} color={palette.primary} />
+              <Ionicons name="menu" size={22} color={palette.text} />
             </Pressable>
 
             <Pressable
@@ -87,9 +93,25 @@ export function Screen({
               onPress={() => router.push('/home')}
             >
               <Ionicons
-                name={activeTab === 'home' ? 'home' : 'home-outline'}
-                size={22}
-                color={activeTab === 'home' ? palette.surface : palette.primary}
+                name="home"
+                size={21}
+                color={activeTab === 'home' ? palette.surface : palette.textSoft}
+              />
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.navButton,
+                activeTab === 'favorites' && styles.navButtonActive,
+              ]}
+              onPress={() => router.push('/favorites')}
+            >
+              <Ionicons
+                name="heart"
+                size={21}
+                color={
+                  activeTab === 'favorites' ? palette.surface : palette.textSoft
+                }
               />
             </Pressable>
 
@@ -101,9 +123,11 @@ export function Screen({
               onPress={() => router.push('/profile')}
             >
               <Ionicons
-                name={activeTab === 'profile' ? 'person' : 'person-outline'}
-                size={22}
-                color={activeTab === 'profile' ? palette.surface : palette.primary}
+                name="person"
+                size={21}
+                color={
+                  activeTab === 'profile' ? palette.surface : palette.textSoft
+                }
               />
             </Pressable>
           </View>
@@ -111,9 +135,9 @@ export function Screen({
       ) : null}
 
       <Modal
-        visible={sidebarVisible}
         transparent
         animationType="fade"
+        visible={sidebarVisible}
         onRequestClose={() => setSidebarVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -125,6 +149,7 @@ export function Screen({
 
               <View style={styles.sidebarHeaderText}>
                 <Text style={styles.sidebarTitle}>Preço Bão</Text>
+
                 <Text style={styles.sidebarSubtitle}>
                   {sessionMode === 'authenticated'
                     ? currentUserName || 'Usuário autenticado'
@@ -135,36 +160,66 @@ export function Screen({
 
             <View style={styles.sidebarMenu}>
               <Pressable style={styles.sidebarItem} onPress={() => goTo('/home')}>
-                <Ionicons name="home-outline" size={20} color={palette.text} />
+                <Ionicons name="home-outline" size={20} color={palette.primary} />
                 <Text style={styles.sidebarItemText}>Home</Text>
               </Pressable>
 
-              <Pressable style={styles.sidebarItem} onPress={() => goTo('/favorites')}>
-                <Ionicons name="heart-outline" size={20} color={palette.text} />
+              <Pressable
+                style={styles.sidebarItem}
+                onPress={() => goTo('/favorites')}
+              >
+                <Ionicons
+                  name="heart-outline"
+                  size={20}
+                  color={palette.primary}
+                />
                 <Text style={styles.sidebarItemText}>Favoritos</Text>
               </Pressable>
 
-              <Pressable style={styles.sidebarItem} onPress={() => goTo('/profile')}>
-                <Ionicons name="person-outline" size={20} color={palette.text} />
+              <Pressable
+                style={styles.sidebarItem}
+                onPress={() => goTo('/profile')}
+              >
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={palette.primary}
+                />
                 <Text style={styles.sidebarItemText}>Perfil</Text>
               </Pressable>
 
               {sessionMode !== 'authenticated' ? (
                 <>
-                  <Pressable style={styles.sidebarItem} onPress={() => goTo('/login')}>
-                    <Ionicons name="log-in-outline" size={20} color={palette.text} />
+                  <Pressable
+                    style={styles.sidebarItem}
+                    onPress={() => goTo('/login')}
+                  >
+                    <Ionicons
+                      name="log-in-outline"
+                      size={20}
+                      color={palette.primary}
+                    />
                     <Text style={styles.sidebarItemText}>Fazer login</Text>
                   </Pressable>
 
-                  <Pressable style={styles.sidebarItem} onPress={() => goTo('/signup')}>
-                    <Ionicons name="person-add-outline" size={20} color={palette.text} />
+                  <Pressable
+                    style={styles.sidebarItem}
+                    onPress={() => goTo('/signup')}
+                  >
+                    <Ionicons
+                      name="person-add-outline"
+                      size={20}
+                      color={palette.primary}
+                    />
                     <Text style={styles.sidebarItemText}>Criar conta</Text>
                   </Pressable>
                 </>
               ) : (
                 <Pressable style={styles.sidebarItem} onPress={handleLogout}>
-                  <Ionicons name="log-out-outline" size={20} color="#D64545" />
-                  <Text style={[styles.sidebarItemText, styles.logoutText]}>Sair</Text>
+                  <Ionicons name="exit-outline" size={20} color={palette.danger} />
+                  <Text style={[styles.sidebarItemText, styles.logoutText]}>
+                    Sair
+                  </Text>
                 </Pressable>
               )}
             </View>
@@ -185,128 +240,153 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.background,
   },
+
   flex: {
     flex: 1,
   },
+
   content: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
-    paddingBottom: 110,
+    paddingBottom: 118,
   },
+
   contentWeb: {
-    maxWidth: 1280,
+    maxWidth: 1240,
     width: '100%',
     alignSelf: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 20,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
   },
+
   contentWithoutBottomNav: {
     paddingBottom: spacing.lg,
   },
+
   bottomNavWrapper: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 14,
+    bottom: 18,
     alignItems: 'center',
+    paddingHorizontal: spacing.md,
   },
+
   bottomNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: '#F5F5F5',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
-    borderColor: '#E7E7E7',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderColor: palette.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    ...shadow.soft,
   },
+
+  bottomNavWeb: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+
   navButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E9E9E9',
+    backgroundColor: palette.surfaceAlt,
   },
+
   navButtonActive: {
     backgroundColor: palette.primary,
   },
+
   modalOverlay: {
     flex: 1,
     flexDirection: 'row',
   },
+
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(15,23,42,0.28)',
   },
+
   sidebar: {
-    width: 290,
+    width: 294,
     backgroundColor: palette.surface,
-    paddingTop: 28,
-    paddingHorizontal: 18,
-    paddingBottom: 24,
-    borderRightWidth: 1,
-    borderRightColor: '#E7E7E7',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 2, height: 0 },
-    elevation: 5,
+    paddingTop: 30,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    borderTopRightRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+    ...shadow.medium,
   },
+
   sidebarWeb: {
-    width: 320,
+    width: 330,
   },
+
   sidebarHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 24,
+    gap: spacing.md,
+    marginBottom: spacing.xl,
   },
+
   sidebarLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
     backgroundColor: palette.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   sidebarLogoText: {
     color: palette.surface,
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
   },
+
   sidebarHeaderText: {
     flex: 1,
   },
+
   sidebarTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: palette.text,
   },
+
   sidebarSubtitle: {
-    marginTop: 2,
+    marginTop: 3,
     fontSize: 13,
     color: palette.textSoft,
   },
+
   sidebarMenu: {
-    gap: 8,
+    gap: spacing.sm,
   },
+
   sidebarItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    minHeight: 48,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    gap: spacing.sm,
+    minHeight: 50,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: palette.surfaceAlt,
   },
+
   sidebarItemText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: palette.text,
   },
+
   logoutText: {
-    color: '#D64545',
+    color: palette.danger,
   },
 });

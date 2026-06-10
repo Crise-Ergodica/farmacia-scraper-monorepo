@@ -1,17 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
+  Animated,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
-  Image,
 } from 'react-native';
 
 import { useAppContext } from '../context/AppContext';
-import { palette, radius, spacing } from '../theme';
+import { palette, radius, shadow, spacing } from '../theme';
 import { Medicamento } from '../types/api';
 import { AuthRequiredModal } from './AuthRequiredModal';
 
@@ -21,38 +22,69 @@ type MedicineCardProps = {
   compact?: boolean;
 };
 
-export function MedicineCard({ medicine, onPress, compact = false }: MedicineCardProps) {
+export function MedicineCard({
+  medicine,
+  onPress,
+  compact = false,
+}: MedicineCardProps) {
   const { width } = useWindowDimensions();
+
   const isWeb = Platform.OS === 'web';
 
   const { sessionMode, favoriteIds, toggleFavorite } = useAppContext();
+
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const [isHovered, setIsHovered] = useState(false);
+
+  const favoriteScale = useRef(new Animated.Value(1)).current;
 
   const lowest =
     medicine.ofertas && medicine.ofertas.length > 0
-      ? medicine.ofertas.reduce((min, curr) =>
-          Number(curr.preco) < Number(min.preco) ? curr : min
-        , medicine.ofertas[0])
+      ? medicine.ofertas.reduce(
+          (min, curr) => (Number(curr.preco) < Number(min.preco) ? curr : min),
+          medicine.ofertas[0]
+        )
       : null;
 
   const compactWidth =
-    isWeb && width >= 1400
-      ? 220
-      : isWeb && width >= 1100
-      ? 240
-      : isWeb && width >= 900
-      ? 210
+    isWeb && width >= 1280
+      ? '23.4%'
+      : isWeb && width >= 980
+      ? '31.5%'
+      : isWeb
+      ? '48%'
       : '31%';
-
 
   const priceDisplay = lowest
     ? `R$ ${Number(lowest.preco).toFixed(2).replace('.', ',')}`
     : '--';
 
   const imageUrl = lowest?.imagem_url;
+
   const isFavorite = favoriteIds.includes(medicine.id);
 
+  const runFavoriteAnimation = () => {
+    favoriteScale.stopAnimation();
+
+    Animated.sequence([
+      Animated.timing(favoriteScale, {
+        toValue: 1.28,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.spring(favoriteScale, {
+        toValue: 1,
+        friction: 3,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const handleFavoritePress = () => {
+    runFavoriteAnimation();
+
     if (sessionMode !== 'authenticated') {
       setShowAuthModal(true);
       return;
@@ -63,65 +95,112 @@ export function MedicineCard({ medicine, onPress, compact = false }: MedicineCar
 
   return (
     <>
-      <View
+      <Pressable
+        onPress={onPress}
+        onHoverIn={() => {
+          if (isWeb) {
+            setIsHovered(true);
+          }
+        }}
+        onHoverOut={() => {
+          if (isWeb) {
+            setIsHovered(false);
+          }
+        }}
         style={[
           styles.card,
           compact ? styles.compactCard : styles.fullCard,
-          isWeb && styles.cardWeb,
           compact && { width: compactWidth },
+          isWeb && styles.cardWeb,
+          isWeb && styles.cardTransition,
+          isHovered && styles.cardHovered,
         ]}
       >
         <Pressable style={styles.favoriteButton} onPress={handleFavoritePress}>
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={20}
-            color={isFavorite ? palette.danger : palette.primary}
-          />
-        </Pressable>
-
-        <Pressable onPress={onPress}>
-          <View
+          <Animated.View
             style={[
-              styles.imageBox,
-              compact && styles.compactImageBox,
-              isWeb && compact && styles.compactImageBoxWeb,
-              imageUrl && { backgroundColor: '#FFFFFF' },
+              styles.favoriteAnimatedContent,
+              {
+                transform: [
+                  {
+                    scale: favoriteScale,
+                  },
+                ],
+              },
+              isFavorite && styles.favoriteAnimatedContentActive,
             ]}
           >
-            {imageUrl ? (
-              <Image
-                source={{ uri: imageUrl }}
-                style={styles.medicineImage}
-                resizeMode="contain"
-              />
-            ) : (
-              <Ionicons
-                name="image-outline"
-                size={isWeb ? 30 : compact ? 24 : 34}
-                color={palette.textSoft}
-              />
-            )}
-          </View>
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={19}
+              color={isFavorite ? palette.danger : palette.textSoft}
+            />
+          </Animated.View>
+        </Pressable>
 
-          <Text style={[styles.name, isWeb && styles.nameWeb]} numberOfLines={2}>
+        <View
+          style={[
+            styles.imageBox,
+            compact && styles.compactImageBox,
+            compact && isWeb && styles.compactImageBoxWeb,
+            isWeb && styles.imageTransition,
+            isHovered && styles.imageBoxHovered,
+          ]}
+        >
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.medicineImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.imageFallback}>
+              <Ionicons
+                name="medical-outline"
+                size={compact && isWeb ? 58 : 38}
+                color={palette.primary}
+              />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.info}>
+          <Text numberOfLines={2} style={[styles.name, isWeb && styles.nameWeb]}>
             {medicine.nome}
           </Text>
 
           <Text
-            style={[
-              styles.pharmacy,
-              isWeb && styles.pharmacyWeb,
-              { color: palette.primary },
-            ]}
+            numberOfLines={1}
+            style={[styles.pharmacy, isWeb && styles.pharmacyWeb]}
           >
-
+            {medicine.laboratorio || 'Laboratório não informado'}
           </Text>
 
-          <Text style={[styles.price, isWeb && styles.priceWeb]}>
-            {priceDisplay}
-          </Text>
-        </Pressable>
-      </View>
+          <View style={styles.footer}>
+            <View>
+              <Text style={styles.priceLabel}>Menor preço</Text>
+
+              <Text style={[styles.price, isWeb && styles.priceWeb]}>
+                {priceDisplay}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.openButton,
+                isWeb && styles.openButtonTransition,
+                isHovered && styles.openButtonHovered,
+              ]}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={palette.surface}
+              />
+            </View>
+          </View>
+        </View>
+      </Pressable>
 
       <AuthRequiredModal
         visible={showAuthModal}
@@ -136,82 +215,202 @@ const styles = StyleSheet.create({
     minWidth: 0,
     position: 'relative',
   },
+
   fullCard: {
     width: '100%',
   },
+
   compactCard: {
     width: '31%',
   },
+
   cardWeb: {
     backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: '#E7E7E7',
-    borderRadius: radius.lg,
-    padding: 12,
+    borderColor: palette.border,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    cursor: 'pointer' as any,
+    ...shadow.soft,
   },
+
+  cardTransition: {
+    transitionDuration: '180ms' as any,
+    transitionProperty: 'transform, box-shadow, border-color' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  cardHovered: {
+    borderColor: palette.primary,
+    transform: [
+      {
+        translateY: -6,
+      },
+      {
+        scale: 1.015,
+      },
+    ],
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    shadowOffset: {
+      width: 0,
+      height: 16,
+    },
+    elevation: 8,
+  },
+
   favoriteButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: spacing.sm,
+    right: spacing.sm,
     zIndex: 3,
-    width: 34,
-    height: 34,
+    width: 38,
+    height: 38,
     borderRadius: radius.pill,
-    backgroundColor: palette.surface,
+    backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
-    borderColor: '#E7E7E7',
+    borderColor: palette.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  favoriteAnimatedContent: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  favoriteAnimatedContentActive: {
+    backgroundColor: '#FFECEC',
+  },
+
   imageBox: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: radius.md,
-    backgroundColor: '#E9E9E9',
+    borderRadius: radius.lg,
+    backgroundColor: palette.surfaceBlue,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
     overflow: 'hidden',
   },
+
+  imageTransition: {
+    transitionDuration: '180ms' as any,
+    transitionProperty: 'background-color, transform' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  imageBoxHovered: {
+    backgroundColor: palette.primarySoft,
+    transform: [
+      {
+        scale: 1.02,
+      },
+    ],
+  },
+
   compactImageBox: {
     aspectRatio: 1,
   },
+
   compactImageBoxWeb: {
     aspectRatio: undefined,
-    height: 210,
-    borderRadius: 18,
-    marginBottom: 12,
+    height: 220,
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
   },
+
   medicineImage: {
     width: '100%',
     height: '100%',
     borderRadius: radius.md,
   },
+
+  imageFallback: {
+    width: '72%',
+    height: '72%',
+    borderRadius: radius.xl,
+    backgroundColor: palette.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  info: {
+    gap: spacing.xs,
+  },
+
   name: {
     color: palette.text,
     fontSize: 12,
+    fontWeight: '700',
     marginBottom: 2,
   },
+
   nameWeb: {
     fontSize: 17,
-    fontWeight: '500',
-    lineHeight: 22,
-    marginBottom: 4,
+    lineHeight: 23,
+    marginBottom: 2,
   },
+
   pharmacy: {
     fontSize: 10,
+    color: palette.textSoft,
     marginBottom: 4,
   },
+
   pharmacyWeb: {
     fontSize: 13,
     marginBottom: 8,
   },
+
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+
+  priceLabel: {
+    fontSize: 11,
+    color: palette.textSoft,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+
   price: {
-    color: palette.text,
-    fontWeight: '700',
+    color: palette.primaryDark,
+    fontWeight: '900',
     fontSize: 14,
   },
+
   priceWeb: {
-    fontSize: 28,
+    fontSize: 26,
+  },
+
+  openButton: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: palette.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  openButtonTransition: {
+    transitionDuration: '180ms' as any,
+    transitionProperty: 'transform, background-color' as any,
+    transitionTimingFunction: 'ease-out' as any,
+  },
+
+  openButtonHovered: {
+    backgroundColor: palette.primaryDark,
+    transform: [
+      {
+        scale: 1.08,
+      },
+    ],
   },
 });

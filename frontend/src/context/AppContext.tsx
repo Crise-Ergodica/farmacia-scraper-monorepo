@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { filterOptions, MedicineCategory } from '../data/mockData';
 import { Medicamento } from '../types/api';
@@ -29,6 +35,19 @@ type RegisterResult = {
   message: string;
 };
 
+type BackendMedicamento = Partial<Omit<Medicamento, 'categorias' | 'ofertas'>> & {
+  name_search?: string;
+  categorias?: string[];
+  ofertas?: Medicamento['ofertas'];
+};
+
+type CatalogoResponse = {
+  total?: number;
+  limit?: number;
+  offset?: number;
+  items?: BackendMedicamento[];
+};
+
 type AppContextValue = {
   medicines: Medicamento[];
   isLoading: boolean;
@@ -46,6 +65,7 @@ type AppContextValue = {
   toggleFavorite: (id: number) => void;
   markAsViewed: (id: number) => void;
   toggleFilter: (filter: MedicineCategory) => void;
+  applyFilters: (filters: MedicineCategory[]) => void;
   clearFilters: () => void;
   getMedicineById: (id: number) => Medicamento | undefined;
   recentMedicines: Medicamento[];
@@ -59,27 +79,102 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+const normalizeText = (value: unknown) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const normalizeMedicine = (medicine: BackendMedicamento): Medicamento => {
+  const nome = medicine.nome || medicine.name_search || '';
+
+  return {
+    id: Number(medicine.id),
+    codigo_barras: medicine.codigo_barras || '',
+    nome,
+    principio_ativo: medicine.principio_ativo || '',
+    laboratorio: medicine.laboratorio || '',
+    exige_receita: Boolean(medicine.exige_receita),
+    categorias: Array.isArray(medicine.categorias)
+      ? (medicine.categorias as MedicineCategory[])
+      : [],
+    ofertas: Array.isArray(medicine.ofertas) ? medicine.ofertas : [],
+  };
+};
+
+const getCatalogoItems = (data: CatalogoResponse | BackendMedicamento[]) => {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.items)) {
+    return data.items;
+  }
+
+  return [];
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [medicines, setMedicines] = useState<Medicamento[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
+  const [isLoading, setIsLoading] = useState(true);
   const [sessionMode, setSessionMode] = useState<SessionMode>('guest');
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-
   const [favoriteIds, setFavoriteIds] = useState<number[]>([2, 5, 9, 3, 6]);
   const [recentIds, setRecentIds] = useState<number[]>([1, 2, 3]);
   const [selectedFilters, setSelectedFilters] = useState<MedicineCategory[]>([]);
 
   useEffect(() => {
+    const fetchCatalogoPage = async (limit: number, offset: number) => {
+      const params = new URLSearchParams();
+
+      params.set('limit', String(limit));
+      params.set('offset', String(offset));
+
+      const response = await fetch(`${API_URL}/catalogo?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Falha ao buscar catálogo');
+      }
+
+      const data: CatalogoResponse | BackendMedicamento[] =
+        await response.json();
+
+      return data;
+    };
+
     const fetchCatalogo = async () => {
       try {
-        const response = await fetch(`${API_URL}/catalogo/`);
-        if (!response.ok) throw new Error('Falha ao buscar catálogo');
-        const data = await response.json();
-        setMedicines(data);
+        setIsLoading(true);
+
+        const limit = 100;
+        let offset = 0;
+        let allItems: BackendMedicamento[] = [];
+
+        while (true) {
+          const data = await fetchCatalogoPage(limit, offset);
+          const items = getCatalogoItems(data);
+
+          allItems = [...allItems, ...items];
+
+          const total = Array.isArray(data) ? items.length : Number(data.total || 0);
+
+          if (!items.length) {
+            break;
+          }
+
+          if (!total || offset + limit >= total) {
+            break;
+          }
+
+          offset += limit;
+        }
+
+        setMedicines(allItems.map(normalizeMedicine));
       } catch (error) {
         console.error('Erro na integração com FastAPI:', error);
+        setMedicines([]);
       } finally {
         setIsLoading(false);
       }
@@ -100,7 +195,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserEmail(null);
   };
 
-  const signIn = async (email: string, password: string): Promise<LoginResult> => {
+  const signIn = async (
+    email: string,
+    password: string
+  ): Promise<LoginResult> => {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
@@ -138,7 +236,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const registerUser = async (payload: RegisterPayload): Promise<RegisterResult> => {
+  const registerUser = async (
+    payload: RegisterPayload
+  ): Promise<RegisterResult> => {
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -176,12 +276,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const toggleFavorite = (id: number) => {
     setFavoriteIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [id, ...current]
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [id, ...current]
     );
   };
 
   const markAsViewed = (id: number) => {
-    setRecentIds((current) => [id, ...current.filter((item) => item !== id)].slice(0, 6));
+    setRecentIds((current) =>
+      [id, ...current.filter((item) => item !== id)].slice(0, 6)
+    );
   };
 
   const toggleFilter = (filter: MedicineCategory) => {
@@ -192,27 +296,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const clearFilters = () => setSelectedFilters([]);
+  const applyFilters = (filters: MedicineCategory[]) => {
+    setSelectedFilters(filters);
+  };
 
-  const getMedicineById = (id: number) => medicines.find((medicine) => medicine.id === id);
+  const clearFilters = () => {
+    setSelectedFilters([]);
+  };
+
+  const getMedicineById = (id: number) => {
+    return medicines.find((medicine) => medicine.id === id);
+  };
 
   const recentMedicines = useMemo(
-    () => recentIds.map((id) => getMedicineById(id)).filter(Boolean) as Medicamento[],
+    () =>
+      recentIds
+        .map((id) => getMedicineById(id))
+        .filter(Boolean) as Medicamento[],
     [recentIds, medicines]
   );
 
   const getLowestPrice = (medicine: Medicamento) => {
-    if (!medicine.ofertas || medicine.ofertas.length === 0) return Infinity;
-    return Math.min(...medicine.ofertas.map((o) => Number(o.preco)));
+    if (!medicine.ofertas || medicine.ofertas.length === 0) {
+      return Infinity;
+    }
+
+    return Math.min(...medicine.ofertas.map((offer) => Number(offer.preco)));
   };
 
   const cheapestMedicines = useMemo(
-    () => [...medicines].sort((a, b) => getLowestPrice(a) - getLowestPrice(b)).slice(0, 6),
+    () =>
+      [...medicines]
+        .sort((a, b) => getLowestPrice(a) - getLowestPrice(b))
+        .slice(0, 6),
     [medicines]
   );
 
   const favoriteMedicines = useMemo(
-    () => favoriteIds.map((id) => getMedicineById(id)).filter(Boolean) as Medicamento[],
+    () =>
+      favoriteIds
+        .map((id) => getMedicineById(id))
+        .filter(Boolean) as Medicamento[],
     [favoriteIds, medicines]
   );
 
@@ -222,21 +346,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     return list.filter((medicine) => {
-      if (selectedFilters.includes('Controlados') && medicine.exige_receita) return true;
-      if (selectedFilters.includes('Venda livre') && !medicine.exige_receita) return true;
-      return false;
+      const categoriesText = normalizeText((medicine.categorias || []).join(' '));
+
+      return selectedFilters.some((filter) => {
+        const normalizedFilter = normalizeText(filter);
+
+        if (normalizedFilter.includes('control')) {
+          return medicine.exige_receita === true || categoriesText.includes('control');
+        }
+
+        if (
+          normalizedFilter.includes('venda livre') ||
+          normalizedFilter.includes('sem receita')
+        ) {
+          return medicine.exige_receita === false;
+        }
+
+        return categoriesText.includes(normalizedFilter);
+      });
     });
   };
 
   const searchMedicines = (query: string) => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = normalizeText(query);
+
     const filtered = applyCategoryFilters(medicines);
 
     if (!normalized) {
       return filtered;
     }
 
-    return filtered.filter((medicine) => medicine.nome.toLowerCase().includes(normalized));
+    return filtered.filter((medicine) => {
+      const searchableText = normalizeText(
+        [
+          medicine.nome,
+          medicine.principio_ativo,
+          medicine.laboratorio,
+          medicine.categorias.join(' '),
+        ].join(' ')
+      );
+
+      return searchableText.includes(normalized);
+    });
   };
 
   const buildSearchRows = (query: string) =>
@@ -245,7 +396,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         medicineId: medicine.id,
         medicineNome: medicine.nome,
         farmaciaId: offer.farmacia_id,
-        preco: offer.preco,
+        preco: Number(offer.preco),
       }))
     );
 
@@ -266,6 +417,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toggleFavorite,
     markAsViewed,
     toggleFilter,
+    applyFilters,
     clearFilters,
     getMedicineById,
     recentMedicines,
