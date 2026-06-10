@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
+
 import {
   ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -24,12 +24,18 @@ const PHARMACIES = [
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+
   const isWeb = Platform.OS === 'web';
 
-  const { medicines, isLoading, markAsViewed } = useAppContext();
+  const {
+    isLoading,
+    markAsViewed,
+    searchMedicines,
+    selectedFilters,
+  } = useAppContext();
 
   const [search, setSearch] = useState('');
+
   const [pageByPharmacy, setPageByPharmacy] = useState<Record<number, number>>({
     1: 1,
     2: 1,
@@ -42,16 +48,10 @@ export default function HomeScreen() {
       1: 1,
       2: 1,
     });
-  }, [search]);
-
-  const normalizedSearch = search.trim().toLowerCase();
+  }, [search, selectedFilters]);
 
   const medicinesByPharmacy = useMemo(() => {
-    const baseList = normalizedSearch
-      ? medicines.filter((medicine) =>
-          medicine.nome.toLowerCase().includes(normalizedSearch)
-        )
-      : medicines;
+    const baseList = searchMedicines(search);
 
     const result: Record<number, Medicamento[]> = {};
 
@@ -66,7 +66,14 @@ export default function HomeScreen() {
     }
 
     return result;
-  }, [medicines, normalizedSearch]);
+  }, [search, searchMedicines]);
+
+  const totalResults = useMemo(() => {
+    return Object.values(medicinesByPharmacy).reduce(
+      (total, medicines) => total + medicines.length,
+      0
+    );
+  }, [medicinesByPharmacy]);
 
   const openDetail = (medicineId: number) => {
     markAsViewed(medicineId);
@@ -84,7 +91,12 @@ export default function HomeScreen() {
 
   const renderPharmacySection = (pharmacyId: number, pharmacyName: string) => {
     const pharmacyMedicines = medicinesByPharmacy[pharmacyId] || [];
-    const totalPages = Math.max(1, Math.ceil(pharmacyMedicines.length / itemsPerPage));
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(pharmacyMedicines.length / itemsPerPage)
+    );
+
     const currentPage = Math.min(pageByPharmacy[pharmacyId] || 1, totalPages);
 
     const start = (currentPage - 1) * itemsPerPage;
@@ -99,6 +111,7 @@ export default function HomeScreen() {
             <Text style={[styles.title, isWeb && styles.titleWeb]}>
               {pharmacyName}
             </Text>
+
             <Text style={styles.countText}>
               {pharmacyMedicines.length} medicamento(s) encontrado(s)
             </Text>
@@ -127,12 +140,16 @@ export default function HomeScreen() {
             {totalPages > 1 ? (
               <View style={styles.pagination}>
                 <Pressable
-                  style={[
+                  style={({ pressed, hovered }) => [
                     styles.pageButton,
+                    isWeb && hovered && styles.pageButtonHovered,
+                    pressed && styles.pageButtonPressed,
                     currentPage === 1 && styles.pageButtonDisabled,
                   ]}
                   disabled={currentPage === 1}
-                  onPress={() => goToPage(pharmacyId, currentPage - 1, totalPages)}
+                  onPress={() =>
+                    goToPage(pharmacyId, currentPage - 1, totalPages)
+                  }
                 >
                   <Text
                     style={[
@@ -149,17 +166,22 @@ export default function HomeScreen() {
                 </Text>
 
                 <Pressable
-                  style={[
+                  style={({ pressed, hovered }) => [
                     styles.pageButton,
+                    isWeb && hovered && styles.pageButtonHovered,
+                    pressed && styles.pageButtonPressed,
                     currentPage === totalPages && styles.pageButtonDisabled,
                   ]}
                   disabled={currentPage === totalPages}
-                  onPress={() => goToPage(pharmacyId, currentPage + 1, totalPages)}
+                  onPress={() =>
+                    goToPage(pharmacyId, currentPage + 1, totalPages)
+                  }
                 >
                   <Text
                     style={[
                       styles.pageButtonText,
-                      currentPage === totalPages && styles.pageButtonTextDisabled,
+                      currentPage === totalPages &&
+                        styles.pageButtonTextDisabled,
                     ]}
                   >
                     Próxima
@@ -177,6 +199,7 @@ export default function HomeScreen() {
     return (
       <Screen contentStyle={styles.loadingContainer}>
         <ActivityIndicator size="large" color={palette.primary} />
+
         <Text style={styles.loadingText}>Carregando medicamentos...</Text>
       </Screen>
     );
@@ -192,8 +215,20 @@ export default function HomeScreen() {
         placeholder="Preço Bão"
       />
 
-      {PHARMACIES.map((pharmacy) =>
-        renderPharmacySection(pharmacy.id, pharmacy.name)
+      {totalResults === 0 ? (
+        <View style={styles.noResultsBox}>
+          <Text style={styles.noResultsTitle}>
+            Nenhum remédio foi encontrado
+          </Text>
+
+          <Text style={styles.noResultsText}>
+            Tente alterar a busca ou remover os filtros selecionados.
+          </Text>
+        </View>
+      ) : (
+        PHARMACIES.map((pharmacy) =>
+          renderPharmacySection(pharmacy.id, pharmacy.name)
+        )
       )}
     </Screen>
   );
@@ -203,22 +238,27 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.xl,
   },
+
   sectionHeader: {
     marginBottom: spacing.md,
   },
+
   title: {
     fontSize: 28,
     color: palette.primary,
     fontWeight: '700',
   },
+
   titleWeb: {
     fontSize: 34,
   },
+
   countText: {
     marginTop: 6,
     fontSize: 14,
     color: palette.textSoft,
   },
+
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -226,10 +266,12 @@ const styles = StyleSheet.create({
     rowGap: spacing.lg,
     columnGap: spacing.md,
   },
+
   gridWeb: {
     rowGap: 28,
     columnGap: 24,
   },
+
   emptyBox: {
     backgroundColor: palette.surface,
     borderRadius: radius.lg,
@@ -237,10 +279,37 @@ const styles = StyleSheet.create({
     borderColor: '#E6E6E6',
     padding: spacing.lg,
   },
+
   emptyText: {
     fontSize: 15,
     color: palette.textSoft,
   },
+
+  noResultsBox: {
+    marginTop: spacing.xl,
+    backgroundColor: palette.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+
+  noResultsTitle: {
+    color: palette.text,
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+
+  noResultsText: {
+    marginTop: spacing.sm,
+    color: palette.textSoft,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+
   pagination: {
     marginTop: spacing.lg,
     flexDirection: 'row',
@@ -248,6 +317,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
   },
+
   pageButton: {
     minWidth: 100,
     height: 42,
@@ -257,28 +327,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  pageButtonHovered: {
+    backgroundColor: palette.primaryDark,
+    transform: [
+      {
+        translateY: -2,
+      },
+    ],
+  },
+
+  pageButtonPressed: {
+    opacity: 0.86,
+    transform: [
+      {
+        scale: 0.98,
+      },
+    ],
+  },
+
   pageButtonDisabled: {
     backgroundColor: '#D7D7D7',
   },
+
   pageButtonText: {
     color: palette.surface,
     fontWeight: '700',
     fontSize: 14,
   },
+
   pageButtonTextDisabled: {
     color: '#7C7C7C',
   },
+
   pageInfo: {
     fontSize: 14,
     color: palette.text,
     fontWeight: '600',
   },
+
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     flex: 1,
     paddingTop: spacing.xl * 2,
   },
+
   loadingText: {
     marginTop: spacing.md,
     color: palette.textSoft,

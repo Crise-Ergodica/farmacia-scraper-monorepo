@@ -1,20 +1,17 @@
 // Interfaces baseadas nos Schemas do FastAPI
-import { MedicineCategory } from '../data/mockData';
 
 export interface Oferta {
   id: number;
   farmacia_id: number;
   catalogo_id: number;
-  preco: number;
+  preco: number | string;
   quantidade_estoque: number;
   disponivel: boolean;
   url_origem: string;
   imagem_url?: string;
   criado_em?: string;
   atualizado_em?: string | null;
-  
 
-  // opcionais para quando o backend vier com join
   farmacia_nome?: string;
   farmacia?: {
     nome_fantasia?: string;
@@ -26,10 +23,11 @@ export interface Medicamento {
   id: number;
   codigo_barras: string;
   nome: string;
+  name_search?: string;
   principio_ativo: string;
   laboratorio: string;
   exige_receita: boolean;
-  categorias: MedicineCategory[]; 
+  categorias: string[];
   ofertas: Oferta[];
 }
 
