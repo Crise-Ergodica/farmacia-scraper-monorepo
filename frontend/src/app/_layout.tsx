@@ -4,19 +4,19 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { GlobalButtonHover } from '../components/GlobalButtonHover';
 import { AppProvider } from '../context/AppContext';
 import { palette } from '../theme';
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="signup" />
-          <Stack.Screen name="(app)" />
-        </Stack>
+        <GlobalButtonHover />
+
+        <StatusBar style="dark" backgroundColor={palette.background} />
+
+        <Stack screenOptions={{ headerShown: false }} />
       </AppProvider>
     </GestureHandlerRootView>
   );
