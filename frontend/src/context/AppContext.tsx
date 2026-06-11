@@ -94,7 +94,7 @@ type AppContextValue = {
   continueAsGuest: () => void;
   signIn: (email: string, password: string) => Promise<LoginResult>;
   registerUser: (payload: RegisterPayload) => Promise<RegisterResult>;
-  logout: () => void | Promise<void>;
+  logout: () => Promise<void>;
   toggleFavorite: (id: number) => Promise<void>;
   togglePharmacyFavorite: (id: number) => Promise<void>;
   markAsViewed: (id: number) => void;
@@ -318,6 +318,68 @@ function getApiMessage(value: unknown, fallback: string) {
   return fallback;
 }
 
+function extractIdList(data: unknown) {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data
+    .map((item) => {
+      if (typeof item === 'number') {
+        return item;
+      }
+
+      if (typeof item === 'string') {
+        return Number(item);
+      }
+
+      if (item && typeof item === 'object') {
+        const record = item as {
+          id?: unknown;
+          medicamento_id?: unknown;
+          catalogo_id?: unknown;
+          farmacia_id?: unknown;
+        };
+
+        return Number(
+          record.id ??
+            record.medicamento_id ??
+            record.catalogo_id ??
+            record.farmacia_id
+        );
+      }
+
+      return NaN;
+    })
+    .filter((id) => Number.isFinite(id));
+}
+
+function getAxiosErrorStatus(error: unknown) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'response' in error &&
+    (error as any).response
+  ) {
+    return Number((error as any).response.status);
+  }
+
+  return 0;
+}
+
+function getAxiosErrorDetail(error: unknown) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'response' in error &&
+    (error as any).response
+  ) {
+    return String((error as any).response.data?.detail || '');
+  }
+
+  return '';
+}
+
 function medicineHasExactCategory(medicine: Medicamento, values: string[]) {
   const normalizedValues = values.map(normalizeText);
 
@@ -438,40 +500,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [recentIds, setRecentIds] = useState<number[]>([1, 2, 3]);
   const [selectedFilters, setSelectedFilters] = useState<FilterOption[]>([]);
 
+  const resetAuthState = useCallback(async () => {
+    await tokenStorage.delete();
+
+    setIsAuthenticated(false);
+    setToken(null);
+    setUser(null);
+    setSessionMode('guest');
+    setCurrentUserName(null);
+    setCurrentUserEmail(null);
+    setFavoriteIds([]);
+    setFavoritePharmacyIds([]);
+  }, []);
+
   const syncMedicamentosFavoritos = useCallback(async () => {
     try {
       const response = await api.get('/users/me/favoritos/medicamentos');
+      const ids = extractIdList(response.data);
 
-      setFavoriteIds(response.data.map((item: any) => Number(item.id)));
+      setFavoriteIds(ids);
+
+      return ids;
     } catch (error) {
-      console.error('Erro ao sincronizar medicamentos favoritos:', error);
+      console.log('Erro ao sincronizar medicamentos favoritos:', error);
+      setFavoriteIds([]);
+
+      return [];
     }
   }, []);
 
   const syncFarmaciasFavoritos = useCallback(async () => {
     try {
       const response = await api.get('/users/me/favoritos/farmacias');
+      const ids = extractIdList(response.data);
 
-      setFavoritePharmacyIds(response.data.map((item: any) => Number(item.id)));
+      setFavoritePharmacyIds(ids);
+
+      return ids;
     } catch (error) {
-      console.error('Erro ao sincronizar farmácias favoritas:', error);
+      console.log('Erro ao sincronizar farmácias favoritas:', error);
+      setFavoritePharmacyIds([]);
+
+      return [];
     }
   }, []);
 
   useEffect(() => {
     setUnauthorizedCallback(() => {
-      tokenStorage.delete().then(() => {
-        setIsAuthenticated(false);
-        setToken(null);
-        setUser(null);
-        setSessionMode('guest');
-        setCurrentUserName(null);
-        setCurrentUserEmail(null);
-        setFavoriteIds([]);
-        setFavoritePharmacyIds([]);
-      });
+      resetAuthState();
     });
-  }, []);
+  }, [resetAuthState]);
 
   useEffect(() => {
     const fetchCatalogoPage = async (limit: number, offset: number) => {
@@ -512,7 +590,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           offset += limit;
         } catch (error) {
-          console.error('Falha ao buscar catálogo', error);
+          console.log('Falha ao buscar catálogo:', error);
           break;
         }
       }
@@ -537,12 +615,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await api.get('/users/me');
         const userData: User = response.data;
+        const userName = userData.nome || userData.name || userData.email;
 
         setUser(userData);
         setToken(storedToken);
         setIsAuthenticated(true);
         setSessionMode('authenticated');
-        setCurrentUserName(userData.nome || userData.name || userData.email);
+        setCurrentUserName(userName);
         setCurrentUserEmail(userData.email);
 
         await Promise.all([
@@ -550,8 +629,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           syncFarmaciasFavoritos(),
         ]);
       } catch (error) {
-        console.error('Erro ao verificar auth:', error);
-        await tokenStorage.delete();
+        console.log('Erro ao verificar auth:', error);
+        await resetAuthState();
       }
     };
 
@@ -571,7 +650,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         await checkAuth();
       } catch (error) {
-        console.error('Erro na integração com FastAPI:', error);
+        console.log('Erro na integração com FastAPI:', error);
         setMedicines([]);
         setFilterOptions(
           mergeFilterOptions(RECEITA_FILTERS, FIXED_CATEGORY_FILTERS)
@@ -582,7 +661,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchInitialData();
-  }, [syncMedicamentosFavoritos, syncFarmaciasFavoritos]);
+  }, [
+    resetAuthState,
+    syncMedicamentosFavoritos,
+    syncFarmaciasFavoritos,
+  ]);
 
   const continueAsGuest = () => {
     setSessionMode('guest');
@@ -593,16 +676,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await tokenStorage.delete();
-
-    setIsAuthenticated(false);
-    setToken(null);
-    setUser(null);
-    setSessionMode('guest');
-    setCurrentUserName(null);
-    setCurrentUserEmail(null);
-    setFavoriteIds([]);
-    setFavoritePharmacyIds([]);
+    await resetAuthState();
   };
 
   const signIn = async (
@@ -634,12 +708,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const meResponse = await api.get('/users/me');
 
         userData = meResponse.data;
-        userName = userData?.nome || userData?.name || userData?.email || email.trim();
+        userName =
+          userData?.nome || userData?.name || userData?.email || email.trim();
         userEmail = userData?.email || email.trim();
 
         setUser(userData);
       } catch (error) {
-        console.error('Erro ao buscar dados do usuário após login:', error);
+        console.log('Erro ao buscar dados do usuário após login:', error);
       }
 
       setToken(accessToken);
@@ -713,62 +788,130 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleFavorite = async (id: number) => {
-    if (sessionMode !== 'authenticated') {
+    if (!isAuthenticated && sessionMode !== 'authenticated') {
       return;
     }
 
     const isCurrentlyFavorite = favoriteIds.includes(id);
 
-    setFavoriteIds((current) =>
-      isCurrentlyFavorite
-        ? current.filter((item) => item !== id)
-        : [id, ...current]
-    );
+    setFavoriteIds((current) => {
+      if (isCurrentlyFavorite) {
+        return current.filter((item) => item !== id);
+      }
+
+      return current.includes(id) ? current : [id, ...current];
+    });
 
     try {
       if (isCurrentlyFavorite) {
         await api.delete(`/users/me/favoritos/medicamentos/${id}`);
-      } else {
-        await api.post(`/users/me/favoritos/medicamentos/${id}`);
+
+        setFavoriteIds((current) => current.filter((item) => item !== id));
+        return;
       }
-    } catch (error) {
-      console.error('Erro ao alternar favorito:', error);
+
+      await api.post(`/users/me/favoritos/medicamentos/${id}`);
 
       setFavoriteIds((current) =>
-        isCurrentlyFavorite
-          ? [id, ...current]
-          : current.filter((item) => item !== id)
+        current.includes(id) ? current : [id, ...current]
       );
+    } catch (error) {
+      const status = getAxiosErrorStatus(error);
+      const detail = normalizeText(getAxiosErrorDetail(error));
+
+      const alreadyFavorite =
+        status === 400 && detail.includes('ja esta nos favoritos');
+
+      const notFoundWhenRemoving =
+        status === 404 &&
+        isCurrentlyFavorite &&
+        detail.includes('nao encontrado');
+
+      if (alreadyFavorite) {
+        setFavoriteIds((current) =>
+          current.includes(id) ? current : [id, ...current]
+        );
+        return;
+      }
+
+      if (notFoundWhenRemoving) {
+        setFavoriteIds((current) => current.filter((item) => item !== id));
+        return;
+      }
+
+      setFavoriteIds((current) => {
+        if (isCurrentlyFavorite) {
+          return current.includes(id) ? current : [id, ...current];
+        }
+
+        return current.filter((item) => item !== id);
+      });
     }
   };
 
   const togglePharmacyFavorite = async (id: number) => {
-    if (sessionMode !== 'authenticated') {
+    if (!isAuthenticated && sessionMode !== 'authenticated') {
       return;
     }
 
     const isCurrentlyFavorite = favoritePharmacyIds.includes(id);
 
-    setFavoritePharmacyIds((current) =>
-      isCurrentlyFavorite
-        ? current.filter((item) => item !== id)
-        : [id, ...current]
-    );
+    setFavoritePharmacyIds((current) => {
+      if (isCurrentlyFavorite) {
+        return current.filter((item) => item !== id);
+      }
+
+      return current.includes(id) ? current : [id, ...current];
+    });
 
     try {
       if (isCurrentlyFavorite) {
         await api.delete(`/users/me/favoritos/farmacias/${id}`);
-      } else {
-        await api.post(`/users/me/favoritos/farmacias/${id}`);
+
+        setFavoritePharmacyIds((current) =>
+          current.filter((item) => item !== id)
+        );
+        return;
       }
-    } catch (error) {
-      console.error('Erro ao alternar farmácia favorita:', error);
+
+      await api.post(`/users/me/favoritos/farmacias/${id}`);
 
       setFavoritePharmacyIds((current) =>
-        isCurrentlyFavorite
-          ? [id, ...current]
-          : current.filter((item) => item !== id)
+        current.includes(id) ? current : [id, ...current]
       );
+    } catch (error) {
+      const status = getAxiosErrorStatus(error);
+      const detail = normalizeText(getAxiosErrorDetail(error));
+
+      const alreadyFavorite =
+        status === 400 && detail.includes('ja esta nos favoritos');
+
+      const notFoundWhenRemoving =
+        status === 404 &&
+        isCurrentlyFavorite &&
+        detail.includes('nao encontrada');
+
+      if (alreadyFavorite) {
+        setFavoritePharmacyIds((current) =>
+          current.includes(id) ? current : [id, ...current]
+        );
+        return;
+      }
+
+      if (notFoundWhenRemoving) {
+        setFavoritePharmacyIds((current) =>
+          current.filter((item) => item !== id)
+        );
+        return;
+      }
+
+      setFavoritePharmacyIds((current) => {
+        if (isCurrentlyFavorite) {
+          return current.includes(id) ? current : [id, ...current];
+        }
+
+        return current.filter((item) => item !== id);
+      });
     }
   };
 

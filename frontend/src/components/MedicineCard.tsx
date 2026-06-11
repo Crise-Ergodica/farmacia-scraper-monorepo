@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import {
   Image,
@@ -7,11 +8,10 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useAppContext } from '../context/AppContext';
-import { Medicamento } from '../types/api';
 import { palette, radius, spacing } from '../theme';
+import { Medicamento } from '../types/api';
 
 type MedicineCardProps = {
   medicine: Medicamento;
@@ -49,7 +49,10 @@ export function MedicineCard({
   const imageUrl = lowestOffer?.imagem_url || medicine.ofertas?.[0]?.imagem_url;
   const subtitle = medicine.laboratorio?.trim() || 'Não informado';
 
-  const handleFavoritePress = () => {
+  const handleFavoritePress = (event?: any) => {
+    event?.stopPropagation?.();
+    event?.preventDefault?.();
+
     if (sessionMode !== 'authenticated') {
       return;
     }
@@ -60,13 +63,13 @@ export function MedicineCard({
   return (
     <Pressable
       onPress={onPress}
-      style={(state: { pressed: boolean; hovered?: boolean }) => [
+      style={({ pressed, hovered }) => [
         styles.card,
         compact && styles.cardCompact,
         compact && !isWeb && styles.cardCompactMobile,
         compact && isWeb && styles.cardCompactWeb,
-        isWeb && state.hovered && styles.cardHovered,
-        state.pressed && styles.cardPressed,
+        isWeb && hovered && styles.cardHovered,
+        pressed && styles.cardPressed,
       ]}
     >
       <View style={styles.imageWrapper}>
@@ -85,17 +88,22 @@ export function MedicineCard({
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="medical-outline" size={28} color={palette.primary} />
+              <Ionicons
+                name="medical-outline"
+                size={28}
+                color={palette.primary}
+              />
             </View>
           )}
         </View>
 
         <Pressable
           onPress={handleFavoritePress}
-          style={(state: { pressed: boolean; hovered?: boolean }) => [
+          hitSlop={8}
+          style={({ pressed, hovered }) => [
             styles.favoriteButton,
-            isWeb && state.hovered && styles.favoriteButtonHovered,
-            state.pressed && styles.favoriteButtonPressed,
+            isWeb && hovered && styles.favoriteButtonHovered,
+            pressed && styles.favoriteButtonPressed,
             sessionMode !== 'authenticated' && styles.favoriteButtonDisabled,
           ]}
         >
@@ -250,6 +258,8 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
+    elevation: 10,
   },
 
   favoriteButtonHovered: {
