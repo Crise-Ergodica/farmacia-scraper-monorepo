@@ -29,5 +29,12 @@ services:
       timeout: 5s
       retries: 5
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: farmacia_tunnel
+    command: tunnel --url http://api:8000
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
