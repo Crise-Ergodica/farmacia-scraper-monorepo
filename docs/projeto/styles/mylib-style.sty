@@ -1,0 +1,69 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mylib-style}[2025/12/22 General Style and Documentation Macros]
+
+% --- ESSENTIAL PACKAGES ---
+\RequirePackage{microtype}  
+\RequirePackage{graphicx}   
+\RequirePackage{float}      
+\RequirePackage{pdfpages}   
+\RequirePackage{url}        
+\RequirePackage{tabularx}   
+\RequirePackage{xcolor}
+\RequirePackage{tikz}
+\RequirePackage{caption}
+\usetikzlibrary{shadows}
+
+% --- IMAGE CONFIGURATION ---
+% Defines default search paths for the graphicx package
+\graphicspath{{./figures/}{./imagens/}{./assets/}}
+
+% --- BRAND AND PROJECT COLOR DEFINITIONS ---
+\definecolor{docBlue}{RGB}{0, 80, 158}
+\definecolor{docDark}{RGB}{51, 51, 51}
+\definecolor{docGray}{RGB}{120, 120, 120}
+
+% --- HYPERREF SETUP ---
+% The abntex2 class handles the main hyperref imports. 
+\hypersetup{
+    colorlinks=false, 
+}
+
+% --- CUSTOM MACROS ---
+
+% 1. File or directory paths
+% Usage: Open the \file{main.py} script.
+\newcommand{\file}[1]{\textit{\texttt{\color{docDark}#1}}}
+
+% 2. Inline code snippets or variables
+% Usage: The \code{user_id} variable must be an integer.
+\newcommand{\code}[1]{\colorbox{gray!10}{\texttt{\small\color{red!60!black}#1}}}
+
+% 3. Class or Component names (PascalCase convention)
+% Usage: The \class{CustomerFactory} instantiates the object.
+\newcommand{\class}[1]{\textbf{\texttt{\color{docBlue}#1}}}
+
+% 4. Keyboard shortcuts rendering
+% Usage: Press \keys{Ctrl + C} to terminate.
+\newcommand{\keys}[1]{%
+  \tikz[baseline=(key.base)]
+    \node[draw, fill=white, drop shadow={shadow xshift=0.2ex,shadow yshift=-0.2ex},
+          rectangle, rounded corners=2pt, inner sep=1pt, line width=0.5pt,
+          font=\scriptsize\sffamily](key) {#1};\kern1pt
+}
+
+% --- ABNT ADJUSTMENTS ---
+% Removes excessive vertical space between bibliography items
+\setlength{\bibitemsep}{\onelineskip}
+
+% --- QUADRO ENVIRONMENT CONFIGURATION ---
+% Note: \DeclareCaptionType{quadro} was strictly omitted to prevent 
+% compiler crash, as abntex2 already defines the 'quadro' float natively.
+\captionsetup[quadro]{
+    format=plain,
+    labelsep=endash,
+    singlelinecheck=off,
+    justification=justified,
+    font=small
+}
+
+\endinput

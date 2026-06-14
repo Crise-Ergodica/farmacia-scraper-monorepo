@@ -1,0 +1,123 @@
+% ------------------------------------------------------------------------
+% Configuração e Arquitetura do Template LaTeX
+% Desenvolvido por: Aurora Drumond Costa Magalhães
+% Ano: 2026
+% ------------------------------------------------------------------------
+
+\documentclass[
+    12pt,
+    openright,
+    oneside,
+    a4paper,
+    english,
+    brazil
+    ]{abntex2}
+
+% --- PACOTES GERAIS ---
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{indentfirst}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[alf]{abntex2cite}
+
+% --- CONFIGURAÇÃO DO AMBIENTE QUADRO ---
+\newcommand{\quadroname}{Quadro}
+\newcommand{\listofquadrosname}{Lista de quadros}
+
+% Utilizando a sintaxe estrita do pacote 'float' (\newfloat{nome}{posicionamento}{extensão}[contador])
+\floatstyle{plaintop} % Garante que a legenda fique acima do quadro
+\newfloat{quadro}{htb}{loq}[chapter]
+\floatname{quadro}{\quadroname}
+
+% Cria a lista de quadros associada ao sumário
+\newlistof{listofquadros}{loq}{\listofquadrosname}
+\newlistentry{quadro}{loq}{0}
+
+% Define a numeração contínua (evita Quadro 1.1, Quadro 1.2)
+\counterwithout{quadro}{chapter}
+
+% Configura a formatação de exibição da Lista de Quadros no PDF
+\renewcommand{\cftquadroname}{\quadroname\space}
+\renewcommand*{\cftquadroaftersnum}{\hfill--\hfill}
+
+% --- IMPORTA SEUS ESTILOS PERSONALIZADOS ---
+% Substitua pelos caminhos reais dos seus arquivos de estilo (.sty), caso possua.
+\usepackage{styles/code-style} 
+\usepackage{styles/mylib-style}
+
+% --- DADOS DA CAPA ---
+\titulo{Especificação e Projeto de Software: \\ Plataforma ``Preço Bão''}
+\autor{Aurora Drumond Costa Magalhães \and Ana Clara de Souza \and Kayke Wellington}
+\local{Timóteo - MG}
+\data{2026}
+
+\instituicao{%
+  Centro Universitário Católica do Leste de Minas Gerais
+  \par
+  Campus Coronel Fabriciano}
+
+% Mudamos de "Análise de auditoria" para o escopo real do trabalho
+\tipotrabalho{Projeto de Engenharia de Software}
+
+% O preâmbulo agora reflete a magnitude do seu projeto
+\preambulo{Documentação completa de especificação, modelagem e arquitetura de software apresentada ao curso de Engenharia de Software do Centro Universitário Católica do Leste de Minas Gerais (Unileste).}
+
+% --- INÍCIO DO DOCUMENTO ---
+\begin{document}
+
+% Elementos Pré-Textuais
+\imprimircapa
+\imprimirfolhaderosto
+
+% Resumo (Pode ser movido para um arquivo chapters/00-resumos.tex se quiser)
+\setlength{\absparsep}{18pt} % Ajusta o espaçamento dos parágrafos do resumo
+\begin{resumo}
+O presente trabalho documenta a especificação, a modelagem e a arquitetura do projeto ``Preço Bão'', uma plataforma computacional (aplicativo móvel e \textit{web}) voltada para a pesquisa, comparação e monitoramento de preços de medicamentos e produtos de farmácia. Motivada pela volatilidade dos valores no varejo farmacêutico e pela dificuldade de pesquisa física, a solução propõe um sistema alimentado por rotinas automatizadas e resilientes de extração de dados (\textit{web scraping}), construindo um catálogo centralizado. O escopo do documento abrange todas as fases de planejamento da Engenharia de Software. Inicialmente, são definidos o minimundo e o levantamento de requisitos funcionais e não funcionais, garantindo neutralidade algorítmica na busca, cálculo espacial de distância geolocalizada e rigoroso controle de privacidade adequado à LGPD. Em seguida, o projeto aprofunda-se na modelagem comportamental (Diagramas de Casos de Uso), no projeto de banco de dados (modelagem conceitual e lógica em PostgreSQL) e no \textit{design} estrutural e de interface. A arquitetura definida adota o padrão de \textit{monorepo}, provisionamento em contêineres, \textit{pipelines} de CI/CD, \textit{backend} assíncrono em Python (FastAPI) e \textit{frontend} multiplataforma em React Native. Como resultado, o trabalho entrega um planejamento arquitetural detalhado, robusto e escalável, preparando o sistema para a implementação codificada e garantindo uma ferramenta de alto impacto para o consumidor final.
+
+\vspace{\onelineskip}
+\noindent
+\textbf{Palavras-chave:} Engenharia de Software. Especificação de Requisitos. \textit{Web Scraping}. Modelagem de Sistemas. Arquitetura de \textit{Software}.
+\end{resumo}
+
+% Abstract
+\begin{resumo}[Abstract]
+\begin{otherlanguage*}{english}
+This paper documents the specification, modeling, and architecture of the ``Preço Bão'' project, a computational platform (mobile and web application) aimed at searching, comparing, and monitoring prices of medicines and pharmacy products. Driven by the price volatility in pharmaceutical retail and the challenge of physical searching, the solution proposes a system powered by automated and resilient data extraction routines (\textit{web scraping}) to build a centralized catalog. The document's scope covers all planning phases of Software Engineering. Initially, the domain and the elicitation of functional and non-functional requirements are defined, ensuring algorithmic neutrality in searches, spatial calculation of geolocated distance, and strict privacy controls compliant with data protection laws. Subsequently, the project delves into behavioral modeling (Use Case Diagrams), database design (conceptual and logical modeling in PostgreSQL), and structural and interface design. The defined architecture adopts a monorepo pattern, container provisioning, CI/CD pipelines, an asynchronous Python backend (FastAPI), and a cross-platform React Native frontend. As a result, the work delivers a detailed, robust, and scalable architectural plan, preparing the system for coding implementation and ensuring a high-impact tool for the end consumer.
+
+\vspace{\onelineskip}
+\noindent
+\textbf{Keywords:} Software Engineering. Requirements Specification. Web Scraping. Systems Modeling. Software Architecture.
+\end{otherlanguage*}
+\end{resumo}
+
+% Listas
+% \pdfbookmark[0]{\listfigurename}{lof}
+% \listoffigures*
+% \cleardoublepage
+
+% \pdfbookmark[0]{\lstlistlistingname}{lol}
+% \lstlistoflistings
+% \cleardoublepage
+
+\pdfbookmark[0]{Lista de quadros}{loq}
+\listofquadros*
+\cleardoublepage
+
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents
+\cleardoublepage
+
+% --------------------------------------------------------
+% ELEMENTOS TEXTUAIS
+% --------------------------------------------------------
+\textual
+
+% Aqui acontece a mágica: você chama os arquivos externos
+
+%\include{capitulos/01-introducao}
+\include{capitulos/02-desenvolvimento}
+% \include{capitulos/03-conclusao}
+
+\end{document}
