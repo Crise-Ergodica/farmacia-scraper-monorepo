@@ -22,6 +22,9 @@ RUN poetry install --without dev --no-root
 
 COPY . .
 
+RUN useradd -m apiuser && chown -R apiuser:apiuser /app
+USER apiuser
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
