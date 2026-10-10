@@ -10,7 +10,12 @@ type FilterChipProps = {
 
 export function FilterChip({ label, active, onPress }: FilterChipProps) {
   return (
-    <Pressable style={[styles.chip, active && styles.chipActive]} onPress={onPress}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={[styles.chip, active && styles.chipActive]}
+      onPress={onPress}
+    >
       <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
     </Pressable>
   );

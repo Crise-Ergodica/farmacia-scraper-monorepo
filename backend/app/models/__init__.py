@@ -2,31 +2,31 @@
 Pacote de Modelos de Domínio (ORM) da Aplicação.
 
 Este pacote concentra todas as entidades de banco de dados mapeadas
-através do SQLAlchemy. A importação centralizada neste módulo garante 
-que os metadados de todas as tabelas sejam devidamente registrados na 
+através do SQLAlchemy. A importação centralizada neste módulo garante
+que os metadados de todas as tabelas sejam devidamente registrados na
 classe base antes da execução de migrações ou criação do esquema de banco.
 
 Módulos e Classes Exportadas:
-    * :class:`~models.base.Base`: Classe base declarativa com configurações de nomenclatura.
-    * :class:`~models.farmacia.Farmacia`: Entidade que representa as farmácias físicas e jurídicas.
-    * :class:`~models.catalogo.CatalogoBase`: Entidade que representa o catálogo unificado com dados farmacológicos invariáveis.
-    * :class:`~models.oferta_farmacia.OfertaFarmacia`: Entidade que representa a precificação e a disponibilidade (oferta) de um item numa loja.
-    * :class:`~models.historico.HistoricoPreco`: Entidade que registra o histórico temporal de preços por farmácia.
-    * :class:`~models.anvisa.AnvisaMedicamento`: Entidade que representa o lookup local de medicamentos da ANVISA.
+    * :class:`~models.base.Base`: Base declarativa do SQLAlchemy.
+    * :class:`~models.farmacia.Farmacia`: Dados das farmácias.
+    * :class:`~models.catalogo.CatalogoBase`: Catálogo farmacológico unificado.
+    * :class:`~models.oferta_farmacia.OfertaFarmacia`: Preço e disponibilidade local.
+    * :class:`~models.historico.HistoricoPreco`: Histórico de preços por farmácia.
+    * :class:`~models.anvisa.AnvisaMedicamento`: Lookup de medicamentos da ANVISA.
 
 .. note::
-    Para o correto funcionamento das migrações, certifique-se de importar 
-    o objeto ``Base`` diretamente deste módulo dentro do arquivo ``env.py`` 
+    Para o correto funcionamento das migrações, certifique-se de importar
+    o objeto ``Base`` diretamente deste módulo dentro do arquivo ``env.py``
     do Alembic (ex: ``from models import Base``).
 """
 
-from .base import Base
-from .farmacia import Farmacia
-from .catalogo import CatalogoBase
-from .oferta_farmacia import OfertaFarmacia
-from .historico import HistoricoPreco
 from .anvisa import AnvisaMedicamento
-from .usuario import Usuario, usuario_medicamento_favorito, usuario_farmacia_favorita
+from .base import Base
+from .catalogo import CatalogoBase
+from .farmacia import Farmacia
+from .historico import HistoricoPreco
+from .oferta_farmacia import OfertaFarmacia
+from .usuario import Usuario, usuario_farmacia_favorita, usuario_medicamento_favorito
 
 __all__ = [
     "Base",

@@ -6,25 +6,29 @@ Este módulo fornece utilitários para a extração (scraping) do catálogo de
 medicamentos da Farmácia Indiana consumindo diretamente sua API REST.
 
 A utilidade principal deste módulo é automatizar a varredura de produtos da loja,
-lidando com a paginação da API, extraindo campos de interesse (como EAN, nome, 
-preço e imagens) e despachando os dados limpos para a camada de persistência 
+lidando com a paginação da API, extraindo campos de interesse (como EAN, nome,
+preço e imagens) e despachando os dados limpos para a camada de persistência
 (banco de dados) de forma assíncrona para não bloquear o loop de eventos.
 """
 
 import asyncio
+from datetime import datetime, timezone
 from typing import Any, Dict, List
-import httpx
 
-from app.core.database import SessionLocal
-from app.core.utils import validar_ean13
-from app.models.farmacia import Farmacia
-from app.models.catalogo import CatalogoBase
-from app.models.oferta_farmacia import OfertaFarmacia
-from app.schemas.oferta import ProdutoExtraidoSchema
+import httpx
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.database import SessionLocal
+from app.core.utils import validar_ean13
+from app.models.catalogo import CatalogoBase
+from app.models.farmacia import Farmacia
+from app.models.oferta_farmacia import OfertaFarmacia
+from app.schemas.oferta import ProdutoExtraidoSchema
 from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
+from app.services.imagens import register_image_candidate, select_vtex_item_image
+from app.services.preco_observacoes import registrar_observacao_preco
+
 
 async def extrair_todos_produtos() -> None:
     """
@@ -36,36 +40,41 @@ async def extrair_todos_produtos() -> None:
     dados limpos para o banco de dados através de uma thread separada,
     evitando bloqueios de I/O.
 
-    O loop é interrompido automaticamente caso a API retorne status 404 ou 
+    O loop é interrompido automaticamente caso a API retorne status 404 ou
     uma lista vazia de produtos.
 
-    :raises httpx.HTTPStatusError: Se a API retornar erros da família 4xx 
+    :raises httpx.HTTPStatusError: Se a API retornar erros da família 4xx
         (exceto o 404 de fim de catálogo tratado) ou 5xx.
     :raises Exception: Para qualquer falha genérica ou de conexão inesperada.
-    
+
     :returns: None
     :rtype: None
     """
     url_base_api = "https://www.farmaciaindiana.com.br/api/catalog_system/pub/products/search/medicamentos"
-    
+
     headers = {
         "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     }
 
-    itens_por_pagina = 49  
+    itens_por_pagina = 49
     offset = 0
     pagina = 1
     processando = True
 
     async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as client:
         while processando:
-            print(f"Buscando Página {pagina} (Itens {offset} a {offset + itens_por_pagina})...")
-            
+            print(
+                f"Buscando Página {pagina} (Itens {offset} a "
+                f"{offset + itens_por_pagina})..."
+            )
+
             try:
-                url_paginada = f"{url_base_api}?_from={offset}&_to={offset + itens_por_pagina}"
+                url_paginada = (
+                    f"{url_base_api}?_from={offset}&_to={offset + itens_por_pagina}"
+                )
                 resp = await client.get(url_paginada)
-                
+
                 # Tratamento de fim de catálogo explícito
                 if resp.status_code == 404:
                     print("Fim do catálogo (404).")
@@ -73,7 +82,7 @@ async def extrair_todos_produtos() -> None:
 
                 # Levanta erro apenas para 4xx e 5xx (200 e 206 passam direto)
                 resp.raise_for_status()
-                
+
                 produtos_brutos = resp.json()
 
                 if not produtos_brutos:
@@ -81,35 +90,39 @@ async def extrair_todos_produtos() -> None:
                     break
 
                 produtos_limpos = adaptar_parser_rest(produtos_brutos)
-                
+
                 # Despacha para thread de I/O
                 await asyncio.to_thread(salvar_no_banco, produtos_limpos)
-                
+
                 print(f"✓ {len(produtos_limpos)} medicamentos processados.")
-                
+
                 pagina += 1
-                offset += (itens_por_pagina + 1)
+                offset += itens_por_pagina + 1
                 await asyncio.sleep(2.0)
 
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
-                
-                # Retoma a extração da mesma página após 1 minuto (http 429: Too Many Requests)
+
+                # Retoma a página após 1 minuto (HTTP 429).
                 if status == 429:
-                    print(f"Rate limit (429) atingido na página {pagina}. Pausando por 60 segundos...")
+                    print(
+                        f"Rate limit (429) na página {pagina}. "
+                        "Pausando por 60 segundos..."
+                    )
                     await asyncio.sleep(60.0)
-                    continue 
-                
+                    continue
+
                 # Retoma a extração da mesma página após 10 segundos (http 500)
                 elif status >= 500:
-                    print(f"Erro {status} no servidor na página {pagina}. Aguardando 10s...")
+                    print(f"Erro {status} na página {pagina}. Aguardando 10s...")
                     await asyncio.sleep(10.0)
-                    continue 
-                    
+                    continue
+
                 else:
                     print(f"Erro HTTP bloqueante na página {pagina}: {status}")
-                    break  # Para 400, 401, 403, 404 (diferentes de 429 e de 500) encerra o loop
-                    
+                    # Outros erros HTTP encerram a varredura.
+                    break
+
             except Exception as e:
                 print(f"Falha inesperada: {e}")
                 break
@@ -120,52 +133,58 @@ def adaptar_parser_rest(produtos_brutos: List[Dict[str, Any]]) -> List[Dict[str,
     Analisa e limpa a resposta bruta de produtos em JSON.
 
     Recebe a lista de dicionários brutos da API VTEX/REST da loja e filtra
-    apenas as informações essenciais para o sistema, garantindo também 
+    apenas as informações essenciais para o sistema, garantindo também
     fallbacks, como a busca de código EAN em referências secundárias.
 
-    :param produtos_brutos: Lista de dicionários representando o JSON original 
+    :param produtos_brutos: Lista de dicionários representando o JSON original
         de produtos retornados pela API.
     :type produtos_brutos: List[Dict[str, Any]]
-    
-    :returns: Lista de dicionários contendo os dados padronizados de cada 
+
+    :returns: Lista de dicionários contendo os dados padronizados de cada
         produto (id, ean, nome, preco, link, imagem_url).
     :rtype: List[Dict[str, Any]]
     """
     catalogo_limpo = []
-    
+
     for prod in produtos_brutos:
         itens = prod.get("items", [])
         if not itens:
             continue
-            
+
         item_principal = itens[0]
-        
+
         # Correção: Fallback do EAN inserido
         ean = item_principal.get("ean")
         if not ean:
             refs = item_principal.get("referenceId", [])
             ean = refs[0].get("Value") if refs else ""
-            
+
         vendedores = item_principal.get("sellers", [])
         preco = 0.0
         if vendedores:
             preco = vendedores[0].get("commertialOffer", {}).get("Price", 0.0)
-            
-        imagens = item_principal.get("images", [])
-        imagem_url = imagens[0].get("imageUrl") if imagens else None
 
-        catalogo_limpo.append({
-            "id": item_principal.get("itemId"),
-            "sku_interno": f"IND{item_principal.get('itemId', '000')}",
-            "ean": ean,
-            "name_search": prod.get("productName"),
-            "preco": preco,
-            "link": prod.get("link"),
-            "imagem_url": imagem_url
-        })
-        
+        item_id = str(item_principal.get("itemId") or "")
+        imagem_url = select_vtex_item_image(
+            item_principal,
+            expected_ean=str(ean).strip() if ean else None,
+            expected_sku=item_id,
+        )
+
+        catalogo_limpo.append(
+            {
+                "id": item_id,
+                "sku_interno": f"IND{item_id or '000'}",
+                "ean": ean,
+                "name_search": prod.get("productName"),
+                "preco": preco,
+                "link": prod.get("link"),
+                "imagem_url": imagem_url,
+            }
+        )
+
     return catalogo_limpo
-        
+
 
 def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
     """
@@ -173,7 +192,7 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
     Atualiza o preço da oferta caso o medicamento já exista no catálogo.
     """
     db = SessionLocal()
-    
+
     try:
         cnpj_padrao = "00000000000100"
         farmacia = db.query(Farmacia).filter(Farmacia.cnpj == cnpj_padrao).first()
@@ -183,12 +202,14 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                 cnpj=cnpj_padrao,
                 razao_social="Farmácia Indiana - Web Scraper",
                 nome_fantasia="Indiana",
-                endereco_completo="Extração API REST"
+                endereco_completo="Extração API REST",
             )
             db.add(farmacia)
             db.commit()
             db.refresh(farmacia)
 
+        observed_at = datetime.now(timezone.utc)
+        history_changes = []
         for prod in produtos:
             try:
                 prod_validado = ProdutoExtraidoSchema.model_validate(prod)
@@ -201,7 +222,11 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
 
             if ean_validado and validar_ean13(ean_validado):
                 # Tenta encontrar o produto no Catálogo Base
-                catalogo_item = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras == ean_validado).first()
+                catalogo_item = (
+                    db.query(CatalogoBase)
+                    .filter(CatalogoBase.codigo_barras == ean_validado)
+                    .first()
+                )
             else:
                 catalogo_item = None
                 ean_validado = None
@@ -209,35 +234,52 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             # Se não existir no catálogo, cria um novo registo
             # Se não existir no catálogo, cria um novo registo enriquecido
             if not catalogo_item:
-                # Aciona o enriquecimento (assim como na Araujo, estamos numa thread separada)
+                # Executa o enriquecimento fora da thread principal.
                 ean_para_enriquecer = ean_validado if ean_validado else ""
-                dados_enriquecidos = ServicoEnriquecimentoFarmacologico.enriquecer_produto(
-                    db, ean_para_enriquecer, prod_validado.name_search
+                dados_enriquecidos = (
+                    ServicoEnriquecimentoFarmacologico.enriquecer_produto(
+                        db, ean_para_enriquecer, prod_validado.name_search
+                    )
                 )
 
                 catalogo_item = CatalogoBase(
                     codigo_barras=ean_validado,
                     name_search=prod_validado.name_search,
-                    principio_ativo=dados_enriquecidos['principio_ativo'],
-                    laboratorio=dados_enriquecidos['laboratorio'],
-                    exige_receita=dados_enriquecidos['exige_receita'],
-                    categorias=dados_enriquecidos['categorias']
+                    principio_ativo=dados_enriquecidos["principio_ativo"],
+                    laboratorio=dados_enriquecidos["laboratorio"],
+                    exige_receita=dados_enriquecidos["exige_receita"],
+                    categorias=dados_enriquecidos["categorias"],
                 )
                 db.add(catalogo_item)
                 db.commit()  # Necessário para gerar o ID que será usado na oferta
                 db.refresh(catalogo_item)
 
-            # Tenta encontrar a Oferta pela URL (já que possui restrição UNIQUE no banco)
-            oferta_existente = db.query(OfertaFarmacia).filter(
-                OfertaFarmacia.url_origem == prod_validado.link
-            ).first()
+            register_image_candidate(
+                catalogo_item,
+                image_url=prod_validado.imagem_url,
+                pharmacy_name="Indiana",
+                sku=sku_interno,
+                ean=ean_validado,
+                product_url=prod_validado.link,
+            )
+
+            # Procura primeiro pela URL única da oferta.
+            oferta_existente = (
+                db.query(OfertaFarmacia)
+                .filter(OfertaFarmacia.url_origem == prod_validado.link)
+                .first()
+            )
 
             # Se não encontrar pela URL, tenta pela combinação de catálogo e farmácia
             if not oferta_existente:
-                oferta_existente = db.query(OfertaFarmacia).filter(
-                    OfertaFarmacia.catalogo_id == catalogo_item.id,
-                    OfertaFarmacia.farmacia_id == farmacia.id
-                ).first()
+                oferta_existente = (
+                    db.query(OfertaFarmacia)
+                    .filter(
+                        OfertaFarmacia.catalogo_id == catalogo_item.id,
+                        OfertaFarmacia.farmacia_id == farmacia.id,
+                    )
+                    .first()
+                )
 
             # Se não houver oferta, cria uma nova
             if not oferta_existente:
@@ -249,20 +291,48 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                     url_origem=prod_validado.link,
                     imagem_url=prod_validado.imagem_url,
                     farmacia_id=farmacia.id,
-                    catalogo_id=catalogo_item.id
+                    catalogo_id=catalogo_item.id,
                 )
                 db.add(nova_oferta)
+                oferta_existente = nova_oferta
+                previous_price = None
             # Se a oferta já existir, atualiza apenas os dados dinâmicos
             else:
-                oferta_existente.preco = prod_validado.preco
-                
-                # Atualiza a URL apenas se ela mudou (previne UniqueViolation secundário)
+                previous_price = oferta_existente.preco
+
+                # Atualiza somente se a URL mudou.
                 if oferta_existente.url_origem != prod_validado.link:
                     oferta_existente.url_origem = prod_validado.link
-                    
+
                 if prod_validado.imagem_url:
                     oferta_existente.imagem_url = prod_validado.imagem_url
 
+            oferta_existente.sku_interno = sku_interno
+            oferta_existente.disponivel = True
+            oferta_existente.quantidade_estoque = 1
+            history_changes.append(
+                (
+                    oferta_existente,
+                    previous_price,
+                    catalogo_item.id,
+                    farmacia.id,
+                    prod_validado.preco,
+                )
+            )
+
+        db.flush()
+        for offer, previous_price, catalogo_id, farmacia_id, price in history_changes:
+            history_event = registrar_observacao_preco(
+                offer,
+                preco=price,
+                observado_em=observed_at,
+                origem="Indiana",
+                farmacia_id=farmacia_id,
+                medicamento_id=catalogo_id,
+                preco_anterior=previous_price,
+            )
+            if history_event:
+                db.add(history_event)
         db.commit()
 
     except SQLAlchemyError as e:

@@ -1,355 +1,125 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
-import {
-  Image,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { GestureResponderEvent, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { useAppContext } from '../context/AppContext';
-import { palette, radius, spacing } from '../theme';
+import { useFavoritesContext, useSessionContext } from '../context/AppContext';
+import { MedicineImage } from './MedicineImage';
+import { palette } from '../theme';
 import { Medicamento } from '../types/api';
 
-type MedicineCardProps = {
-  medicine: Medicamento;
-  onPress?: () => void;
-  compact?: boolean;
-};
+type MedicineCardProps = { medicine: Medicamento; onPress?: () => void; compact?: boolean; wide?: boolean };
 
 function formatPrice(value: number) {
-  return value.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export function MedicineCard({
-  medicine,
-  onPress,
-  compact = false,
-}: MedicineCardProps) {
-  const { favoriteIds, toggleFavorite, sessionMode } = useAppContext();
+function usefulText(value?: string | null) {
+  const text = value?.trim();
+  if (!text || /^(não informado|nao informado|pendente|indeterminado|[-—])$/i.test(text)) return undefined;
+  return text;
+}
 
+function getPresentation(name: string) {
+  const dosage = name.match(/\b\d+(?:[.,]\d+)?\s?(?:mg|mcg|g|ml|ui|%)\b/i)?.[0];
+  const packageSize = name.match(/\b(?:caixa\s+com\s+)?\d+\s+(?:comprimidos?|cápsulas?|capsulas?|ml|g|unidades?|sachês?|doses?)\b/i)?.[0];
+  return [dosage, packageSize].filter(Boolean).join(' · ');
+}
+
+export function MedicineCard({ medicine, onPress, compact = false, wide = false }: MedicineCardProps) {
+  const { favoriteIds, toggleFavorite } = useFavoritesContext();
+  const { sessionMode } = useSessionContext();
+  const { width } = useWindowDimensions();
+  const [focused, setFocused] = useState(false);
   const isWeb = Platform.OS === 'web';
+  const isCompactList = compact && width <= 480;
   const isFavorite = favoriteIds.includes(medicine.id);
-
   const lowestOffer = useMemo(() => {
-    if (!medicine.ofertas || medicine.ofertas.length === 0) {
-      return null;
-    }
-
-    return medicine.ofertas.reduce((lowest, current) =>
-      Number(current.preco) < Number(lowest.preco) ? current : lowest
-    );
+    const offers = medicine.ofertas?.filter((offer) => offer.disponivel !== false) ?? [];
+    return offers.reduce<(typeof offers)[number] | null>((lowest, current) => !lowest || Number(current.preco) < Number(lowest.preco) ? current : lowest, null);
   }, [medicine.ofertas]);
+  const laboratory = usefulText(medicine.laboratorio);
+  const presentation = getPresentation(medicine.nome);
+  const pharmacy = usefulText(lowestOffer?.farmacia_nome || lowestOffer?.farmacia?.nome_fantasia || lowestOffer?.farmacia?.razao_social);
+  const cardWidth = wide || isCompactList ? '100%' : !compact ? '100%' : width >= 1120 ? '32%' : width >= 680 ? '48.5%' : '100%';
 
-  const imageUrl = lowestOffer?.imagem_url || medicine.ofertas?.[0]?.imagem_url;
-  const subtitle = medicine.laboratorio?.trim() || 'Não informado';
-
-  const handleFavoritePress = (event?: any) => {
-    event?.stopPropagation?.();
-    event?.preventDefault?.();
-
-    if (sessionMode !== 'authenticated') {
-      return;
-    }
-
-    toggleFavorite(medicine.id);
+  const handleFavoritePress = (event: GestureResponderEvent) => {
+    event.stopPropagation();
+    if (sessionMode === 'authenticated') toggleFavorite(medicine.id);
   };
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed, hovered }) => [
-        styles.card,
-        compact && styles.cardCompact,
-        compact && !isWeb && styles.cardCompactMobile,
-        compact && isWeb && styles.cardCompactWeb,
-        isWeb && hovered && styles.cardHovered,
-        pressed && styles.cardPressed,
-      ]}
-    >
-      <View style={styles.imageWrapper}>
-        <View
-          style={[
-            styles.imageBox,
-            compact && styles.imageBoxCompact,
-            compact && !isWeb && styles.imageBoxCompactMobile,
-          ]}
-        >
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.image}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons
-                name="medical-outline"
-                size={28}
-                color={palette.primary}
-              />
-            </View>
-          )}
+    <View style={[styles.card, (isCompactList || wide) && styles.cardCompactList, { width: cardWidth }, focused && styles.cardFocused]}>
+      <MedicineImage medicine={medicine} style={[styles.imagePanel, (isCompactList || wide) && styles.imagePanelCompactList]} label={'Imagem n\u00e3o dispon\u00edvel'} />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={isFavorite ? `Remover ${medicine.nome} dos favoritos` : `Salvar ${medicine.nome} nos favoritos`}
+        accessibilityState={{ selected: isFavorite, disabled: sessionMode !== 'authenticated' }}
+        accessibilityHint={sessionMode !== 'authenticated' ? 'Entre na sua conta para salvar favoritos' : undefined}
+        onPress={handleFavoritePress}
+        hitSlop={7}
+        style={({ pressed, hovered }) => [styles.favoriteButton, hovered && styles.favoriteHovered, pressed && styles.favoritePressed, sessionMode !== 'authenticated' && styles.favoriteDisabled]}
+      >
+        <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={18} color={isFavorite ? palette.primary : palette.textSoft} />
+      </Pressable>
+
+      <View style={[styles.details, (isCompactList || wide) && styles.detailsCompactList]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${medicine.nome}. ${lowestOffer ? `Menor preço ${formatPrice(Number(lowestOffer.preco))}. ` : ''}Ver comparação`} onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={({ pressed, hovered }) => [styles.titleAction, (isCompactList || wide) && styles.titleActionCompactList, hovered && isWeb && styles.titleHovered, pressed && styles.cardPressed]}>
+          <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.title, (isCompactList || wide) && styles.titleCompactList]}>{medicine.nome}</Text>
+        </Pressable>
+        {!!presentation && <Text numberOfLines={1} ellipsizeMode="tail" style={styles.presentation}>{presentation}</Text>}
+        {!!laboratory && <Text numberOfLines={1} ellipsizeMode="tail" style={styles.laboratory}>{laboratory}</Text>}
+
+        <View style={[styles.priceSection, (isCompactList || wide) && styles.priceSectionCompactList]}>
+          <View style={styles.priceHeading}>
+            <Text style={styles.priceCaption}>MENOR PREÇO</Text>
+            {!!pharmacy && <Text numberOfLines={1} style={styles.pharmacy}>{pharmacy}</Text>}
+          </View>
+          <View style={(isCompactList || wide) && styles.priceColumnCompactList}>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.price, (isCompactList || wide) && styles.priceCompactList]}>{lowestOffer ? formatPrice(Number(lowestOffer.preco)) : 'Consulte ofertas'}</Text>
+          </View>
         </View>
 
-        <Pressable
-          onPress={handleFavoritePress}
-          hitSlop={8}
-          style={({ pressed, hovered }) => [
-            styles.favoriteButton,
-            isWeb && hovered && styles.favoriteButtonHovered,
-            pressed && styles.favoriteButtonPressed,
-            sessionMode !== 'authenticated' && styles.favoriteButtonDisabled,
-          ]}
-        >
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={compact && !isWeb ? 16 : 18}
-            color={isFavorite ? palette.primary : palette.textSoft}
-          />
+        <Pressable accessibilityRole="button" accessibilityLabel={`Comparar ofertas de ${medicine.nome}`} onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={({ pressed, hovered }) => [styles.cardFooter, (isCompactList || wide) && styles.cardFooterCompactList, hovered && isWeb && styles.footerHovered, pressed && styles.cardPressed]}>
+          <Text style={styles.compareLabel}>Comparar ofertas</Text>
+          <View style={styles.compareIcon}><Ionicons name="arrow-forward" size={16} color={palette.surface} /></View>
         </Pressable>
       </View>
-
-      <Text
-        numberOfLines={compact && !isWeb ? 3 : 2}
-        style={[
-          styles.title,
-          compact && styles.titleCompact,
-          compact && !isWeb && styles.titleCompactMobile,
-        ]}
-      >
-        {medicine.nome}
-      </Text>
-
-      <Text
-        numberOfLines={1}
-        style={[
-          styles.subtitle,
-          compact && styles.subtitleCompact,
-          compact && !isWeb && styles.subtitleCompactMobile,
-        ]}
-      >
-        {subtitle}
-      </Text>
-
-      <View style={styles.priceBlock}>
-        <Text
-          style={[
-            styles.priceLabel,
-            compact && styles.priceLabelCompact,
-            compact && !isWeb && styles.priceLabelCompactMobile,
-          ]}
-        >
-          Menor preço
-        </Text>
-
-        <Text
-          style={[
-            styles.priceValue,
-            compact && styles.priceValueCompact,
-            compact && !isWeb && styles.priceValueCompactMobile,
-          ]}
-        >
-          {lowestOffer ? formatPrice(Number(lowestOffer.preco)) : 'Não informado'}
-        </Text>
-      </View>
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    width: Platform.OS === 'web' ? 220 : 170,
-    backgroundColor: palette.surface,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: spacing.md,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    elevation: 3,
-  },
-
-  cardCompact: {
-    padding: Platform.OS === 'web' ? spacing.md : 10,
-  },
-
-  cardCompactMobile: {
-    width: '31.6%',
-    minWidth: '31.6%',
-    maxWidth: '31.6%',
-    borderRadius: 20,
-    padding: 8,
-  },
-
-  cardCompactWeb: {
-    width: 220,
-  },
-
-  cardHovered: {
-    transform: [
-      {
-        translateY: -3,
-      },
-    ],
-    shadowOpacity: 0.1,
-  },
-
-  cardPressed: {
-    opacity: 0.9,
-    transform: [
-      {
-        scale: 0.985,
-      },
-    ],
-  },
-
-  imageWrapper: {
-    position: 'relative',
-  },
-
-  imageBox: {
-    height: 144,
-    borderRadius: radius.lg,
-    backgroundColor: '#F6F7FB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-
-  imageBoxCompact: {
-    height: Platform.OS === 'web' ? 138 : 98,
-  },
-
-  imageBoxCompactMobile: {
-    height: 82,
-    borderRadius: 18,
-  },
-
-  image: {
-    width: '84%',
-    height: '84%',
-  },
-
-  imagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: Platform.OS === 'web' ? 34 : 30,
-    height: Platform.OS === 'web' ? 34 : 30,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFFEE',
-    borderWidth: 1,
-    borderColor: palette.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    elevation: 10,
-  },
-
-  favoriteButtonHovered: {
-    backgroundColor: palette.primarySoft,
-  },
-
-  favoriteButtonPressed: {
-    opacity: 0.85,
-    transform: [
-      {
-        scale: 0.96,
-      },
-    ],
-  },
-
-  favoriteButtonDisabled: {
-    opacity: 0.75,
-  },
-
-  title: {
-    marginTop: spacing.md,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '700',
-    color: palette.text,
-  },
-
-  titleCompact: {
-    marginTop: 10,
-    fontSize: Platform.OS === 'web' ? 16 : 13,
-    lineHeight: Platform.OS === 'web' ? 22 : 18,
-  },
-
-  titleCompactMobile: {
-    marginTop: 8,
-    fontSize: 12,
-    lineHeight: 16,
-    minHeight: 48,
-  },
-
-  subtitle: {
-    marginTop: 6,
-    color: palette.textSoft,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  subtitleCompact: {
-    fontSize: Platform.OS === 'web' ? 13 : 11,
-    lineHeight: Platform.OS === 'web' ? 18 : 15,
-  },
-
-  subtitleCompactMobile: {
-    marginTop: 4,
-    fontSize: 10,
-    lineHeight: 14,
-  },
-
-  priceBlock: {
-    marginTop: spacing.sm,
-  },
-
-  priceLabel: {
-    fontSize: 13,
-    color: palette.textSoft,
-    fontWeight: '600',
-  },
-
-  priceLabelCompact: {
-    fontSize: Platform.OS === 'web' ? 12 : 10,
-  },
-
-  priceLabelCompactMobile: {
-    fontSize: 9,
-  },
-
-  priceValue: {
-    marginTop: 4,
-    fontSize: 24,
-    color: palette.primary,
-    fontWeight: '900',
-  },
-
-  priceValueCompact: {
-    fontSize: Platform.OS === 'web' ? 22 : 16,
-  },
-
-  priceValueCompactMobile: {
-    marginTop: 2,
-    fontSize: 12,
-    lineHeight: 15,
-  },
+  card: { backgroundColor: palette.surface, borderRadius: 14, borderWidth: 1, borderColor: palette.border, overflow: 'hidden', alignSelf: 'flex-start', minHeight: 356, position: 'relative' },
+  cardCompactList: { minHeight: 138, flexDirection: 'row', alignSelf: 'stretch', alignItems: 'stretch' },
+  cardPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  cardFocused: { borderColor: palette.primary, borderWidth: 2 },
+  titleAction: { borderRadius: 4 },
+  titleHovered: { backgroundColor: palette.surfaceBlue },
+  imagePanel: { height: 148, backgroundColor: palette.surface, borderBottomWidth: 1, borderBottomColor: palette.border, alignItems: 'center', justifyContent: 'center', position: 'relative', padding: 10 },
+  imagePanelCompactList: { width: 92, height: 'auto', minHeight: 138, flexShrink: 0, borderBottomWidth: 0, borderRightWidth: 1, borderRightColor: palette.border, padding: 8 },
+  favoriteButton: { position: 'absolute', top: 8, right: 8, width: 38, height: 38, borderRadius: 12, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
+  favoriteHovered: { backgroundColor: palette.surfaceBlue },
+  favoritePressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
+  favoriteDisabled: { opacity: 0.82 },
+  details: { flex: 1, paddingHorizontal: 13, paddingTop: 11, paddingBottom: 12 },
+  detailsCompactList: { flex: 1, minWidth: 0, justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8 },
+  title: { minHeight: 44, color: palette.text, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  titleActionCompactList: { minWidth: 0, paddingRight: 34 },
+  titleCompactList: { minHeight: 0, fontSize: 14, lineHeight: 18, fontWeight: '700' },
+  presentation: { color: palette.primaryDark, fontSize: 13, lineHeight: 18, fontWeight: '600', marginTop: 3 },
+  laboratory: { color: palette.textSoft, fontSize: 13, lineHeight: 18, marginTop: 3 },
+  priceSection: { marginTop: 'auto', paddingTop: 12 },
+  priceSectionCompactList: { minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, paddingTop: 0 },
+  priceColumnCompactList: { minWidth: 100, maxWidth: 112, flexShrink: 0, alignItems: 'flex-end' },
+  priceHeading: { minHeight: 30, justifyContent: 'flex-end' },
+  priceCaption: { color: palette.textSoft, fontSize: 11, lineHeight: 15, fontWeight: '700', letterSpacing: 0.5 },
+  pharmacy: { color: palette.textSoft, fontSize: 12, lineHeight: 16, marginTop: 2 },
+  price: { color: palette.primaryDark, fontSize: 24, lineHeight: 30, fontWeight: '700', marginTop: 2 },
+  priceCompactList: { fontSize: 16, lineHeight: 21, marginTop: 0 },
+  cardFooter: { borderTopWidth: 1, borderTopColor: palette.border, marginTop: 10, paddingTop: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 4 },
+  cardFooterCompactList: { marginTop: 7, paddingTop: 6 },
+  footerHovered: { backgroundColor: palette.surfaceBlue },
+  compareLabel: { color: palette.primaryDark, fontSize: 14, fontWeight: '700' },
+  compareIcon: { width: 27, height: 27, borderRadius: 8, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Animated,
@@ -12,6 +12,7 @@ import {
 import { palette, radius, spacing } from '../theme';
 
 export type HistoryChartPoint = {
+  timestamp: string;
   label: string;
   value: number;
 };
@@ -29,6 +30,7 @@ type HistoryChartProps = {
 
 type ActivePoint = {
   key: string;
+  timestamp: string;
   label: string;
   value: number;
   pharmacy: string;
@@ -93,13 +95,10 @@ export function HistoryChart({ series }: HistoryChartProps) {
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const tooltipScale = useRef(new Animated.Value(0.96)).current;
 
-  const labels = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          series.flatMap((item) => item.history.map((point) => point.label))
-        )
-      ),
+  const timestamps = useMemo(
+    () => Array.from(new Set(series.flatMap((item) => item.history.map((point) => point.timestamp))))
+      .filter((timestamp) => Number.isFinite(new Date(timestamp).getTime()))
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
     [series]
   );
 
@@ -139,15 +138,16 @@ export function HistoryChart({ series }: HistoryChartProps) {
     return ticks;
   }, [safeMaxValue, safeMinValue, plotHeight]);
 
-  const getX = (labelIndex: number) => {
-    if (labels.length <= 1) {
+  const minTime = timestamps.length ? new Date(timestamps[0]).getTime() : 0;
+  const maxTime = timestamps.length ? new Date(timestamps[timestamps.length - 1]).getTime() : minTime;
+  const getX = useCallback((timestamp: string) => {
+    if (timestamps.length <= 1 || minTime === maxTime) {
       return AXIS_LEFT_WIDTH + plotWidth / 2;
     }
+    return AXIS_LEFT_WIDTH + (plotWidth * (new Date(timestamp).getTime() - minTime)) / (maxTime - minTime);
+  }, [timestamps.length, minTime, maxTime, plotWidth]);
 
-    return AXIS_LEFT_WIDTH + (plotWidth / (labels.length - 1)) * labelIndex;
-  };
-
-  const getY = (value: number) => {
+  const getY = useCallback((value: number) => {
     const range = safeMaxValue - safeMinValue;
 
     if (!range) {
@@ -157,34 +157,26 @@ export function HistoryChart({ series }: HistoryChartProps) {
     const percent = (value - safeMinValue) / range;
 
     return plotHeight - percent * plotHeight;
-  };
+  }, [plotHeight, safeMaxValue, safeMinValue]);
 
   const normalizedSeries = useMemo(
     () =>
       series.map((item) => {
-        const points = labels
-          .map((label, labelIndex) => {
-            const point = item.history.find(
-              (historyItem) => historyItem.label === label
-            );
-
-            if (!point) {
-              return null;
-            }
-
+        const points = [...item.history].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+          .map((point) => {
             const value = Number(point.value);
-
-            if (!Number.isFinite(value)) {
+            if (!Number.isFinite(value) || !Number.isFinite(new Date(point.timestamp).getTime())) {
               return null;
             }
 
             return {
-              key: `${item.key}-${label}`,
-              label,
+              key: `${item.key}-${point.timestamp}`,
+              timestamp: point.timestamp,
+              label: point.label,
               value,
               pharmacy: item.label,
               color: item.color,
-              x: getX(labelIndex),
+              x: getX(point.timestamp),
               y: getY(value),
             };
           })
@@ -195,7 +187,7 @@ export function HistoryChart({ series }: HistoryChartProps) {
           points,
         };
       }),
-    [series, labels, plotWidth, safeMaxValue, safeMinValue]
+    [series, getX, getY]
   );
 
   const firstPoint =
@@ -257,7 +249,7 @@ export function HistoryChart({ series }: HistoryChartProps) {
     });
   };
 
-  if (!series.length || !labels.length) {
+  if (!series.length || !timestamps.length) {
     return (
       <View style={styles.emptyCard}>
         <Text style={styles.emptyTitle}>Sem histórico disponível</Text>
@@ -326,7 +318,7 @@ export function HistoryChart({ series }: HistoryChartProps) {
                 {item.points.map((point, index) => {
                   const nextPoint = item.points[index + 1];
 
-                  if (!nextPoint) {
+                  if (!nextPoint || new Date(nextPoint.timestamp).getTime() - new Date(point.timestamp).getTime() > 45 * 24 * 60 * 60 * 1000) {
                     return null;
                   }
 
@@ -388,21 +380,24 @@ export function HistoryChart({ series }: HistoryChartProps) {
               </View>
             ))}
 
-            {labels.map((label, index) => (
+            {timestamps.filter((_, index) => index === 0 || index === timestamps.length - 1 || index === Math.floor(timestamps.length / 2)).map((timestamp) => {
+              const label = new Date(timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+              return (
               <Text
-                key={label}
+                key={timestamp}
                 numberOfLines={1}
                 style={[
                   styles.xAxisLabel,
                   {
-                    left: getX(index) - 24,
+                    left: getX(timestamp) - 24,
                     top: plotHeight + 10,
                   },
                 ]}
               >
                 {label}
               </Text>
-            ))}
+              );
+            })}
 
             {visiblePoint ? (
               <Animated.View

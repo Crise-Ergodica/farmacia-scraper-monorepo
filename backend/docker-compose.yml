@@ -4,6 +4,8 @@ services:
     container_name: farmacia_api
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://aurora_admin:super_senha_segura@db:5432/farmacia_db
     env_file:
       - .env
     depends_on:

@@ -1,6 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, Field
+
 
 class FarmaciaBaseSchema(BaseModel):
     cnpj: str = Field(..., max_length=14)
@@ -10,6 +12,7 @@ class FarmaciaBaseSchema(BaseModel):
     endereco_completo: str = Field(..., max_length=255)
     latitude: Decimal | None = None
     longitude: Decimal | None = None
+
 
 class FarmaciaOut(FarmaciaBaseSchema):
     id: int

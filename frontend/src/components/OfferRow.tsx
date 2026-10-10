@@ -1,30 +1,34 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { palette, spacing } from '../theme';
+import { Medicamento } from '../types/api';
+import { MedicineImage } from './MedicineImage';
 
 type OfferRowProps = {
+  medicine?: Medicamento;
   medicineName: string;
-  pharmacy: string | number; // Agora aceita o farmacia_id que vem do backend
+  pharmacy: string;
   price: number | string;    // Agora aceita a string do Decimal do backend
   color?: string;
   onPress?: () => void;
 };
 
-function OfferRowContent({ medicineName, pharmacy, price, color }: OfferRowProps) {
-  // Conversão segura: garante que price seja tratado como número
+function OfferRowContent({ medicine, medicineName, pharmacy, price, color }: OfferRowProps) {
   const safePrice = Number(price);
-  const priceDisplay = isNaN(safePrice) ? '--' : safePrice.toFixed(2);
-  
-  // Tratamento para exibir o ID da farmácia caso o nome não esteja disponível no join
-  const pharmacyDisplay = typeof pharmacy === 'number' ? `Farmácia ID: ${pharmacy}` : pharmacy;
+  const priceDisplay = Number.isFinite(safePrice)
+    ? safePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '--';
 
   return (
     <>
-      <View>
-        <Text style={styles.name}>{medicineName}</Text>
-        <Text style={[styles.pharmacy, color ? { color } : null]}>{pharmacyDisplay}</Text>
+      {medicine ? <MedicineImage medicine={medicine} style={styles.medicineImage} label="" /> : null}
+      <View style={styles.offerInfo}>
+        <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">{medicineName}</Text>
+        <Text style={[styles.pharmacy, color ? { color } : null]} numberOfLines={1}>{pharmacy}</Text>
       </View>
-      <Text style={styles.price}>R$ {priceDisplay}</Text>
+      <View style={styles.priceColumn}>
+        <Text style={styles.price} numberOfLines={1}>R$ {priceDisplay}</Text>
+      </View>
     </>
   );
 }
@@ -48,24 +52,35 @@ export function OfferRow(props: OfferRowProps) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.md,
+    minWidth: 0,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#DFDFDF',
+    borderBottomColor: palette.border,
+  },
+  medicineImage: { width: 58, height: 58, flexShrink: 0, borderRadius: 8, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface },
+  offerInfo: {
+    flex: 1,
+    minWidth: 0,
   },
   name: {
-    fontSize: 18,
+    fontSize: 16,
+    lineHeight: 21,
     color: palette.text,
     marginBottom: 2,
   },
   pharmacy: {
     fontSize: 12,
   },
+  priceColumn: {
+    minWidth: 94,
+    flexShrink: 0,
+    alignItems: 'flex-end',
+  },
   price: {
     fontWeight: '700',
-    fontSize: 18,
+    fontSize: 16,
     color: palette.text,
-    marginLeft: spacing.md,
   },
 });

@@ -15,7 +15,7 @@ import { SearchBar } from '../../components/SearchBar';
 import {
   FilterKind,
   FilterOption,
-  useAppContext,
+  useCatalogContext,
 } from '../../context/AppContext';
 import { palette, radius, spacing } from '../../theme';
 
@@ -45,7 +45,7 @@ export default function FiltersScreen() {
   const router = useRouter();
 
   const { selectedFilters, filterOptions, applyFilters, clearFilters } =
-    useAppContext();
+    useCatalogContext();
 
   const isWeb = Platform.OS === 'web';
 
@@ -116,11 +116,11 @@ export default function FiltersScreen() {
 
   return (
     <Screen>
+      <View style={[styles.form, isWeb && styles.formWeb]}>
       <SearchBar
         value={search}
         onChangeText={setSearch}
         onBack={goBackOrHome}
-        onFilter={() => undefined}
         placeholder="Buscar filtro"
       />
 
@@ -184,24 +184,25 @@ export default function FiltersScreen() {
           <Text style={styles.applyText}>Aplicar</Text>
         </Pressable>
       </View>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  form: { width: '100%' },
+  formWeb: { maxWidth: 880, alignSelf: 'center' },
   summaryBox: {
     marginTop: spacing.lg,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.border,
   },
 
   summaryTitle: {
     color: palette.text,
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 22,
+    fontWeight: '700',
   },
 
   summaryText: {
@@ -212,22 +213,20 @@ const styles = StyleSheet.create({
   },
 
   list: {
-    marginTop: spacing.lg,
-    gap: spacing.lg,
+    marginTop: spacing.sm,
+    gap: spacing.md,
   },
 
   section: {
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.border,
   },
 
   sectionTitle: {
     color: palette.text,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '700',
     marginBottom: spacing.md,
   },
 
@@ -265,7 +264,7 @@ const styles = StyleSheet.create({
   clearText: {
     color: palette.primary,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 
   applyButton: {
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
   applyText: {
     color: palette.surface,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 
   buttonPressed: {

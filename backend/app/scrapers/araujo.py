@@ -5,10 +5,14 @@ Scraper especializado para extração de dados da Drogaria Araujo via HTML parsi
 import asyncio
 import json
 import re
-from typing import List, Dict, Any, Literal
-from bs4 import BeautifulSoup, Tag
+from typing import Any, Dict, List
+
+from bs4 import BeautifulSoup
 from curl_cffi import requests
+
 from app.scrapers.base import BasePharmacyScraper
+from app.services.imagens import image_rejection_reason
+
 
 class AraujoScraper(BasePharmacyScraper):
     def __init__(self, num_workers: int = 3, batch_size: int = 50):
@@ -18,7 +22,7 @@ class AraujoScraper(BasePharmacyScraper):
             farmacia_nome_fantasia="Araujo",
             farmacia_endereco="Extração via HTML Scraper",
             num_workers=num_workers,
-            batch_size=batch_size
+            batch_size=batch_size,
         )
         self.url_base = "https://www.araujo.com.br/medicamentos?page={}"
 
@@ -31,24 +35,31 @@ class AraujoScraper(BasePharmacyScraper):
         processando = True
 
         # Usando AsyncSession do curl_cffi para imitar o comportamento de browser
-        # Injetando headers para contornar o bloqueio de bot (Cloudflare/Akamai) que retorna 0 produtos
+        # Headers de navegação ajudam a evitar bloqueios de automação.
         headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.7"
+            ),
             "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
             "Referer": "https://www.araujo.com.br/",
             "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "same-origin",
             "Sec-Fetch-User": "?1",
-            "Upgrade-Insecure-Requests": "1"
+            "Upgrade-Insecure-Requests": "1",
         }
 
-        async with requests.AsyncSession(impersonate="chrome110", verify=False, headers=headers) as session:
+        async with requests.AsyncSession(
+            impersonate="chrome110", verify=False, headers=headers
+        ) as session:
             while processando:
                 print(f"Buscando Drogaria Araujo - Página {pagina}...")
-                
+
                 try:
                     url = self.url_base.format(pagina)
+
                     # Envolvemos a requisição no mecanismo de backoff
                     async def fetch():
                         return await session.get(url, timeout=30.0)
@@ -70,21 +81,22 @@ class AraujoScraper(BasePharmacyScraper):
                     produtos_limpos = self.adaptar_parser_araujo_html(html_content)
 
                     if not produtos_limpos:
-                        print(f"Nenhum produto extraído na página {pagina}. Varredura finalizada.")
+                        print(
+                            f"Nenhum produto extraído na página {pagina}. "
+                            "Varredura finalizada."
+                        )
                         break
 
                     # Envia os produtos para a fila assíncrona
                     for prod in produtos_limpos:
                         await self.fila.put(prod)
-                    
-                    print(f"✓ {len(produtos_limpos)} medicamentos enfileirados da página {pagina}.")
+
+                    print(
+                        f"✓ {len(produtos_limpos)} medicamentos enfileirados "
+                        f"da página {pagina}."
+                    )
 
                     pagina += 1
-
-                    # CONDICIONADO PARA O TESTE: Parar após a página 2
-                    if pagina > 2:
-                        print("Limite de teste atingido. Encerrando extração da Araujo.")
-                        break
 
                 except Exception as e:
                     print(f"Falha inesperada no scraper da Araujo: {e}")
@@ -92,7 +104,7 @@ class AraujoScraper(BasePharmacyScraper):
 
     def adaptar_parser_araujo_html(self, html_content: str) -> List[Dict[str, Any]]:
         """
-        Analisa o DOM do HTML da Araujo utilizando BeautifulSoup para extrair os produtos.
+        Analisa o HTML da Araujo com BeautifulSoup para extrair produtos.
         Aproveita os metadados JSON do Google Tag Manager embutidos no HTML e
         extrai o EAN através de Regex na URL da imagem.
         """
@@ -105,10 +117,16 @@ class AraujoScraper(BasePharmacyScraper):
             if div.get("class"):
                 classes_encontradas.update(div.get("class"))
 
-        print(f"DEBUG: Classes CSS encontradas na página: {list(classes_encontradas)[:20]}...")
+        print(
+            "DEBUG: Classes CSS encontradas na página: "
+            f"{list(classes_encontradas)[:20]}..."
+        )
         # Verifica se o seletor antigo ainda existe
         tem_product_tile = soup.find_all(class_="productTile")
-        print(f"DEBUG: Quantidade de elementos 'productTile' encontrados: {len(tem_product_tile)}")
+        print(
+            "DEBUG: Quantidade de elementos 'productTile' encontrados: "
+            f"{len(tem_product_tile)}"
+        )
 
         cards_produtos = soup.find_all(name="div", class_="productTile")
 
@@ -128,14 +146,14 @@ class AraujoScraper(BasePharmacyScraper):
                 # 2. Dados GTM
                 gtm_tag = card.find("div", class_="gtmContainer__productTile")
                 gtm_data_str = gtm_tag.get("data-gtmga4data") if gtm_tag else "{}"
-                
+
                 if isinstance(gtm_data_str, list):
                     gtm_data_str = str(gtm_data_str[0])
                 elif gtm_data_str:
                     gtm_data_str = str(gtm_data_str)
 
                 gtm_data = json.loads(gtm_data_str) if gtm_data_str else {}
-                
+
                 # 3. Nome e Preço
                 nome = gtm_data.get("item_name", "")
                 if not nome:
@@ -146,13 +164,22 @@ class AraujoScraper(BasePharmacyScraper):
                 if not preco:
                     tag_preco = card.find("span", class_="productPrice__price")
                     if tag_preco:
-                        texto_preco = tag_preco.text.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                        texto_preco = (
+                            tag_preco.text.replace("R$", "")
+                            .replace(".", "")
+                            .replace(",", ".")
+                            .strip()
+                        )
                         preco = float(texto_preco)
 
                 # 4. Imagem e EAN
                 tag_img = card.find(name="img", class_="productTile__imageWrapper__img")
-                imagem_url = tag_img.get(key="data-src") or tag_img.get(key="src") if tag_img else ""
-                
+                imagem_url = (
+                    tag_img.get(key="data-src") or tag_img.get(key="src")
+                    if tag_img
+                    else ""
+                )
+
                 if isinstance(imagem_url, list):
                     imagem_url = str(imagem_url[0])
                 elif imagem_url:
@@ -162,34 +189,46 @@ class AraujoScraper(BasePharmacyScraper):
 
                 if imagem_url and imagem_url.startswith("/"):
                     imagem_url = f"https://www.araujo.com.br{imagem_url}"
+                elif imagem_url and imagem_url.startswith("//"):
+                    imagem_url = f"https:{imagem_url}"
 
-                ean = ""
-                if imagem_url:
-                    match = re.search(pattern=r'(\d{13,14})', string=imagem_url)
-                    if match:
-                        ean = match.group(1).strip().replace("-", "")
+                if imagem_url and image_rejection_reason(imagem_url):
+                    imagem_url = ""
 
-                # 5. ID Interno
+                # 5. ID interno: imagem e EAN só podem ser atribuídos se o
+                # caminho da imagem estiver associado ao SKU deste card.
                 id_interno = card.get(key="data-pid", default="")
                 if isinstance(id_interno, list):
                     id_interno = str(id_interno[0])
                 elif id_interno:
                     id_interno = str(id_interno)
 
+                image_parts = [part for part in imagem_url.split("/") if part]
+                if imagem_url and str(id_interno) not in image_parts[:-1]:
+                    imagem_url = ""
+
+                ean = ""
+                if imagem_url:
+                    match = re.search(pattern=r"(\d{13,14})", string=imagem_url)
+                    if match:
+                        ean = match.group(1).strip().replace("-", "")
+
                 if link:
-                    catalogo_limpo.append({
-                        "id": id_interno,
-                        "sku_interno": f"ARJ{id_interno}",
-                        "ean": ean,
-                        "name_search": nome,
-                        "preco": float(preco),
-                        "link": link,
-                        "imagem_url": imagem_url
-                    })
+                    catalogo_limpo.append(
+                        {
+                            "id": id_interno,
+                            "sku_interno": f"ARJ{id_interno}",
+                            "ean": ean,
+                            "name_search": nome,
+                            "preco": float(preco),
+                            "link": link,
+                            "imagem_url": imagem_url,
+                        }
+                    )
             except Exception as e:
                 print(f"Erro ao parsear um card específico: {e}")
                 continue
-            
+
         return catalogo_limpo
 
 

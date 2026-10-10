@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -18,6 +19,7 @@ type SearchBarProps = {
   onSubmit?: () => void;
   onBack?: () => void;
   onFilter?: () => void;
+  filterCount?: number;
   placeholder?: string;
 } & Omit<TextInputProps, 'value' | 'onChangeText'>;
 
@@ -27,17 +29,23 @@ export function SearchBar({
   onSubmit,
   onBack,
   onFilter,
-  placeholder = 'Preço Bão',
+  filterCount = 0,
+  placeholder = 'Buscar medicamento ou princípio ativo',
   ...textInputProps
 }: SearchBarProps) {
   const isWeb = Platform.OS === 'web';
+  const { width } = useWindowDimensions();
+  const isCompact = width <= 480;
+  const responsivePlaceholder = onBack && isCompact && placeholder === 'Buscar medicamento ou princípio ativo'
+    ? 'Medicamento ou princípio ativo'
+    : placeholder;
 
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, onFilter && isCompact && styles.rowCompact]}>
       {onBack ? (
-        <Pressable style={styles.backButton} onPress={onBack}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" style={styles.backButton} onPress={onBack}>
           <Ionicons name="chevron-back" size={25} color={palette.text} />
         </Pressable>
       ) : null}
@@ -54,7 +62,7 @@ export function SearchBar({
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
+          placeholder={responsivePlaceholder}
           placeholderTextColor={palette.muted}
           returnKeyType="search"
           onSubmitEditing={onSubmit}
@@ -64,16 +72,21 @@ export function SearchBar({
           {...textInputProps}
         />
 
-        {onFilter ? (
-          <Pressable style={styles.filterButton} onPress={onFilter}>
+        {onFilter && !isCompact ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Abrir filtros" style={styles.filterButton} onPress={onFilter}>
             <Ionicons name="options-outline" size={18} color={palette.surface} />
-
-            {isWeb ? (
-              <Text style={styles.filterText}>Filtros</Text>
-            ) : null}
+            <Text style={styles.filterText}>{filterCount ? `Filtros (${filterCount})` : 'Filtros'}</Text>
           </Pressable>
         ) : null}
       </View>
+      {onFilter && isCompact ? (
+        <View style={styles.filterButtonRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel={filterCount ? `Abrir filtros, ${filterCount} selecionados` : 'Abrir filtros'} style={styles.filterButtonMobile} onPress={onFilter}>
+            <Ionicons name="options-outline" size={17} color={palette.primaryDark} />
+            <Text style={styles.filterTextMobile}>{filterCount ? `Filtros (${filterCount})` : 'Filtros'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -84,6 +97,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+
+  rowCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: spacing.xs,
   },
 
   backButton: {
@@ -124,6 +143,8 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
     color: palette.text,
     fontSize: 16,
     paddingVertical: spacing.sm,
@@ -146,6 +167,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
+  },
+
+  filterButtonRow: {
+    width: '100%',
+    alignItems: 'flex-end',
+  },
+
+  filterButtonMobile: {
+    minHeight: 44,
+    minWidth: 104,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+
+  filterTextMobile: {
+    color: palette.primaryDark,
+    fontSize: 14,
+    fontWeight: '700',
   },
 
   filterText: {
