@@ -6,7 +6,13 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+
+from app.services.imagens import (
+    image_delivery_rejection_reason,
+    image_rejection_reason,
+    offer_image_delivery_rejection_reason,
+)
 
 
 class ProdutoExtraidoSchema(BaseModel):
@@ -71,5 +77,24 @@ class OfertaOut(OfertaBaseSchema):
     catalogo_id: int
     criado_em: datetime
     atualizado_em: datetime | None = None
+
+    @computed_field(return_type=bool)
+    @property
+    def imagem_rejeitada(self) -> bool:
+        return bool(
+            self.imagem_url
+            and offer_image_delivery_rejection_reason(
+                self.imagem_url, self.url_origem, self.farmacia_nome
+            )
+        )
+
+    @computed_field(return_type=bool)
+    @property
+    def imagem_generica(self) -> bool:
+        return bool(
+            self.imagem_url
+            and not image_delivery_rejection_reason(self.imagem_url)
+            and image_rejection_reason(self.imagem_url)
+        )
 
     model_config = ConfigDict(from_attributes=True)

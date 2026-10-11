@@ -71,9 +71,19 @@ class CatalogoBase(Base):
     imagem_ean: Mapped[str | None] = mapped_column(String(14), nullable=True)
     imagem_match: Mapped[str | None] = mapped_column(String(24), nullable=True)
     imagem_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    imagem_atualizada_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     imagem_verificada_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    imagem_ultima_verificacao_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    imagem_falhas_consecutivas: Mapped[int] = mapped_column(
+        default=0, server_default="0"
+    )
+    imagem_ultima_falha: Mapped[str | None] = mapped_column(Text, nullable=True)
     imagem_motivo_rejeicao: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     criado_em: Mapped[datetime] = mapped_column(

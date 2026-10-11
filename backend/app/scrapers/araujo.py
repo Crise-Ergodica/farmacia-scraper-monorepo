@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 
 from app.scrapers.base import BasePharmacyScraper
-from app.services.imagens import image_rejection_reason
+from app.services.imagens import image_delivery_rejection_reason
 
 
 class AraujoScraper(BasePharmacyScraper):
@@ -192,7 +192,7 @@ class AraujoScraper(BasePharmacyScraper):
                 elif imagem_url and imagem_url.startswith("//"):
                     imagem_url = f"https:{imagem_url}"
 
-                if imagem_url and image_rejection_reason(imagem_url):
+                if imagem_url and image_delivery_rejection_reason(imagem_url):
                     imagem_url = ""
 
                 # 5. ID interno: imagem e EAN só podem ser atribuídos se o
@@ -205,7 +205,9 @@ class AraujoScraper(BasePharmacyScraper):
 
                 image_parts = [part for part in imagem_url.split("/") if part]
                 if imagem_url and str(id_interno) not in image_parts[:-1]:
-                    imagem_url = ""
+                    image_product_id = image_parts[-2] if len(image_parts) > 1 else ""
+                    if image_product_id.isdigit():
+                        imagem_url = ""
 
                 ean = ""
                 if imagem_url:

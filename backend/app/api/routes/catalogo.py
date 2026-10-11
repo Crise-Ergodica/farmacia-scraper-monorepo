@@ -12,7 +12,12 @@ from app.models import CatalogoBase, HistoricoPreco, OfertaFarmacia
 from app.models.farmacia import Farmacia
 from app.schemas import CatalogoFiltrosOut, CatalogoPageOut
 from app.schemas.farmacia import FarmaciaOut
-from app.services.imagens import image_rejection_reason
+from app.services.imagens import (
+    catalog_image_matches_record,
+    embedded_eans,
+    image_delivery_rejection_reason,
+    offer_image_delivery_rejection_reason,
+)
 
 router = APIRouter(prefix="/catalogo", tags=["Catálogo de Produtos"])
 
@@ -76,17 +81,36 @@ def obter_medicamento(medicamento_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/medicamentos/{medicamento_id}/imagem", include_in_schema=False)
-def redirecionar_imagem_validada(medicamento_id: int, db: Session = Depends(get_db)):
-    medicamento = db.get(CatalogoBase, medicamento_id)
-    if (
-        medicamento is None
-        or medicamento.imagem_status != "verificada"
-        or not medicamento.imagem_url
-    ):
-        raise HTTPException(status_code=404, detail="Imagem verificada não encontrada.")
-    if image_rejection_reason(medicamento.imagem_url):
+def redirecionar_imagem_catalogo(medicamento_id: int, db: Session = Depends(get_db)):
+    medicamento = db.execute(
+        select(CatalogoBase)
+        .where(CatalogoBase.id == medicamento_id)
+        .options(
+            selectinload(CatalogoBase.ofertas).selectinload(OfertaFarmacia.farmacia)
+        )
+    ).scalar_one_or_none()
+    if medicamento is None or not medicamento.imagem_url:
+        raise HTTPException(status_code=404, detail="Imagem nao encontrada.")
+    if image_delivery_rejection_reason(medicamento.imagem_url):
+        raise HTTPException(status_code=410, detail="URL da imagem nao e segura.")
+
+    image_eans = embedded_eans(medicamento.imagem_url)
+    ean_match = bool(
+        medicamento.codigo_barras and medicamento.codigo_barras in image_eans
+    )
+    sku_match = catalog_image_matches_record(medicamento) or any(
+        offer.sku_interno == medicamento.imagem_sku_origem
+        and not offer_image_delivery_rejection_reason(
+            medicamento.imagem_url,
+            offer.url_origem,
+            offer.farmacia.nome_fantasia if offer.farmacia else None,
+        )
+        for offer in medicamento.ofertas
+    )
+    if not sku_match and not ean_match:
         raise HTTPException(
-            status_code=410, detail="A referência de imagem não é mais segura."
+            status_code=404,
+            detail="Nao ha correspondencia de SKU ou EAN para esta imagem.",
         )
     return RedirectResponse(
         medicamento.imagem_url,

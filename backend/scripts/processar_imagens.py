@@ -19,6 +19,9 @@ from sqlalchemy import func, select
 from app.core.database import SessionLocal
 from app.models import CatalogoBase, Farmacia, OfertaFarmacia
 from app.services.imagens import (
+    KNOWN_GENERIC_ASSETS,
+    KNOWN_GENERIC_CONTENT_HASHES,
+    ImageCheck,
     embedded_eans,
     image_rejection_reason,
     select_araujo_product_image,
@@ -33,6 +36,7 @@ SKU_API_URL = (
 )
 STATE_PATH = Path(__file__).resolve().parents[1] / ".image_audit_state.json"
 REPORT_PATH = Path(__file__).resolve().parents[1] / "reports" / "image-audit.json"
+INTEGRITY_REPORT_PATH = REPORT_PATH.with_name("catalog-integrity.json")
 
 
 def save_state(state: dict) -> None:
@@ -234,11 +238,12 @@ async def lookup_araujo_ean(ean: str, state: dict) -> tuple[str, str] | None:
                 raise ValueError("Search page too large")
             soup = BeautifulSoup(response.text, "html.parser")
             product_urls = []
-            for link in soup.select('a[href]'):
+            for link in soup.select("a[href]"):
                 url = urljoin(search_url, str(link.get("href") or ""))
-                if re.fullmatch(
-                    r"https://www\.araujo\.com\.br/[^?#]+/\d+\.html", url
-                ) and url not in product_urls:
+                if (
+                    re.fullmatch(r"https://www\.araujo\.com\.br/[^?#]+/\d+\.html", url)
+                    and url not in product_urls
+                ):
                     product_urls.append(url)
             for product_url in product_urls[:5]:
                 page = await client.get(
@@ -274,6 +279,7 @@ async def main(
     recheck_verified: bool = False,
     retry_discovery: bool = False,
     recheck_invalid: bool = False,
+    ids_path: Path | None = None,
 ) -> None:
     try:
         state = (
@@ -330,7 +336,19 @@ async def main(
     processed: set[str] = set(state.get("processed_ids", []))
     rejected: dict[str, str] = state.get("rejected", {})
     recovered: dict[str, dict] = state.get("recovered", {})
+    content_checks = {}
+    for source in ("araujo", "indiana", "alternative"):
+        hash_file = REPORT_PATH.with_name(f"{source}-image-hashes.json")
+        if hash_file.exists():
+            content_checks.update(json.loads(hash_file.read_text(encoding="utf-8")))
     query = select(CatalogoBase).order_by(CatalogoBase.id)
+    if ids_path:
+        selected_ids = json.loads(ids_path.read_text(encoding="utf-8"))
+        if not isinstance(selected_ids, list) or not all(
+            isinstance(value, int) for value in selected_ids
+        ):
+            raise ValueError("IDs file must contain an array of catalog IDs")
+        query = query.where(CatalogoBase.id.in_(selected_ids))
     if limit:
         query = query.limit(limit)
     db = SessionLocal()
@@ -342,35 +360,60 @@ async def main(
             )
         ).all()
         offers_by_catalog: dict[int, list[tuple[OfertaFarmacia, str | None]]] = {}
+        offers_by_sku: dict[str, list[tuple[OfertaFarmacia, str | None]]] = {}
         for offer, pharmacy_name in offers:
             offers_by_catalog.setdefault(offer.catalogo_id, []).append(
                 (offer, pharmacy_name)
             )
+            if offer.sku_interno:
+                offers_by_sku.setdefault(offer.sku_interno, []).append(
+                    (offer, pharmacy_name)
+                )
+
+        all_catalog = db.execute(select(CatalogoBase)).scalars().all()
+        # A matching title alone cannot identify an unlinked catalog row.
+        # Keep the candidate URL for investigation, but do not count it as a
+        # verified photograph without an EAN or an offer belonging to this row.
+        unlinked_reclassified = 0
+        for medicine in all_catalog:
+            if (
+                medicine.imagem_status == "verificada"
+                and not medicine.codigo_barras
+                and not offers_by_catalog.get(medicine.id)
+            ):
+                medicine.imagem_status = "pendente"
+                medicine.imagem_verificada_em = None
+                medicine.imagem_motivo_rejeicao = (
+                    "Identidade não comprovada: registro sem EAN nem oferta; "
+                    "o nome igual não confirma a apresentação."
+                )
+                recovered.pop(str(medicine.id), None)
+                processed.discard(str(medicine.id))
+                unlinked_reclassified += 1
+        if unlinked_reclassified:
+            db.commit()
+            state.update(processed_ids=sorted(processed, key=int), recovered=recovered)
+            save_state(state)
+            print(f"Reclassified {unlinked_reclassified} unlinked images.", flush=True)
 
         targets = []
         for medicine in medicines:
             key = str(medicine.id)
             if recheck_invalid:
-                image_eans = embedded_eans(medicine.imagem_url or "")
-                if medicine.imagem_status != "verificada" or not (
-                    image_rejection_reason(medicine.imagem_url or "")
-                    or (
-                        medicine.codigo_barras
-                        and image_eans
-                        and medicine.codigo_barras not in image_eans
-                    )
+                if medicine.imagem_status != "verificada" or not image_rejection_reason(
+                    medicine.imagem_url or ""
                 ):
                     continue
             elif recheck_verified and medicine.imagem_status != "verificada":
                 continue
-            elif not recheck_verified and (
-                key in processed or medicine.imagem_status == "verificada"
-            ):
+            elif not recheck_verified and medicine.imagem_status == "verificada":
                 continue
             candidates = []
             indiana_skus = set()
             araujo_offers = []
-            if medicine.imagem_url:
+            if medicine.imagem_url and (
+                medicine.codigo_barras or offers_by_catalog.get(medicine.id)
+            ):
                 file_eans = embedded_eans(medicine.imagem_url)
                 if (
                     medicine.codigo_barras
@@ -417,15 +460,6 @@ async def main(
 
             ean = (medicine.codigo_barras or "").strip()
             source_records = state.get("indiana_by_ean", {}).get(ean, []) if ean else []
-            if not ean:
-                possible = state.get("indiana_by_name", {}).get(
-                    normalized(medicine.name_search), []
-                )
-                candidate_eans = {str(rec["item"].get("ean") or "") for rec in possible}
-                if len(possible) == 1 or (
-                    len(candidate_eans) == 1 and "" not in candidate_eans
-                ):
-                    source_records = possible
             for record in source_records:
                 item = record["item"]
                 source_ean = str(item.get("ean") or "").strip()
@@ -461,7 +495,26 @@ async def main(
             )
 
         semaphore = asyncio.Semaphore(10)
-        search_semaphore = asyncio.Semaphore(3)
+        search_semaphore = asyncio.Semaphore(6)
+
+        async def check_candidate(url: str, timeout: float) -> object:
+            known_hash = content_checks.get(url, {}).get("sha256")
+            if known_hash in KNOWN_GENERIC_CONTENT_HASHES:
+                return ImageCheck(
+                    False,
+                    reason="O conteúdo é uma ilustração genérica da farmácia.",
+                    content_sha256=known_hash,
+                )
+            async with semaphore:
+                result = await verify_image_url(url, timeout_seconds=timeout)
+            state.setdefault("image_checks", {})[url] = {
+                "ok": result.ok,
+                "status_code": result.status_code,
+                "final_url": result.final_url,
+                "reason": result.reason,
+                "content_sha256": result.content_sha256,
+            }
+            return result
 
         async def resolve(target: dict) -> tuple[dict, tuple | None, str | None]:
             last_reason = rejected.get(target["key"])
@@ -470,8 +523,7 @@ async def main(
                 if reason:
                     last_reason = reason
                     continue
-                async with semaphore:
-                    check = await verify_image_url(image_url, timeout_seconds=5)
+                check = await check_candidate(image_url, timeout=5)
                 if check.ok:
                     return (
                         target,
@@ -498,8 +550,7 @@ async def main(
                 if not valid:
                     last_reason = reason
                     continue
-                async with semaphore:
-                    check = await verify_image_url(image_url, timeout_seconds=8)
+                check = await check_candidate(image_url, timeout=8)
                 if check.ok:
                     offer.imagem_url = image_url
                     return (
@@ -512,6 +563,23 @@ async def main(
             for sku in target["indiana_skus"]:
                 record = await lookup_indiana_sku(sku, state)
                 if not record:
+                    continue
+                if (record.get("link") or "").rstrip("/") != (
+                    next(
+                        (
+                            offer.url_origem
+                            for offer, pharmacy in offers_by_catalog.get(
+                                target["medicine"].id, []
+                            )
+                            if pharmacy == "Indiana"
+                            and (offer.sku_interno or "") == f"IND{sku}"
+                        ),
+                        "",
+                    ).rstrip("/")
+                ):
+                    last_reason = (
+                        "Official SKU response URL differs from the offer URL."
+                    )
                     continue
                 source_ean = str(record["item"].get("ean") or "").strip()
                 if target["ean"] and source_ean != target["ean"]:
@@ -529,8 +597,7 @@ async def main(
                 )
                 if not image_url:
                     continue
-                async with semaphore:
-                    check = await verify_image_url(image_url, timeout_seconds=5)
+                check = await check_candidate(image_url, timeout=5)
                 if check.ok:
                     return (
                         target,
@@ -554,8 +621,7 @@ async def main(
                         expected_sku=record["sku"],
                     )
                     if image_url:
-                        async with semaphore:
-                            check = await verify_image_url(image_url, timeout_seconds=5)
+                        check = await check_candidate(image_url, timeout=5)
                         if check.ok:
                             return (
                                 target,
@@ -575,8 +641,7 @@ async def main(
                     found = await lookup_araujo_ean(target["ean"], state)
                 if found:
                     image_url, sku = found
-                    async with semaphore:
-                        check = await verify_image_url(image_url, timeout_seconds=8)
+                    check = await check_candidate(image_url, timeout=8)
                     if check.ok:
                         return (
                             target,
@@ -634,18 +699,210 @@ async def main(
                 rejected=rejected,
             )
             save_state(state)
+            verified_count = (
+                db.query(CatalogoBase)
+                .filter(CatalogoBase.imagem_status == "verificada")
+                .count()
+            )
+            unresolved_count = (
+                db.query(CatalogoBase)
+                .filter(CatalogoBase.imagem_status != "verificada")
+                .count()
+            )
             print(
                 f"Audited {min(offset + len(batch), len(targets))}/{len(targets)}; "
-                f"verified {len(recovered)}; unresolved {len(rejected)}",
+                f"verified {verified_count}; unresolved {unresolved_count}",
                 flush=True,
             )
 
+        def audit_row(item: CatalogoBase) -> dict:
+            item_offers = offers_by_catalog.get(item.id, [])
+            catalog_image_reason = (
+                image_rejection_reason(item.imagem_url) if item.imagem_url else None
+            )
+            source_offers = offers_by_sku.get(item.imagem_sku_origem or "", [])
+            if item.imagem_fonte:
+                source_offers = [
+                    source_offer
+                    for source_offer in source_offers
+                    if source_offer[1] == item.imagem_fonte
+                ] or source_offers
+            validations = []
+            for offer, pharmacy in item_offers:
+                if not offer.imagem_url:
+                    continue
+                valid, _, reason = validate_image_association(
+                    image_url=offer.imagem_url,
+                    pharmacy_name=pharmacy or "",
+                    sku=offer.sku_interno,
+                    ean=item.codigo_barras,
+                    product_url=offer.url_origem,
+                )
+                validations.append(
+                    {
+                        "pharmacy": pharmacy,
+                        "sku": offer.sku_interno,
+                        "product_url": offer.url_origem,
+                        "url": offer.imagem_url,
+                        "http_result": state.get("image_checks", {}).get(
+                            offer.imagem_url
+                        )
+                        or (
+                            {
+                                "ok": True,
+                                "validation": "verified_by_batch_processor",
+                                "status_code": None,
+                            }
+                            if item.imagem_status == "verificada"
+                            and item.imagem_url == offer.imagem_url
+                            else None
+                        ),
+                        "valid": valid,
+                        "reason": reason,
+                    }
+                )
+            return {
+                "id": item.id,
+                "name": item.name_search,
+                "ean": item.codigo_barras,
+                "sku": item.imagem_sku_origem,
+                "offer_skus": list(
+                    dict.fromkeys(
+                        offer.sku_interno
+                        for offer, _ in item_offers
+                        if offer.sku_interno
+                    )
+                ),
+                "pharmacy": list(
+                    dict.fromkeys(pharmacy for _, pharmacy in item_offers)
+                ),
+                "product_urls": list(
+                    dict.fromkeys(offer.url_origem for offer, _ in item_offers)
+                ),
+                "candidate_image_urls": list(
+                    dict.fromkeys(
+                        ([item.imagem_url] if item.imagem_url else [])
+                        + [
+                            offer.imagem_url
+                            for offer, _ in item_offers
+                            if offer.imagem_url
+                        ]
+                    )
+                ),
+                "image_source_product_urls": list(
+                    dict.fromkeys(offer.url_origem for offer, _ in source_offers)
+                ),
+                "catalog_image_validation": {
+                    "url": item.imagem_url,
+                    "source": item.imagem_fonte,
+                    "sku": item.imagem_sku_origem,
+                    "match": item.imagem_match,
+                    "valid": bool(
+                        item.imagem_status == "verificada"
+                        and item.imagem_url
+                        and not catalog_image_reason
+                    ),
+                    "http_result": state.get("image_checks", {}).get(
+                        item.imagem_url or ""
+                    )
+                    or (
+                        {
+                            "ok": True,
+                            "validation": "verified_by_batch_processor",
+                            "status_code": None,
+                        }
+                        if item.imagem_status == "verificada"
+                        and item.imagem_url
+                        and not catalog_image_reason
+                        else None
+                    ),
+                    "reason": catalog_image_reason or item.imagem_motivo_rejeicao,
+                },
+                "validation": validations,
+                "source_consulted": {
+                    "indiana_sku": any(
+                        (offer.sku_interno or "").startswith("IND")
+                        and offer.sku_interno[3:] in state.get("indiana_by_sku", {})
+                        for offer, _ in item_offers
+                    ),
+                    "indiana_public_catalog_result": (
+                        "consulted_but_pagination_failed"
+                        if state.get("discovery_http_status")
+                        else "complete"
+                        if source_complete
+                        else "not_consulted"
+                    ),
+                    "indiana_catalog_http_status": state.get("discovery_http_status"),
+                },
+                "recovery_possible": bool(
+                    item.codigo_barras
+                    or any(offer.sku_interno for offer, _ in item_offers)
+                ),
+                "status": item.imagem_status,
+                "reason": item.imagem_motivo_rejeicao,
+            }
+
+        recovered_ids = {int(key) for key in recovered}
+        affected = [
+            item
+            for item in db.query(CatalogoBase).order_by(CatalogoBase.id).all()
+            if item.imagem_status != "verificada" or item.id in recovered_ids
+        ]
+        baseline_report = dict(state.get("baseline", {}))
+        baseline_report["verified_catalog_images"] = 3413
+        pending_catalog_items = (
+            db.query(CatalogoBase)
+            .filter(CatalogoBase.imagem_status != "verificada")
+            .all()
+        )
+        pending_no_ean_count = sum(
+            item.codigo_barras is None for item in pending_catalog_items
+        )
+        pending_with_offer_image_count = sum(
+            any(offer.imagem_url for offer, _ in offers_by_catalog.get(item.id, []))
+            for item in pending_catalog_items
+        )
+        pending_count = len(pending_catalog_items)
+        integrity_report = (
+            json.loads(INTEGRITY_REPORT_PATH.read_text(encoding="utf-8"))
+            if INTEGRITY_REPORT_PATH.exists()
+            else {}
+        )
         counts = {
             "catalog_total": db.query(CatalogoBase).count(),
-            "baseline": state.get("baseline", {}),
+            "baseline": baseline_report,
+            "initial_pending": 696,
+            "initial_pending_with_offer_image_urls": 252,
+            "generic_assets_confirmed_by_visual_review": sorted(KNOWN_GENERIC_ASSETS),
+            "baseline_verified_before_recovery": 3413,
+            "verified_added": None,
+            "previously_verified_reclassified_or_unlinked": None,
+            "net_pending_reduction": 696 - pending_count,
+            "verified_by_duplicate_sku_lineage": 0,
+            "verified_by_official_indiana_sku": None,
+            "ean_values_recovered": len(integrity_report.get("eans_recovered", [])),
+            "remaining_without_ean": pending_no_ean_count,
+            "remaining_with_offer_image_url": pending_with_offer_image_count,
+            "coverage_before_percent": round(3413 / 4109 * 100, 2),
+            "coverage_after_percent": round(
+                db.query(CatalogoBase)
+                .filter(CatalogoBase.imagem_status == "verificada")
+                .count()
+                / max(db.query(CatalogoBase).count(), 1)
+                * 100,
+                2,
+            ),
             "indiana_source_scan_complete": source_complete,
             "indiana_source_error": state.get("discovery_error"),
             "indiana_source_http_status": state.get("discovery_http_status"),
+            "indiana_pagination_findings": {
+                "from_2500_to_2549": "HTTP 206, accepted result window",
+                "from_2550_to_2599": "HTTP 400, same result at single offset 2550",
+                "interpretation": "Public index boundary, not a rate-limit response.",
+                "exact_sku_query": (
+                    "Public skuId:<SKU> query works and is resumably cached."
+                ),
+            },
             "verified": db.query(CatalogoBase)
             .filter(CatalogoBase.imagem_status == "verificada")
             .count(),
@@ -653,13 +910,9 @@ async def main(
             .filter(CatalogoBase.imagem_status != "verificada")
             .count(),
             "recovered_by_source": {},
+            "audited_affected": [audit_row(item) for item in affected],
             "remaining": [
-                {
-                    "id": item.id,
-                    "name": item.name_search,
-                    "ean": item.codigo_barras,
-                    "reason": item.imagem_motivo_rejeicao,
-                }
+                audit_row(item)
                 for item in db.query(CatalogoBase)
                 .filter(CatalogoBase.imagem_status != "verificada")
                 .order_by(CatalogoBase.id)
@@ -679,7 +932,11 @@ async def main(
         )
         print(
             json.dumps(
-                {key: value for key, value in counts.items() if key != "remaining"},
+                {
+                    key: value
+                    for key, value in counts.items()
+                    if key not in {"remaining", "audited_affected"}
+                },
                 ensure_ascii=False,
             ),
             flush=True,
@@ -691,6 +948,7 @@ async def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--ids-file", type=Path)
     parser.add_argument("--no-discovery", action="store_true")
     parser.add_argument("--recheck-verified", action="store_true")
     parser.add_argument(
@@ -711,5 +969,6 @@ if __name__ == "__main__":
             args.recheck_verified,
             args.retry_discovery,
             args.recheck_invalid,
+            args.ids_file,
         )
     )

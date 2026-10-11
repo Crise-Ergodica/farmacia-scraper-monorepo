@@ -9,6 +9,8 @@ export interface Oferta {
   disponivel: boolean;
   url_origem: string;
   imagem_url?: string;
+  imagem_rejeitada?: boolean;
+  imagem_generica?: boolean;
   criado_em?: string;
   atualizado_em?: string | null;
 
@@ -37,6 +39,7 @@ export interface Medicamento {
   imagem_ref?: string | null;
   imagem_fonte?: string | null;
   imagem_status?: string | null;
+  imagem_motivo_rejeicao?: string | null;
   ofertas: Oferta[];
 }
 

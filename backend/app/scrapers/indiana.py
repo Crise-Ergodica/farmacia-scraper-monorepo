@@ -231,6 +231,27 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                 catalogo_item = None
                 ean_validado = None
 
+            # Resolve a no-EAN listing by its stable official URL/SKU before
+            # creating catalog data. A product name is not a unique identity.
+            oferta_existente = (
+                db.query(OfertaFarmacia)
+                .filter(OfertaFarmacia.url_origem == prod_validado.link)
+                .first()
+            )
+            if not oferta_existente and sku_interno:
+                sku_matches = (
+                    db.query(OfertaFarmacia)
+                    .filter(
+                        OfertaFarmacia.farmacia_id == farmacia.id,
+                        OfertaFarmacia.sku_interno == sku_interno,
+                    )
+                    .all()
+                )
+                if len(sku_matches) == 1:
+                    oferta_existente = sku_matches[0]
+            if not catalogo_item and not ean_validado and oferta_existente:
+                catalogo_item = db.get(CatalogoBase, oferta_existente.catalogo_id)
+
             # Se não existir no catálogo, cria um novo registo
             # Se não existir no catálogo, cria um novo registo enriquecido
             if not catalogo_item:
@@ -270,25 +291,8 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                 sku=sku_interno,
                 ean=ean_validado,
                 product_url=prod_validado.link,
+                identity_confirmed=True,
             )
-
-            # Procura primeiro pela URL única da oferta.
-            oferta_existente = (
-                db.query(OfertaFarmacia)
-                .filter(OfertaFarmacia.url_origem == prod_validado.link)
-                .first()
-            )
-
-            # Se não encontrar pela URL, tenta pela combinação de catálogo e farmácia
-            if not oferta_existente:
-                oferta_existente = (
-                    db.query(OfertaFarmacia)
-                    .filter(
-                        OfertaFarmacia.catalogo_id == catalogo_item.id,
-                        OfertaFarmacia.farmacia_id == farmacia.id,
-                    )
-                    .first()
-                )
 
             # Se não houver oferta, cria uma nova
             if not oferta_existente:

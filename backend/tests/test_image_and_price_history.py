@@ -1,18 +1,27 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
+from hashlib import sha256
 
+import httpx
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from app.api.routes.catalogo import redirecionar_imagem_catalogo
 from app.api.routes.historico import get_medicine_history
 from app.models.base import Base
 from app.models.catalogo import CatalogoBase
 from app.models.farmacia import Farmacia
 from app.models.oferta_farmacia import OfertaFarmacia
 from app.schemas.catalogo import CatalogoOut
+from app.schemas.oferta import OfertaOut
+from app.services import imagens
 from app.services.imagens import (
+    image_delivery_rejection_reason,
     image_rejection_reason,
+    offer_image_delivery_rejection_reason,
+    register_image_candidate,
     select_araujo_product_image,
     select_vtex_item_image,
     validate_image_association,
@@ -58,6 +67,342 @@ def test_image_association_rejects_other_ean_and_generic_templates():
     assert image_rejection_reason(
         "https://i3-imagens-prd.araujo.com.br/webp/101392/231489_7897705203095_2.webp"
     )
+    assert image_rejection_reason(
+        "https://i3-imagens-prd.araujo.com.br/webp/7290/"
+        "128666_7896026306751_1.webp?sw=200&sh=200&sm=fit"
+    )
+    assert image_rejection_reason(
+        "https://farmaciaindiana.vteximg.com.br/arquivos/ids/306093/7896026306751.jpg"
+    )
+    assert image_rejection_reason(
+        "https://i3-imagens-prd.araujo.com.br/webp/84977/120803_7898216367429_1.webp"
+    )
+    assert image_rejection_reason(
+        "https://i3-imagens-prd.araujo.com.br/webp/167/128048_7896112486787_1.webp"
+    )
+    assert image_rejection_reason(
+        "https://farmaciaindiana.vteximg.com.br/arquivos/ids/203063/7899547503845_0.jpg"
+    )
+    assert image_rejection_reason(
+        "https://farmaciaindiana.vteximg.com.br/arquivos/ids/320348/"
+        "lonium-40mg-30cpr.jpg"
+    )
+
+
+def test_offer_schema_allows_pharmacy_generic_for_its_product():
+    generic_url = "https://i3-imagens-prd.araujo.com.br/webp/1/generico.webp"
+    offer = OfertaOut(
+        id=1,
+        farmacia_id=1,
+        catalogo_id=1,
+        preco=Decimal("12.50"),
+        quantidade_estoque=1,
+        disponivel=True,
+        url_origem="https://www.araujo.com.br/example/1.html",
+        imagem_url=generic_url,
+        farmacia_nome="Araujo",
+        criado_em=datetime.now(),
+    )
+    assert offer.model_dump()["imagem_rejeitada"] is False
+    assert offer.model_dump()["imagem_generica"] is True
+    assert (
+        offer_image_delivery_rejection_reason(
+            generic_url, offer.url_origem, offer.farmacia_nome
+        )
+        is None
+    )
+    assert offer_image_delivery_rejection_reason(
+        "https://i3-imagens-prd.araujo.com.br/webp/2/generico.webp",
+        offer.url_origem,
+        offer.farmacia_nome,
+    )
+
+
+def test_generic_catalog_image_reference_does_not_depend_on_audit_status():
+    url = "https://farmaciaindiana.vteximg.com.br/arquivos/CAIXA-MEDICAMENTO.jpg"
+    product = CatalogoOut(
+        id=77,
+        name_search="Medicamento teste",
+        criado_em=datetime.now(),
+        imagem_url=url,
+        imagem_status="pendente",
+    )
+    assert (
+        product.imagem_ref
+        == "/catalogo/medicamentos/77/imagem?v="
+        + sha256(url.encode("utf-8")).hexdigest()[:12]
+    )
+    assert image_delivery_rejection_reason(url) is None
+    assert image_rejection_reason(url)
+
+
+def test_catalog_image_endpoint_requires_same_catalog_sku_or_matching_ean(db):
+    pharmacy = Farmacia(
+        cnpj="12345678901234",
+        razao_social="Farmacia teste",
+        nome_fantasia="Indiana",
+        endereco_completo="Local",
+    )
+    product = CatalogoBase(
+        name_search="Medicamento teste",
+        imagem_url="https://farmaciaindiana.vteximg.com.br/arquivos/CAIXA-MEDICAMENTO.jpg",
+        imagem_sku_origem="IND-77",
+        imagem_status="pendente",
+    )
+    db.add_all([pharmacy, product])
+    db.flush()
+    db.add(
+        OfertaFarmacia(
+            sku_interno="IND-77",
+            preco=Decimal("10.00"),
+            quantidade_estoque=1,
+            disponivel=True,
+            url_origem="https://www.farmaciaindiana.com.br/produto/p",
+            farmacia_id=pharmacy.id,
+            catalogo_id=product.id,
+        )
+    )
+    db.flush()
+
+    response = redirecionar_imagem_catalogo(product.id, db)
+    assert response.status_code == 302
+    assert response.headers["location"] == product.imagem_url
+
+    product.imagem_sku_origem = "IND-OTHER"
+    db.flush()
+    with pytest.raises(HTTPException) as exc_info:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert getattr(exc_info.value, "status_code", None) == 404
+
+
+def test_catalog_generic_image_can_match_recorded_araujo_sku_without_offer(db):
+    product = CatalogoBase(
+        codigo_barras="7896026307925",
+        name_search="Glyxambi 25mg + 5mg",
+        imagem_url=(
+            "https://i3-imagens-prd.araujo.com.br/webp/7290/"
+            "128666_7896026306751_1.webp?sw=200&sh=200"
+        ),
+        imagem_fonte="Araujo",
+        imagem_sku_origem="ARJ7290",
+        imagem_match="catalog_duplicate",
+        imagem_status="pendente",
+    )
+    db.add(product)
+    db.flush()
+
+    response = redirecionar_imagem_catalogo(product.id, db)
+    assert response.status_code == 302
+    assert response.headers["location"] == product.imagem_url
+
+    product.imagem_url = product.imagem_url.replace("/7290/", "/7291/")
+    db.flush()
+    with pytest.raises(HTTPException) as exc_info:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert exc_info.value.status_code == 404
+
+
+def test_catalog_image_can_match_recorded_indiana_sku_without_ean_or_offer(db):
+    product = CatalogoBase(
+        name_search="Kit Allegra e Novalgina",
+        imagem_url=(
+            "https://farmaciaindiana.vteximg.com.br/arquivos/ids/379046/"
+            "kit-allegra-180mg-10-comprimidos-novalgina-1g-20-comprimidos.jpg"
+        ),
+        imagem_fonte="Indiana",
+        imagem_sku_origem="IND12401682",
+        imagem_match="catalog_duplicate",
+        imagem_status="pendente",
+    )
+    db.add(product)
+    db.flush()
+
+    response = redirecionar_imagem_catalogo(product.id, db)
+    assert response.status_code == 302
+    assert response.headers["location"] == product.imagem_url
+
+
+@pytest.mark.parametrize(
+    ("url", "catalog_ean", "image_ean", "sku", "match"),
+    [
+        (
+            "https://farmaciaindiana.vteximg.com.br/arquivos/ids/212425/7896830500147_0.jpg",
+            "7897406119886",
+            "7897406119886",
+            "IND13725",
+            "ean",
+        ),
+        (
+            "https://farmaciaindiana.vteximg.com.br/arquivos/ids/283783/Imagem.jpg?v=638267801085470000",
+            None,
+            "7896006221088",
+            "IND169625",
+            "ean",
+        ),
+    ],
+)
+def test_catalog_image_accepts_recorded_product_ean_or_generic_sku_lineage(
+    db, url, catalog_ean, image_ean, sku, match
+):
+    product = CatalogoBase(
+        codigo_barras=catalog_ean,
+        name_search="Produto de origem Indiana",
+        imagem_url=url,
+        imagem_fonte="Indiana",
+        imagem_sku_origem=sku,
+        imagem_ean=image_ean,
+        imagem_match=match,
+        imagem_status="pendente",
+    )
+    db.add(product)
+    db.flush()
+
+    response = redirecionar_imagem_catalogo(product.id, db)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == url
+
+
+def test_scraper_keeps_offer_generic_image_without_requiring_audit_approval():
+    product = CatalogoBase(name_search="Medicamento genérico da oferta")
+    url = "https://farmaciaindiana.vteximg.com.br/arquivos/CAIXA-MEDICAMENTO.jpg"
+
+    stored = register_image_candidate(
+        product,
+        image_url=url,
+        pharmacy_name="Indiana",
+        sku="IND9988",
+        ean="7891234567897",
+        product_url="https://www.farmaciaindiana.com.br/produto/item/p",
+    )
+
+    assert stored
+    assert product.imagem_url == url
+    assert product.imagem_fonte == "Indiana"
+    assert product.imagem_match == "sku"
+    assert product.imagem_status == "pendente"
+
+
+def test_scraper_records_exact_vtex_item_identity_when_filename_ean_is_legacy():
+    product = CatalogoBase(
+        codigo_barras="7891058167073",
+        name_search="Allegra 60mg 10 comprimidos",
+    )
+    url = "https://farmaciaindiana.vteximg.com.br/arquivos/7891058024314-1.jpg"
+
+    stored = register_image_candidate(
+        product,
+        image_url=url,
+        pharmacy_name="Indiana",
+        sku="IND11541",
+        ean="7891058167073",
+        product_url="https://www.farmaciaindiana.com.br/allegra-60mg-10-capsulas/p",
+        identity_confirmed=True,
+    )
+
+    assert stored
+    assert product.imagem_match == "sku_item"
+    assert product.codigo_barras == "7891058167073"
+
+
+def test_vtex_exact_item_accepts_its_generic_image():
+    item = {
+        "itemId": "122816",
+        "ean": "7896026307925",
+        "images": [
+            {
+                "imageUrl": (
+                    "https://farmaciaindiana.vteximg.com.br/arquivos/"
+                    "MEDICAMENTO-TARJADO-GENERICO.jpg"
+                )
+            }
+        ],
+    }
+
+    assert (
+        select_vtex_item_image(
+            item, expected_ean="7896026307925", expected_sku="122816"
+        )
+        == item["images"][0]["imageUrl"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("ean", "image_url", "source"),
+    [
+        (
+            "7898560666865",
+            "https://farmaciamodelo.com.br/BACKOFFICE/Uploads/Produto/Normal/2_fml_.jpg",
+            "FarmaciaModelo",
+        ),
+        (
+            "7898581711254",
+            "https://www.farmaciasnissei.com.br/media/medicamentos/caixa-medicamento-geral-tarja-vermelha.webp",
+            "Nissei",
+        ),
+    ],
+)
+def test_trusted_external_product_image_uses_exact_recorded_ean(
+    db, ean, image_url, source
+):
+    product = CatalogoBase(
+        codigo_barras=ean,
+        name_search="Medicamento identificado por EAN",
+        imagem_url=image_url,
+        imagem_fonte=source,
+        imagem_ean=ean,
+        imagem_match="ean",
+        imagem_status="pendente",
+    )
+    db.add(product)
+    db.flush()
+
+    response = redirecionar_imagem_catalogo(product.id, db)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == image_url
+
+
+@pytest.mark.asyncio
+async def test_image_verifier_accepts_generic_content_hash(monkeypatch):
+    data = b"RIFF\x14\x00\x00\x00WEBP" + b"generic-test-data"
+    digest = sha256(data).hexdigest()
+    monkeypatch.setattr(imagens, "KNOWN_GENERIC_CONTENT_HASHES", {digest})
+    actual_client = httpx.AsyncClient
+
+    def mocked_client(*args, **kwargs):
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(
+                200, headers={"content-type": "image/webp"}, content=data
+            )
+        )
+        return actual_client(*args, transport=transport, **kwargs)
+
+    monkeypatch.setattr(imagens.httpx, "AsyncClient", mocked_client)
+    result = await imagens.verify_image_url(
+        "https://i3-imagens-prd.araujo.com.br/webp/123/product.webp"
+    )
+    assert result.ok
+    assert result.content_sha256 == digest
+
+
+@pytest.mark.asyncio
+async def test_image_verifier_accepts_known_generic_url(monkeypatch):
+    data = b"RIFF\x14\x00\x00\x00WEBP" + b"generic-url-data"
+    url = next(iter(imagens.KNOWN_GENERIC_URLS))
+    actual_client = httpx.AsyncClient
+
+    def mocked_client(*args, **kwargs):
+        transport = httpx.MockTransport(
+            lambda request: httpx.Response(
+                200, headers={"content-type": "image/webp"}, content=data
+            )
+        )
+        return actual_client(*args, transport=transport, **kwargs)
+
+    monkeypatch.setattr(imagens.httpx, "AsyncClient", mocked_client)
+    result = await imagens.verify_image_url(url)
+    assert result.ok
 
 
 def test_vtex_selects_matching_alternative_image():
@@ -78,9 +423,39 @@ def test_vtex_selects_matching_alternative_image():
         == item["images"][1]["imageUrl"]
     )
     assert select_vtex_item_image(item, expected_ean="7890000000000") is None
-    assert select_vtex_item_image(
-        item, expected_ean="7891234567897", expected_sku="another-item"
-    ) is None
+    assert (
+        select_vtex_item_image(
+            item, expected_ean="7891234567897", expected_sku="another-item"
+        )
+        is None
+    )
+
+
+def test_vtex_allows_other_filename_ean_only_for_exact_item_identity():
+    item = {
+        "itemId": "47276",
+        "ean": "7896015521684",
+        "images": [
+            {
+                "imageUrl": "https://farmaciaindiana.vteximg.com.br/arquivos/7896015521646.jpg"
+            }
+        ],
+    }
+    assert (
+        select_vtex_item_image(item, expected_ean="7896015521684", expected_sku="47276")
+        == item["images"][0]["imageUrl"]
+    )
+    assert (
+        select_vtex_item_image(
+            item, expected_ean="7896015521684", expected_sku="wrong-sku"
+        )
+        is None
+    )
+
+
+def test_ean13_matches_gtin14_with_leading_zero():
+    assert imagens.gtin_matches("7899547531213", "07899547531213")
+    assert not imagens.gtin_matches("7899547531213", "07899547531214")
 
 
 @pytest.mark.asyncio
@@ -95,14 +470,31 @@ async def test_indiana_ean_lookup_uses_exact_item(monkeypatch):
             return None
 
         def json(self):
-            return [{"productName": "Produto", "items": [
-                {"itemId": "1", "ean": "7891234567890", "images": [
-                    {"imageUrl": "https://farmaciaindiana.vteximg.com.br/arquivos/other.jpg"}
-                ]},
-                {"itemId": "2", "ean": expected_ean, "images": [
-                    {"imageUrl": "https://farmaciaindiana.vteximg.com.br/arquivos/produto-2.jpg"}
-                ]},
-            ]}]
+            return [
+                {
+                    "productName": "Produto",
+                    "items": [
+                        {
+                            "itemId": "1",
+                            "ean": "7891234567890",
+                            "images": [
+                                {
+                                    "imageUrl": "https://farmaciaindiana.vteximg.com.br/arquivos/other.jpg"
+                                }
+                            ],
+                        },
+                        {
+                            "itemId": "2",
+                            "ean": expected_ean,
+                            "images": [
+                                {
+                                    "imageUrl": "https://farmaciaindiana.vteximg.com.br/arquivos/produto-2.jpg"
+                                }
+                            ],
+                        },
+                    ],
+                }
+            ]
 
     class FakeClient:
         async def __aenter__(self):
@@ -125,20 +517,27 @@ async def test_indiana_ean_lookup_uses_exact_item(monkeypatch):
 
 
 def test_araujo_product_page_uses_exact_sku_photo_after_generic_thumbnail():
-    page = 'https://www.araujo.com.br/remedio/11151.html'
-    html = '''<img src="/on/demandware.static/images/generico.webp">
-      <meta property="og:image" content="https://i3-imagens-prd.araujo.com.br/webp/11151/121383_7896004734392_1.webp?sw=200&amp;sh=200">
-    '''
+    page = "https://www.araujo.com.br/azelan-gel-com-30g/69045.html"
+    html = """<img src="/on/demandware.static/images/generico.webp">
+      <meta property="og:image" content="https://i3-imagens-prd.araujo.com.br/redimensionada/380x380/69045/07898916010052_4.webp?sw=200&amp;sh=200">
+    """
     image = select_araujo_product_image(
-        html, sku="ARJ11151", ean="7896004734392", product_url=page
+        html, sku="ARJ69045", ean=None, product_url=page
     )
-    assert image == "https://i3-imagens-prd.araujo.com.br/webp/11151/121383_7896004734392_1.webp?sw=200&sh=200"
-    assert select_araujo_product_image(
-        html, sku="ARJ11151", ean="7896004734393", product_url=page
-    ) is None
-    assert select_araujo_product_image(
-        html, sku="ARJ1442", ean=None, product_url=page
-    ) is None
+    assert (
+        image
+        == "https://i3-imagens-prd.araujo.com.br/redimensionada/380x380/69045/07898916010052_4.webp?sw=200&sh=200"
+    )
+    assert (
+        select_araujo_product_image(
+            html, sku="ARJ11151", ean="7896004734393", product_url=page
+        )
+        is None
+    )
+    assert (
+        select_araujo_product_image(html, sku="ARJ1442", ean=None, product_url=page)
+        is None
+    )
 
 
 def test_image_reference_changes_when_source_photo_changes():

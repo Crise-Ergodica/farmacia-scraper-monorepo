@@ -217,7 +217,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   screen: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
   catalogLayout: { width: '100%' },
-  catalogLayoutDesktop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
+  catalogLayoutDesktop: { marginTop: 22, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
   catalogResults: { width: '100%', minWidth: 0, flex: 1 },
   catalogResultsDesktop: { width: 'auto', flex: 1 },
   intro: { marginBottom: spacing.lg, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: palette.border },

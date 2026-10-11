@@ -12,7 +12,7 @@ const item = {
 
 beforeEach(() => jest.clearAllMocks());
 
-it('accepts a descriptive product image from the matching pharmacy and rejects generic or mismatched assets', () => {
+it('accepts offer supplied generic images and rejects technically unsafe or mismatched assets', () => {
   const medicine = {
     id: 1, codigo_barras: '7891035010866', nome: 'Strepsils Mel e Limão 16 Pastilhas',
     principio_ativo: '', laboratorio: '', exige_receita: false, categorias: [],
@@ -23,18 +23,19 @@ it('accepts a descriptive product image from the matching pharmacy and rejects g
     }],
   };
   expect(resolveMedicineImage(medicine)).toBe(medicine.ofertas[0].imagem_url);
+  expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_rejeitada: true }] })).toBeUndefined();
   expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/imagem-strepsils-mel-limao.jpg' }] })).toContain('imagem-strepsils-mel-limao.jpg');
   expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/7891035010866.jpg' }] })).toContain('7891035010866.jpg');
   expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/7891035010867.jpg' }] })).toBeUndefined();
-  expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/MEDICAMENTOS-CAIXA-AZUL-OTC.jpg' }] })).toBeUndefined();
+  expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/MEDICAMENTOS-CAIXA-AZUL-OTC.jpg' }] })).toContain('MEDICAMENTOS-CAIXA-AZUL-OTC.jpg');
   const encodedGenericImage = 'https://farmaciaindiana.vteximg.com.br/arquivos/CAIXA%20MEDICAMENTO%20v.2.0%20-%20CIMED.jpg';
-  expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: encodedGenericImage }] })).toBeUndefined();
-  expect(resolveMedicineImage({ ...medicine, imagem_status: 'verificada', imagem_ref: '/catalogo/medicamentos/1/imagem', imagem_url: encodedGenericImage, ofertas: [] })).toBeUndefined();
+  expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: encodedGenericImage }] })).toBe(encodedGenericImage);
+  expect(resolveMedicineImage({ ...medicine, imagem_status: 'pendente', imagem_ref: '/catalogo/medicamentos/1/imagem?v=hash', imagem_url: encodedGenericImage, ofertas: [] })).toBe(`${API_URL.replace(/\/+$/, '')}/catalogo/medicamentos/1/imagem?v=hash`);
   expect(resolveMedicineImage({ ...medicine, ofertas: [{ ...medicine.ofertas[0], imagem_url: 'https://cdn.example.com/strepsils.jpg' }] })).toBeUndefined();
   expect(resolveMedicineImage({
     ...medicine,
     ofertas: [{ ...medicine.ofertas[0], url_origem: 'https://www.farmaciaindiana.com.br/citrato-sildenafila-50mg-neo-quimica-generico-4-comprimidos/p', imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/Caixa-Neo-Quimica-Generico.jpg' }],
-  })).toBeUndefined();
+  })).toContain('Caixa-Neo-Quimica-Generico.jpg');
   const araujoOffer = {
     ...medicine.ofertas[0],
     farmacia_id: 2,
@@ -42,6 +43,12 @@ it('accepts a descriptive product image from the matching pharmacy and rejects g
     imagem_url: 'https://i3-imagens-prd.araujo.com.br/redimensionada/380x380/17332/07896523212319_1.webp',
   };
   expect(resolveMedicineImage({ ...medicine, codigo_barras: '', ofertas: [araujoOffer] })).toBe(araujoOffer.imagem_url);
+  expect(resolveMedicineImage({
+    ...medicine, codigo_barras: '', imagem_status: 'pendente',
+    imagem_url: araujoOffer.imagem_url,
+    imagem_motivo_rejeicao: 'O conteúdo é uma ilustração genérica da farmácia.',
+    ofertas: [araujoOffer],
+  })).toBe(araujoOffer.imagem_url);
   const newlyCollectedAraujoOffer = {
     ...araujoOffer,
     url_origem: 'https://www.araujo.com.br/produto-novo/987654.html',
@@ -54,6 +61,54 @@ it('accepts a descriptive product image from the matching pharmacy and rejects g
     ...medicine,
     ofertas: [{ ...araujoOffer, url_origem: 'https://www.araujo.com.br/wegovy-1mg-semaglutida-com-4-doses-injetaveis/101392.html', imagem_url: 'https://i3-imagens-prd.araujo.com.br/redimensionada/380x380/101392/231489_7897705203095_2.webp' }],
   })).toBeUndefined();
+  expect(resolveMedicineImage({
+    ...medicine,
+    ofertas: [{
+      ...araujoOffer,
+      url_origem: 'https://www.araujo.com.br/glyxambi-25mg--5mg-com-30-comprimidos/7290.html',
+      imagem_url: 'https://i3-imagens-prd.araujo.com.br/webp/7290/128666_7896026306751_1.webp?sw=200&sh=200&sm=fit',
+      imagem_generica: true,
+    }],
+  })).toContain('128666_7896026306751_1.webp');
+  expect(resolveMedicineImage({
+    ...medicine,
+    codigo_barras: '7896026307925',
+    ofertas: [{
+      ...medicine.ofertas[0],
+      url_origem: 'https://www.farmaciaindiana.com.br/glyxambi-25mg-5mg-30-comprimidos/p',
+      imagem_url: 'https://farmaciaindiana.vteximg.com.br/arquivos/ids/306093/7896026306751.jpg',
+    }],
+  })).toBeUndefined();
+  expect(resolveMedicineImage({
+    ...medicine,
+    codigo_barras: '',
+    ofertas: [{
+      ...medicine.ofertas[0],
+      farmacia_id: 2,
+      url_origem: 'https://www.araujo.com.br/aciclovir-200mg-pharlab-generico-com-25-comprimidos/84977.html',
+      imagem_url: 'https://i3-imagens-prd.araujo.com.br/webp/84977/120803_7898216367429_1.webp?sw=200&sh=200&sm=fit',
+    }],
+  })).toContain('120803_7898216367429_1.webp');
+  expect(resolveMedicineImage({
+    ...medicine,
+    codigo_barras: '',
+    ofertas: [{
+      ...araujoOffer,
+      url_origem: 'https://www.araujo.com.br/aciclovir/84977.html',
+      imagem_url: 'https://i3-imagens-prd.araujo.com.br/webp/12345/specific-image.webp',
+    }],
+  })).toBeUndefined();
+  expect(resolveMedicineImage({
+    ...medicine,
+    codigo_barras: '7898581711254',
+    ofertas: [{
+      ...medicine.ofertas[0],
+      farmacia_nome: 'Nissei',
+      url_origem: 'https://www.farmaciasnissei.com.br/neuleptil-10mg-20ml/p',
+      imagem_url: 'https://www.farmaciasnissei.com.br/media/medicamentos/caixa-medicamento-geral-tarja-vermelha.webp',
+      imagem_generica: true,
+    }],
+  })).toContain('caixa-medicamento-geral-tarja-vermelha.webp');
 });
 
 it('keeps a safe offer image after a catalog redirect fails', () => {
@@ -72,7 +127,6 @@ it('keeps a safe offer image after a catalog redirect fails', () => {
   expect(resolveMedicineImages(medicine)).toEqual([
     `${API_URL.replace(/\/+$/, '')}${medicine.imagem_ref}`,
     medicine.ofertas[0].imagem_url,
-    medicine.imagem_url,
   ]);
 });
 

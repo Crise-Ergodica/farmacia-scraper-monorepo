@@ -1,0 +1,184 @@
+{
+  "database_suffix_guard": "image_restore_test",
+  "source_export_file": "image-references-v1-post-check-2026-10-11.json",
+  "migrations_prepared_before_seed": true,
+  "catalog_count": 4109,
+  "source_export_count": 4109,
+  "reference_count": 4091,
+  "unmatched_catalog_products": 18,
+  "identity_eligible_count": 4091,
+  "unique_reference_urls": 3639,
+  "unique_source_urls_confirmed_by_existing_full_audit": true,
+  "source_audit_url_count": 3640,
+  "first_import": {
+    "input": 4109,
+    "associated": 4091,
+    "already_present": 0,
+    "conflicts": [],
+    "unmatched": [
+      {
+        "record": "record[2585] source_id=2596",
+        "ean": null
+      },
+      {
+        "record": "record[2664] source_id=2715",
+        "ean": null
+      },
+      {
+        "record": "record[2783] source_id=2876",
+        "ean": null
+      },
+      {
+        "record": "record[2816] source_id=2909",
+        "ean": null
+      },
+      {
+        "record": "record[2903] source_id=3054",
+        "ean": null
+      },
+      {
+        "record": "record[2907] source_id=3058",
+        "ean": null
+      },
+      {
+        "record": "record[3942] source_id=4129",
+        "ean": null
+      },
+      {
+        "record": "record[3946] source_id=4133",
+        "ean": null
+      },
+      {
+        "record": "record[3971] source_id=4174",
+        "ean": null
+      },
+      {
+        "record": "record[3975] source_id=4178",
+        "ean": null
+      },
+      {
+        "record": "record[4004] source_id=4225",
+        "ean": null
+      },
+      {
+        "record": "record[4008] source_id=4229",
+        "ean": null
+      },
+      {
+        "record": "record[4033] source_id=4272",
+        "ean": null
+      },
+      {
+        "record": "record[4037] source_id=4276",
+        "ean": null
+      },
+      {
+        "record": "record[4065] source_id=4324",
+        "ean": null
+      },
+      {
+        "record": "record[4069] source_id=4328",
+        "ean": null
+      },
+      {
+        "record": "record[4094] source_id=4369",
+        "ean": null
+      },
+      {
+        "record": "record[4098] source_id=4373",
+        "ean": null
+      }
+    ],
+    "invalid": [],
+    "unmatched_count": 18,
+    "conflict_count": 0,
+    "invalid_count": 0
+  },
+  "second_import": {
+    "input": 4109,
+    "associated": 0,
+    "already_present": 4091,
+    "conflicts": [],
+    "unmatched": [
+      {
+        "record": "record[2585] source_id=2596",
+        "ean": null
+      },
+      {
+        "record": "record[2664] source_id=2715",
+        "ean": null
+      },
+      {
+        "record": "record[2783] source_id=2876",
+        "ean": null
+      },
+      {
+        "record": "record[2816] source_id=2909",
+        "ean": null
+      },
+      {
+        "record": "record[2903] source_id=3054",
+        "ean": null
+      },
+      {
+        "record": "record[2907] source_id=3058",
+        "ean": null
+      },
+      {
+        "record": "record[3942] source_id=4129",
+        "ean": null
+      },
+      {
+        "record": "record[3946] source_id=4133",
+        "ean": null
+      },
+      {
+        "record": "record[3971] source_id=4174",
+        "ean": null
+      },
+      {
+        "record": "record[3975] source_id=4178",
+        "ean": null
+      },
+      {
+        "record": "record[4004] source_id=4225",
+        "ean": null
+      },
+      {
+        "record": "record[4008] source_id=4229",
+        "ean": null
+      },
+      {
+        "record": "record[4033] source_id=4272",
+        "ean": null
+      },
+      {
+        "record": "record[4037] source_id=4276",
+        "ean": null
+      },
+      {
+        "record": "record[4065] source_id=4324",
+        "ean": null
+      },
+      {
+        "record": "record[4069] source_id=4328",
+        "ean": null
+      },
+      {
+        "record": "record[4094] source_id=4369",
+        "ean": null
+      },
+      {
+        "record": "record[4098] source_id=4373",
+        "ean": null
+      }
+    ],
+    "invalid": [],
+    "unmatched_count": 18,
+    "conflict_count": 0,
+    "invalid_count": 0
+  },
+  "api_image_routes_ok": 4091,
+  "api_image_routes_failed": [],
+  "api_image_route_count": 4091
+}

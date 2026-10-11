@@ -8,6 +8,8 @@ from hashlib import sha256
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from app.services.imagens import image_delivery_rejection_reason
+
 from .oferta import OfertaOut
 
 
@@ -46,11 +48,12 @@ class CatalogoOut(CatalogoBaseSchema):
     imagem_url: str | None = None
     imagem_fonte: str | None = None
     imagem_status: str | None = None
+    imagem_motivo_rejeicao: str | None = None
 
     @computed_field(return_type=str | None)
     @property
     def imagem_ref(self) -> str | None:
-        if self.imagem_status == "verificada" and self.imagem_url:
+        if self.imagem_url and not image_delivery_rejection_reason(self.imagem_url):
             version = sha256(self.imagem_url.encode("utf-8")).hexdigest()[:12]
             return f"/catalogo/medicamentos/{self.id}/imagem?v={version}"
         return None

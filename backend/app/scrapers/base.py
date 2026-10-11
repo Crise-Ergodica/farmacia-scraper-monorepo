@@ -124,9 +124,12 @@ class BasePharmacyScraper(ABC):
                 prod: ProdutoExtraidoSchema = item["validado"]
                 enriquecido: dict = item["enriquecido"]
 
-                # Deduplica por EAN; sem EAN, usa o nome pesquisável no lote.
-
-                chave_dedup = prod.ean if prod.ean else prod.name_search
+                # Only EAN has a global catalog uniqueness guarantee. Products
+                # without EAN are resolved below by exact offer URL or the
+                # pharmacy's official SKU, never by display name alone.
+                if not prod.ean:
+                    continue
+                chave_dedup = prod.ean
 
                 catalogo_values_dict[chave_dedup] = {
                     "codigo_barras": prod.ean,
@@ -189,12 +192,6 @@ class BasePharmacyScraper(ABC):
             eans_no_lote = [
                 item["validado"].ean for item in batch if item["validado"].ean
             ]
-            nomes_no_lote_sem_ean = [
-                item["validado"].name_search
-                for item in batch
-                if not item["validado"].ean
-            ]
-
             mapa_catalogo = {}
             if eans_no_lote:
                 catalogos_com_ean = (
@@ -204,18 +201,6 @@ class BasePharmacyScraper(ABC):
                 )
                 for c in catalogos_com_ean:
                     mapa_catalogo[c.codigo_barras] = c.id
-
-            if nomes_no_lote_sem_ean:
-                catalogos_sem_ean = (
-                    db.query(CatalogoBase)
-                    .filter(
-                        CatalogoBase.codigo_barras.is_(None),
-                        CatalogoBase.name_search.in_(nomes_no_lote_sem_ean),
-                    )
-                    .all()
-                )
-                for c in catalogos_sem_ean:
-                    mapa_catalogo[c.name_search] = c.id
 
             # Fetch existing offers once so the shared history policy can compare
             # each new price with the persisted value before mutating it.
@@ -231,6 +216,25 @@ class BasePharmacyScraper(ABC):
                 for oferta in ofertas_existentes:
                     ofertas_existentes_por_url[oferta.url_origem] = oferta
 
+            skus_no_lote_sem_ean = {
+                item["validado"].sku_interno
+                for item in batch
+                if not item["validado"].ean and item["validado"].sku_interno
+            }
+            ofertas_existentes_por_sku: dict[str, list[OfertaFarmacia]] = {}
+            if skus_no_lote_sem_ean:
+                for oferta in (
+                    db.query(OfertaFarmacia)
+                    .filter(
+                        OfertaFarmacia.farmacia_id == farmacia.id,
+                        OfertaFarmacia.sku_interno.in_(skus_no_lote_sem_ean),
+                    )
+                    .all()
+                ):
+                    ofertas_existentes_por_sku.setdefault(
+                        oferta.sku_interno, []
+                    ).append(oferta)
+
             # Desduplicação da OfertaFarmacia no lote atual
             oferta_dicts_map = {}
             for item in batch:
@@ -238,8 +242,42 @@ class BasePharmacyScraper(ABC):
                 catalogo_id = None
                 if prod.ean and prod.ean in mapa_catalogo:
                     catalogo_id = mapa_catalogo[prod.ean]
-                elif not prod.ean and prod.name_search in mapa_catalogo:
-                    catalogo_id = mapa_catalogo[prod.name_search]
+                elif not prod.ean:
+                    existing_offer = ofertas_existentes_por_url.get(prod.link)
+                    if existing_offer is None and prod.sku_interno:
+                        sku_matches = ofertas_existentes_por_sku.get(
+                            prod.sku_interno, []
+                        )
+                        if len(sku_matches) == 1:
+                            existing_offer = sku_matches[0]
+                    if existing_offer is not None:
+                        catalogo_id = existing_offer.catalogo_id
+                    else:
+                        batch_key = prod.sku_interno or prod.link
+                        catalogo_id = mapa_catalogo.get(batch_key)
+                        if catalogo_id is None:
+                            enriched: dict = item["enriquecido"]
+                            catalogo_item = CatalogoBase(
+                                codigo_barras=None,
+                                name_search=prod.name_search,
+                                principio_ativo=enriched["principio_ativo"],
+                                laboratorio=enriched["laboratorio"],
+                                exige_receita=enriched["exige_receita"],
+                                categorias=enriched["categorias"],
+                                categoria_regulatoria=enriched.get(
+                                    "categoria_regulatoria"
+                                ),
+                                referencia_anvisa=enriched.get("referencia_anvisa"),
+                                exige_receita_confirmada=enriched.get(
+                                    "exige_receita_confirmada"
+                                ),
+                                controle_especial=enriched.get("controle_especial"),
+                                classificacao_fonte=enriched.get("classificacao_fonte"),
+                            )
+                            db.add(catalogo_item)
+                            db.flush()
+                            catalogo_id = catalogo_item.id
+                            mapa_catalogo[batch_key] = catalogo_id
 
                 if catalogo_id:
                     catalogo_item = db.get(CatalogoBase, catalogo_id)
@@ -251,6 +289,7 @@ class BasePharmacyScraper(ABC):
                             sku=prod.sku_interno,
                             ean=prod.ean,
                             product_url=prod.link,
+                            identity_confirmed=True,
                         )
                     # Chave de desduplicação pela URL origem que é a unique key
                     oferta_dicts_map[prod.link] = {
