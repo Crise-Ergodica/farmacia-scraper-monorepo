@@ -40,21 +40,20 @@ type ActivePoint = {
 };
 
 const CHART_HEIGHT = 250;
-const AXIS_LEFT_WIDTH = 54;
+const AXIS_LEFT_WIDTH = 68;
 const AXIS_BOTTOM_HEIGHT = 34;
 const DOT_SIZE = 12;
 const LINE_HEIGHT = 3;
 
 function formatPrice(value: number) {
-  return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
+  return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function formatCompactPrice(value: number) {
-  if (value >= 1000) {
-    return `R$ ${(value / 1000).toFixed(1).replace('.', ',')}k`;
-  }
-
-  return `R$ ${Number(value || 0).toFixed(0)}`;
+  if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(1).replace('.', ',')} mi`;
+  if (value >= 10_000) return `R$ ${(value / 1000).toFixed(1).replace('.', ',')}k`;
+  const digits = value < 100 ? 2 : 0;
+  return `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 function getLineSegmentStyle(
@@ -263,6 +262,7 @@ export function HistoryChart({ series }: HistoryChartProps) {
 
   return (
     <View
+      testID="history-chart"
       style={styles.card}
       onLayout={(event) => setChartWidth(event.nativeEvent.layout.width)}
     >
@@ -348,10 +348,14 @@ export function HistoryChart({ series }: HistoryChartProps) {
                   return (
                     <Pressable
                       key={point.key}
+                      testID="history-point"
+                      accessibilityRole="button"
+                      accessibilityLabel={`${point.pharmacy}, ${point.label}: ${formatPrice(point.value)}`}
+                      accessibilityHint="Exibe este valor no gráfico de preços"
+                      accessibilityState={{ selected: isActive }}
                       onPress={() => {
-                        if (!isWeb) {
-                          setActivePoint(point);
-                        }
+                        setActivePoint(point);
+                        if (isWeb) showTooltip(point);
                       }}
                       onHoverIn={() => {
                         if (isWeb) {
@@ -449,7 +453,7 @@ export function HistoryChart({ series }: HistoryChartProps) {
 
       <Text style={styles.hintText}>
         {isWeb
-          ? 'Passe o mouse sobre os pontos para ver o preço.'
+          ? 'Passe o cursor ou selecione um ponto para consultar o preço.'
           : 'Toque nos pontos para alterar o preço exibido.'}
       </Text>
     </View>

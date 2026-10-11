@@ -2,7 +2,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
-from sqlalchemy import String, cast, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -125,10 +125,12 @@ def listar_catalogo_completo(
     stmt = select(CatalogoBase)
 
     if exige_receita is not None:
-        stmt = stmt.where(CatalogoBase.exige_receita == exige_receita)
+        stmt = stmt.where(CatalogoBase.exige_receita_confirmada.is_(exige_receita))
 
     if categoria:
-        stmt = stmt.where(CatalogoBase.categorias.any(categoria))
+        stmt = stmt.where(
+            func.lower(CatalogoBase.categoria_regulatoria) == categoria.strip().lower()
+        )
 
     if farmacia_id is not None:
         stmt = stmt.where(
@@ -153,28 +155,30 @@ def listar_catalogo_completo(
     for option in filtros:
         kind, separator, value = option.partition(":")
         if not separator or not value.strip():
-            continue
+            raise HTTPException(status_code=422, detail=f"Filtro inválido: {option}")
         normalized = value.strip().lower()
-        categories = cast(CatalogoBase.categorias, String)
         condition = None
-        if kind == "categoria" and normalized == "original":
-            condition = or_(
-                categories.ilike("%original%"), categories.ilike("%referen%")
-            )
-        elif kind == "categoria" and normalized == "similar":
-            condition = categories.ilike("%similar%")
-        elif kind == "categoria":
-            condition = categories.ilike(f"%{value.strip()}%")
+        if kind == "categoria":
+            condition = func.lower(CatalogoBase.categoria_regulatoria) == normalized
+        elif kind == "referencia" and normalized in {"sim", "true", "referencia"}:
+            condition = CatalogoBase.referencia_anvisa.is_(True)
         elif kind == "laboratorio":
             condition = func.lower(CatalogoBase.laboratorio) == normalized
         elif kind == "principio_ativo":
             condition = func.lower(CatalogoBase.principio_ativo) == normalized
         elif kind == "receita" and normalized in {"com_receita", "exige_receita"}:
-            condition = CatalogoBase.exige_receita.is_(True)
+            condition = CatalogoBase.exige_receita_confirmada.is_(True)
         elif kind == "receita" and normalized == "venda_livre":
-            condition = CatalogoBase.exige_receita.is_(False)
-        if condition is not None:
-            option_conditions.setdefault(kind, []).append(condition)
+            condition = CatalogoBase.exige_receita_confirmada.is_(False)
+        elif kind == "controle_especial" and normalized in {"sim", "true"}:
+            condition = CatalogoBase.controle_especial.is_(True)
+        elif kind == "classificacao" and normalized in {"desconhecida", "unknown"}:
+            condition = CatalogoBase.categoria_regulatoria.is_(None)
+        if condition is None:
+            raise HTTPException(
+                status_code=422, detail=f"Filtro desconhecido: {option}"
+            )
+        option_conditions.setdefault(kind, []).append(condition)
     if option_conditions:
         stmt = stmt.where(
             *(or_(*conditions) for conditions in option_conditions.values())
@@ -233,19 +237,17 @@ def obter_opcoes_filtros(db: Session = Depends(get_db)):
     Retorna as opções únicas disponíveis no banco para categorias, laboratórios
     e princípios ativos, ignorando valores nulos, em branco ou "Não informado".
     """
-    # Flatten stored arrays in Python so SQLite validation and PostgreSQL share
-    # this endpoint without database-specific array functions.
     categorias = sorted(
         {
-            categoria.strip()
-            for row in db.execute(select(CatalogoBase.categorias)).scalars().all()
-            if row
-            for categoria in row
-            if (
-                categoria
-                and categoria.strip()
-                and "informado" not in categoria.casefold()
+            value
+            for value in db.execute(
+                select(CatalogoBase.categoria_regulatoria)
+                .where(CatalogoBase.categoria_regulatoria.is_not(None))
+                .distinct()
             )
+            .scalars()
+            .all()
+            if value and value.strip()
         },
         key=str.casefold,
     )
@@ -270,6 +272,23 @@ def obter_opcoes_filtros(db: Session = Depends(get_db)):
         categorias=categorias,
         laboratorios=sorted(laboratorios, key=str.casefold),
         principios_ativos=sorted(principios, key=str.casefold),
+        contagens={
+            "referencia": db.query(CatalogoBase)
+            .filter(CatalogoBase.referencia_anvisa.is_(True))
+            .count(),
+            "com_receita": db.query(CatalogoBase)
+            .filter(CatalogoBase.exige_receita_confirmada.is_(True))
+            .count(),
+            "venda_livre": db.query(CatalogoBase)
+            .filter(CatalogoBase.exige_receita_confirmada.is_(False))
+            .count(),
+            "controle_especial": db.query(CatalogoBase)
+            .filter(CatalogoBase.controle_especial.is_(True))
+            .count(),
+            "desconhecida": db.query(CatalogoBase)
+            .filter(CatalogoBase.categoria_regulatoria.is_(None))
+            .count(),
+        },
     )
 
 

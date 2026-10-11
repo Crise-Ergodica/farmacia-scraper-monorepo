@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { FilterChip } from '../../components/FilterChip';
+import { CatalogFiltersSidebar } from '../../components/CatalogFiltersSidebar';
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
 import { SearchBar } from '../../components/SearchBar';
@@ -18,11 +19,10 @@ type Pharmacy = { id: number; nome_fantasia: string };
 export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { markAsViewed, selectedFilters, loadCatalogPage } = useCatalogContext();
+  const { markAsViewed, selectedFilters, selectedPharmacyId, setSelectedPharmacyId, loadCatalogPage } = useCatalogContext();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
-  const [selectedPharmacy, setSelectedPharmacy] = useState<number | null>(null);
   const [pharmaciesLoading, setPharmaciesLoading] = useState(true);
   const [pharmaciesError, setPharmaciesError] = useState(false);
   const [items, setItems] = useState<Medicamento[]>([]);
@@ -36,6 +36,8 @@ export default function HomeScreen() {
   const limit = width < 520 ? 8 : 12;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const isWeb = Platform.OS === 'web';
+  const hasDesktopSidebar = isWeb && width >= 1120;
+  const desktopColumns = hasDesktopSidebar ? (width >= 1640 ? 4 : width >= 1280 ? 3 : 2) : undefined;
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 280);
@@ -51,7 +53,7 @@ export default function HomeScreen() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => { setPage(1); }, [debouncedSearch, selectedPharmacy, selectedFilters, sortBy]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, selectedPharmacyId, selectedFilters, sortBy]);
 
   useEffect(() => {
     let active = true;
@@ -59,7 +61,7 @@ export default function HomeScreen() {
     setError(false);
     loadCatalogPage({
       query: debouncedSearch,
-      pharmacyId: selectedPharmacy ?? undefined,
+      pharmacyId: selectedPharmacyId ?? undefined,
       offset: (page - 1) * limit,
       limit,
       filters: selectedFilters,
@@ -74,7 +76,7 @@ export default function HomeScreen() {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [debouncedSearch, selectedPharmacy, selectedFilters, sortBy, page, limit, loadCatalogPage, reload]);
+  }, [debouncedSearch, selectedPharmacyId, selectedFilters, sortBy, page, limit, loadCatalogPage, reload]);
 
   const sortOptions: { value: CatalogSort; label: string }[] = [
     { value: 'relevancia', label: 'Relevância' },
@@ -84,9 +86,9 @@ export default function HomeScreen() {
   ];
   const selectedSortLabel = sortOptions.find((option) => option.value === sortBy)?.label ?? 'Relevância';
 
-  const heading = useMemo(() => selectedPharmacy === null
+  const heading = useMemo(() => selectedPharmacyId === null
     ? 'Compare preços de medicamentos'
-    : pharmacies.find((item) => item.id === selectedPharmacy)?.nome_fantasia || 'Medicamentos', [pharmacies, selectedPharmacy]);
+    : pharmacies.find((item) => item.id === selectedPharmacyId)?.nome_fantasia || 'Medicamentos', [pharmacies, selectedPharmacyId]);
 
   const openDetail = (id: number) => {
     markAsViewed(id);
@@ -94,7 +96,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <Screen contentStyle={styles.screen}>
+    <Screen contentStyle={styles.screen} wideContent={hasDesktopSidebar}>
       <View style={[styles.intro, width <= 480 && styles.introCompact]}>
         <Text style={styles.eyebrow}>PREÇO BÃO · COMPARADOR</Text>
         <Text style={[styles.pageTitle, width <= 480 && styles.pageTitleCompact]}>Encontre o melhor preço</Text>
@@ -105,30 +107,34 @@ export default function HomeScreen() {
         value={search}
         onChangeText={setSearch}
         onSubmit={() => setDebouncedSearch(search.trim())}
-        onFilter={() => router.push('/filters')}
-        filterCount={selectedFilters.length}
+        onFilter={hasDesktopSidebar ? undefined : () => router.push('/filters')}
+        filterCount={selectedFilters.length + Number(selectedPharmacyId !== null)}
         placeholder={width <= 360 ? 'Medicamento ou princípio ativo' : 'Buscar medicamento ou princípio ativo'}
       />
 
-      <View style={[styles.filterHeader, width <= 480 && styles.filterHeaderCompact]}>
-        <Text style={styles.sectionLabel}>Farmácias</Text>
-      </View>
-
-      {pharmaciesLoading ? <ActivityIndicator color={palette.primary} /> : pharmaciesError ? (
-        <Text style={styles.message}>Não foi possível carregar as farmácias.</Text>
-      ) : (
-        <View style={styles.pharmacyFilters}>
-          <FilterChip label="Todas" active={selectedPharmacy === null} onPress={() => setSelectedPharmacy(null)} />
-          {pharmacies.map((pharmacy) => (
-            <FilterChip
-              key={pharmacy.id}
-              label={pharmacy.nome_fantasia}
-              active={selectedPharmacy === pharmacy.id}
-              onPress={() => setSelectedPharmacy(pharmacy.id)}
-            />
-          ))}
+      <View style={[styles.catalogLayout, hasDesktopSidebar && styles.catalogLayoutDesktop]}>
+      {hasDesktopSidebar && <CatalogFiltersSidebar />}
+      <View style={[styles.catalogResults, hasDesktopSidebar && styles.catalogResultsDesktop]}>
+      {!hasDesktopSidebar && <>
+        <View style={[styles.filterHeader, width <= 480 && styles.filterHeaderCompact]}>
+          <Text style={styles.sectionLabel}>Farmácias</Text>
         </View>
-      )}
+        {pharmaciesLoading ? <ActivityIndicator color={palette.primary} /> : pharmaciesError ? (
+          <Text style={styles.message}>Não foi possível carregar as farmácias.</Text>
+        ) : (
+          <View style={styles.pharmacyFilters}>
+            <FilterChip label="Todas" active={selectedPharmacyId === null} onPress={() => setSelectedPharmacyId(null)} />
+            {pharmacies.map((pharmacy) => (
+              <FilterChip
+                key={pharmacy.id}
+                label={pharmacy.nome_fantasia}
+                active={selectedPharmacyId === pharmacy.id}
+                onPress={() => setSelectedPharmacyId(pharmacy.id)}
+              />
+            ))}
+          </View>
+        )}
+      </>}
 
       <View style={[styles.resultHeader, width < 520 && styles.resultHeaderCompact]}>
         <View>
@@ -186,7 +192,7 @@ export default function HomeScreen() {
       ) : (
         <View style={[styles.grid, isWeb && styles.gridWeb, width <= 480 && styles.gridMobileList]}>
           {items.map((medicine) => (
-            <MedicineCard key={medicine.id} medicine={medicine} onPress={() => openDetail(medicine.id)} compact />
+            <MedicineCard key={medicine.id} medicine={medicine} onPress={() => openDetail(medicine.id)} compact columns={desktopColumns} />
           ))}
         </View>
       )}
@@ -202,12 +208,18 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       )}
+      </View>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
+  catalogLayout: { width: '100%' },
+  catalogLayoutDesktop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
+  catalogResults: { width: '100%', minWidth: 0, flex: 1 },
+  catalogResultsDesktop: { width: 'auto', flex: 1 },
   intro: { marginBottom: spacing.lg, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: palette.border },
   introCompact: { marginBottom: spacing.sm, paddingBottom: spacing.xs },
   eyebrow: { color: palette.primaryDark, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },

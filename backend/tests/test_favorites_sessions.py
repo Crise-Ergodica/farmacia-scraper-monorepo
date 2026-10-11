@@ -32,6 +32,7 @@ def test_favorites_survive_logout_login_and_stay_private():
             principio_ativo="Dipirona",
             laboratorio="Teste",
             categorias=[],
+            exige_receita_confirmada=False,
         )
         pharmacy = Farmacia(
             cnpj="12345678901234",

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlsplit
+from html import unescape
+from urllib.parse import unquote, urljoin, urlsplit
 
 import httpx
+from bs4 import BeautifulSoup
 
 from app.models.catalogo import CatalogoBase
 
@@ -35,8 +37,10 @@ GENERIC_IMAGE_MARKERS = (
     "image-to-upload",
     "medicamentos-caixa",
     "imagem-indisponivel",
+    "medicamento-tarjado-generico",
 )
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+KNOWN_GENERIC_ASSETS = {"231489_7897705203095_2.webp"}
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
@@ -78,8 +82,12 @@ def image_rejection_reason(url: str) -> str | None:
     source = source_for_url(url)
     if source is None:
         return "Domínio de imagem não autorizado."
-    filename = parsed.path.rsplit("/", 1)[-1].lower()
-    if any(marker in filename for marker in GENERIC_IMAGE_MARKERS):
+    filename = unquote(parsed.path.rsplit("/", 1)[-1]).lower()
+    normalized_filename = re.sub(r"[^a-z0-9]+", "", filename)
+    if filename == "generico.webp" or filename in KNOWN_GENERIC_ASSETS or any(
+        re.sub(r"[^a-z0-9]+", "", marker) in normalized_filename
+        for marker in GENERIC_IMAGE_MARKERS
+    ):
         return "A fonte retornou um ícone ou imagem genérica."
     if not any(filename.endswith(extension) for extension in IMAGE_EXTENSIONS):
         return "Formato não é uma imagem de produto aceita."
@@ -181,7 +189,9 @@ def select_vtex_item_image(
     item_sku = str(item.get("itemId") or "").strip()
     if expected_ean and item_ean != expected_ean:
         return None
-    if not expected_ean and (not expected_sku or item_sku != expected_sku):
+    if expected_sku and item_sku != expected_sku:
+        return None
+    if not expected_ean and not expected_sku:
         return None
     images = item.get("images") or []
     candidates: list[tuple[int, str]] = []
@@ -197,6 +207,33 @@ def select_vtex_item_image(
         return None
     candidates.sort(key=lambda value: value[0])
     return candidates[0][1]
+
+
+def select_araujo_product_image(
+    html: str, *, sku: str, ean: str | None, product_url: str
+) -> str | None:
+    """Read the product photo, not the generic thumbnail in Araújo listings."""
+    soup = BeautifulSoup(html, "html.parser")
+    candidates = [
+        tag.get("content")
+        for tag in soup.select('meta[property="og:image"], meta[name="twitter:image"]')
+    ]
+    for tag in soup.select('img[src], img[data-src]'):
+        candidates.extend((tag.get("data-src"), tag.get("src")))
+    for candidate in candidates:
+        if not candidate:
+            continue
+        url = urljoin(product_url, unescape(str(candidate).strip()))
+        valid, _, _ = validate_image_association(
+            image_url=url,
+            pharmacy_name="Araujo",
+            sku=sku,
+            ean=ean,
+            product_url=product_url,
+        )
+        if valid:
+            return url
+    return None
 
 
 async def verify_image_url(

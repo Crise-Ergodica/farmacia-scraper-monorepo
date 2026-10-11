@@ -16,6 +16,7 @@ import { MedicineImage } from '../../../components/MedicineImage';
 import { Screen } from '../../../components/Screen';
 import { SearchBar } from '../../../components/SearchBar';
 import { useCatalogContext, useFavoritesContext, useSessionContext } from '../../../context/AppContext';
+import { getLaboratoryDisplayName } from '../../../services/catalog';
 import { palette, radius, spacing } from '../../../theme';
 import { Medicamento, Oferta } from '../../../types/api';
 
@@ -129,6 +130,7 @@ export default function MedicineDetailScreen() {
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 1100;
   const isTablet = isWeb && width >= 850 && width < 1100;
+  const laboratoryName = getLaboratoryDisplayName(medicine?.laboratorio);
 
   const productUrl = normalizeUrl(lowest?.url_origem);
   const lowestPrice = lowest ? Number(lowest.preco) : undefined;
@@ -240,13 +242,29 @@ export default function MedicineDetailScreen() {
               Princípio ativo: {medicine.principio_ativo || 'Não informado'}
             </Text>
             <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
-              Laboratório: {medicine.laboratorio || 'Não informado'}
+              Laboratório: {laboratoryName || 'Não informado'}
             </Text>
             <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
               Código de barras: {medicine.codigo_barras || 'Não informado'}
             </Text>
             <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
-              {medicine.exige_receita ? 'Exige receita médica.' : 'Venda livre.'}
+              {medicine.categoria_regulatoria
+                ? `Categoria ANVISA: ${medicine.categoria_regulatoria}.`
+                : 'Categoria regulatória não confirmada pela ANVISA.'}
+            </Text>
+            <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
+              {medicine.referencia_anvisa === true
+                ? 'Consta na lista ANVISA de medicamentos de referência.'
+                : medicine.referencia_anvisa === false
+                  ? 'Não consta na lista ANVISA de medicamentos de referência.'
+                  : 'Status como medicamento de referência não confirmado.'}
+            </Text>
+            <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
+              {medicine.exige_receita_confirmada === true
+                ? 'Receita confirmada na fonte CMED consultada.'
+                : medicine.exige_receita_confirmada === false
+                  ? 'Venda sem receita confirmada na fonte consultada.'
+                  : 'Exigência de receita não confirmada na fonte consultada.'}
             </Text>
           </View>
 

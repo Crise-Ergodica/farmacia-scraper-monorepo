@@ -10,12 +10,9 @@ import {
   FilterOption,
 } from '../services/catalog';
 
-const DEFAULT_FILTERS: FilterOption[] = [
-  { id: 'receita:controlados', label: 'Controlados', value: 'controlados', type: 'receita' },
-  { id: 'receita:venda_livre', label: 'Venda livre', value: 'venda_livre', type: 'receita' },
-  { id: 'categoria:similar', label: 'Similar', value: 'similar', type: 'categoria' },
-  { id: 'categoria:original', label: 'Original', value: 'original', type: 'categoria' },
-];
+const DEFAULT_FILTERS: FilterOption[] = [];
+const isSupportedFilter = (filter: FilterOption) =>
+  ['receita', 'categoria', 'controle_especial', 'laboratorio'].includes(String(filter.type));
 
 const CACHE_LIMIT = 180;
 
@@ -25,6 +22,7 @@ export function useCatalogState() {
   const [cache, setCache] = useState<Medicamento[]>([]);
   const [filterOptions, setFilterOptions] = useState(DEFAULT_FILTERS);
   const [selectedFilters, setSelectedFilters] = useState<FilterOption[]>([]);
+  const [selectedPharmacyId, setSelectedPharmacyId] = useState<number | null>(null);
   const [recentIds, setRecentIds] = useState<number[]>([]);
   const [cheapestMedicines, setCheapestMedicines] = useState<Medicamento[]>([]);
   const [optionsError, setOptionsError] = useState(false);
@@ -74,13 +72,20 @@ export function useCatalogState() {
   }, [loadMedicineById]);
 
   const toggleFilter = useCallback((filter: FilterOption) => {
+    if (!isSupportedFilter(filter)) return;
     setSelectedFilters((current) => current.some((item) => item.id === filter.id)
       ? current.filter((item) => item.id !== filter.id)
       : [...current, filter]);
   }, []);
 
-  const applyFilters = useCallback((filters: FilterOption[]) => setSelectedFilters(filters), []);
+  const applyFilters = useCallback((filters: FilterOption[]) => setSelectedFilters(filters.filter(isSupportedFilter)), []);
   const clearFilters = useCallback(() => setSelectedFilters([]), []);
+
+  useEffect(() => {
+    setSelectedFilters((current) => current.some((filter) => !isSupportedFilter(filter))
+      ? current.filter(isSupportedFilter)
+      : current);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -101,6 +106,8 @@ export function useCatalogState() {
   return {
     filterOptions,
     selectedFilters,
+    selectedPharmacyId,
+    setSelectedPharmacyId,
     recentIds,
     recentMedicines,
     cheapestMedicines,

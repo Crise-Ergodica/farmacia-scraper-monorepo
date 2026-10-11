@@ -4,6 +4,7 @@ Módulo responsável pela definição dos contratos de dados (Schemas) do Catál
 
 from datetime import datetime
 from decimal import Decimal
+from hashlib import sha256
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -19,13 +20,18 @@ class CatalogoBaseSchema(BaseModel):
         default=None, max_length=14, description="Código EAN de até 14 dígitos"
     )
     name_search: str = Field(..., max_length=150)
-    principio_ativo: str = Field(default="Não informado", max_length=150)
+    principio_ativo: str = Field(default="Não informado", max_length=500)
     laboratorio: str = Field(default="Não informado", max_length=100)
     exige_receita: bool = Field(default=False)
     categorias: list[str] = Field(
         default_factory=list,
         description="Categorias do medicamento (Ex: Genérico, Original, Controlados)",
     )
+    categoria_regulatoria: str | None = None
+    referencia_anvisa: bool | None = None
+    exige_receita_confirmada: bool | None = None
+    controle_especial: bool | None = None
+    classificacao_fonte: str | None = None
 
 
 class CatalogoOut(CatalogoBaseSchema):
@@ -44,8 +50,9 @@ class CatalogoOut(CatalogoBaseSchema):
     @computed_field(return_type=str | None)
     @property
     def imagem_ref(self) -> str | None:
-        if self.imagem_status == "verificada":
-            return f"/catalogo/medicamentos/{self.id}/imagem"
+        if self.imagem_status == "verificada" and self.imagem_url:
+            version = sha256(self.imagem_url.encode("utf-8")).hexdigest()[:12]
+            return f"/catalogo/medicamentos/{self.id}/imagem?v={version}"
         return None
 
     model_config = ConfigDict(from_attributes=True)
@@ -79,6 +86,7 @@ class CatalogoFiltrosOut(BaseModel):
     categorias: list[str]
     laboratorios: list[str]
     principios_ativos: list[str]
+    contagens: dict[str, int] = Field(default_factory=dict)
 
 
 class HistoricoBase(BaseModel):

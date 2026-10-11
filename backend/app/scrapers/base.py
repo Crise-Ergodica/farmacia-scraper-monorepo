@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any, Dict, List
 
 from pydantic import ValidationError
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -134,6 +135,13 @@ class BasePharmacyScraper(ABC):
                     "laboratorio": enriquecido["laboratorio"],
                     "exige_receita": enriquecido["exige_receita"],
                     "categorias": enriquecido["categorias"],
+                    "categoria_regulatoria": enriquecido.get("categoria_regulatoria"),
+                    "referencia_anvisa": enriquecido.get("referencia_anvisa"),
+                    "exige_receita_confirmada": enriquecido.get(
+                        "exige_receita_confirmada"
+                    ),
+                    "controle_especial": enriquecido.get("controle_especial"),
+                    "classificacao_fonte": enriquecido.get("classificacao_fonte"),
                 }
 
             catalogo_values = list(catalogo_values_dict.values())
@@ -150,6 +158,26 @@ class BasePharmacyScraper(ABC):
                         "laboratorio": stmt.excluded.laboratorio,
                         "exige_receita": stmt.excluded.exige_receita,
                         "categorias": stmt.excluded.categorias,
+                        "categoria_regulatoria": func.coalesce(
+                            stmt.excluded.categoria_regulatoria,
+                            CatalogoBase.categoria_regulatoria,
+                        ),
+                        "referencia_anvisa": func.coalesce(
+                            stmt.excluded.referencia_anvisa,
+                            CatalogoBase.referencia_anvisa,
+                        ),
+                        "exige_receita_confirmada": func.coalesce(
+                            stmt.excluded.exige_receita_confirmada,
+                            CatalogoBase.exige_receita_confirmada,
+                        ),
+                        "controle_especial": func.coalesce(
+                            stmt.excluded.controle_especial,
+                            CatalogoBase.controle_especial,
+                        ),
+                        "classificacao_fonte": func.coalesce(
+                            stmt.excluded.classificacao_fonte,
+                            CatalogoBase.classificacao_fonte,
+                        ),
                     },
                     where=(CatalogoBase.codigo_barras.is_not(None)),
                 )

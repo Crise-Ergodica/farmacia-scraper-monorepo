@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Image, ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { resolveMedicineImage } from '../services/catalog';
+import { resolveMedicineImages } from '../services/catalog';
 import { palette } from '../theme';
 import { Medicamento } from '../types/api';
 
@@ -14,11 +14,12 @@ type MedicineImageProps = {
 };
 
 export function MedicineImage({ medicine, style, imageStyle, label = 'Imagem indispon\u00edvel' }: MedicineImageProps) {
-  const imageUrl = resolveMedicineImage(medicine);
-  const [failedUrl, setFailedUrl] = useState<string>();
-  const visibleUrl = imageUrl && failedUrl !== imageUrl ? imageUrl : undefined;
+  const imageUrls = resolveMedicineImages(medicine);
+  const imageKey = imageUrls.join('|');
+  const [failedIndex, setFailedIndex] = useState(0);
+  const visibleUrl = imageUrls[failedIndex];
 
-  useEffect(() => setFailedUrl(undefined), [imageUrl]);
+  useEffect(() => setFailedIndex(0), [imageKey]);
 
   return (
     <View style={[styles.container, style]}>
@@ -27,7 +28,7 @@ export function MedicineImage({ medicine, style, imageStyle, label = 'Imagem ind
           accessibilityLabel={`Embalagem de ${medicine.nome}`}
           source={{ uri: visibleUrl }}
           resizeMode="contain"
-          onError={() => setFailedUrl(visibleUrl)}
+          onError={() => setFailedIndex((index) => index + 1)}
           style={[styles.image, imageStyle]}
         />
       ) : (

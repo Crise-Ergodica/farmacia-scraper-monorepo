@@ -23,7 +23,8 @@ def clean_and_convert_cmed_file(input_filepath: str, output_filepath: str) -> No
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print(
-            "Uso: python convert_cmed_xls_to_csv.py <caminho_entrada.xlsx> <caminho_saida.csv>"
+            "Uso: python convert_cmed_xls_to_csv.py "
+            "<caminho_entrada.xlsx> <caminho_saida.csv>"
         )
         sys.exit(1)
 

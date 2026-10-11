@@ -9,8 +9,8 @@ from sqlalchemy.dialects.postgresql import insert
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from app.core.database import SessionLocal
-from app.models.anvisa import AnvisaMedicamento
+from app.core.database import SessionLocal  # noqa: E402
+from app.models.anvisa import AnvisaMedicamento  # noqa: E402
 
 
 def normalize_ean(ean_str: str):
@@ -50,7 +50,7 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
     print(f"Lendo o CSV {csv_filepath}...")
 
     try:
-        # Lê todas as colunas como string para evitar perdas de precisão em IDs numéricos (como EAN)
+        # Lê colunas como strings para preservar a precisão dos identificadores.
         df = pd.read_csv(
             csv_filepath, sep=";", encoding="utf-8", dtype=str, keep_default_na=False
         )
@@ -58,10 +58,7 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
         print(f"Falha ao ler o CSV: {e}")
         sys.exit(1)
 
-    # Verificar colunas mínimas
-    colunas_esperadas = ["EAN 1", "SUBSTÂNCIA", "LABORATÓRIO", "TARJA"]
-
-    # Fazemos uma correspondência parcial, pois as colunas às vezes mudam um pouco no cabeçalho
+    # Fazemos correspondência parcial porque os cabeçalhos variam entre arquivos.
     # "EAN 1", "SUBSTÂNCIA", "LABORATÓRIO", "TARJA"
     col_map = {}
     for col in df.columns:
@@ -77,7 +74,8 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
 
     if len(col_map) < 4:
         print(
-            f"Aviso: Não encontrou as colunas exatas. Usando fallback. Colunas do arquivo: {df.columns.tolist()}"
+            "Aviso: Não encontrou as colunas esperadas. Usando fallback. "
+            f"Colunas disponíveis: {df.columns.tolist()}"
         )
         # Tenta pegar as que achar.
         ean_col = col_map.get("ean_col", "EAN 1")
@@ -104,7 +102,7 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
         eans_validos = normalize_ean(eans_str)
 
         for ean in eans_validos:
-            # Idempotência: caso o mesmo EAN apareça várias vezes no CSV, mantemos a última (ou primeira)
+            # Mantém uma entrada por EAN quando houver duplicatas no arquivo.
             # Para evitar estourar memória com DB queries
             if ean not in medicamentos_a_inserir:
                 medicamentos_a_inserir[ean] = {

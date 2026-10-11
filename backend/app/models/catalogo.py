@@ -46,12 +46,19 @@ class CatalogoBase(Base):
     name_search: Mapped[str] = mapped_column(String(150), index=True)
 
     principio_ativo: Mapped[str] = mapped_column(
-        String(150), index=True, default="Não informado"
+        String(500), index=True, default="Não informado"
     )
     laboratorio: Mapped[str] = mapped_column(
         String(100), index=True, default="Não informado"
     )
     exige_receita: Mapped[bool] = mapped_column(Boolean, default=False)
+    categoria_regulatoria: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    referencia_anvisa: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    exige_receita_confirmada: Mapped[bool | None] = mapped_column(
+        Boolean, nullable=True
+    )
+    controle_especial: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    classificacao_fonte: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     categorias: Mapped[list[str]] = mapped_column(
         ARRAY(String).with_variant(SQLiteArray, "sqlite"), default=list

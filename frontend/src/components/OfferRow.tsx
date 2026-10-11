@@ -7,13 +7,14 @@ import { MedicineImage } from './MedicineImage';
 type OfferRowProps = {
   medicine?: Medicamento;
   medicineName: string;
+  laboratory?: string;
   pharmacy: string;
   price: number | string;    // Agora aceita a string do Decimal do backend
   color?: string;
   onPress?: () => void;
 };
 
-function OfferRowContent({ medicine, medicineName, pharmacy, price, color }: OfferRowProps) {
+function OfferRowContent({ medicine, medicineName, laboratory, pharmacy, price, color }: OfferRowProps) {
   const safePrice = Number(price);
   const priceDisplay = Number.isFinite(safePrice)
     ? safePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -24,6 +25,7 @@ function OfferRowContent({ medicine, medicineName, pharmacy, price, color }: Off
       {medicine ? <MedicineImage medicine={medicine} style={styles.medicineImage} label="" /> : null}
       <View style={styles.offerInfo}>
         <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">{medicineName}</Text>
+        {!!laboratory && <Text style={styles.laboratory} numberOfLines={1} ellipsizeMode="tail">{laboratory}</Text>}
         <Text style={[styles.pharmacy, color ? { color } : null]} numberOfLines={1}>{pharmacy}</Text>
       </View>
       <View style={styles.priceColumn}>
@@ -73,6 +75,7 @@ const styles = StyleSheet.create({
   pharmacy: {
     fontSize: 12,
   },
+  laboratory: { color: palette.textSoft, fontSize: 12, marginBottom: 2 },
   priceColumn: {
     minWidth: 94,
     flexShrink: 0,

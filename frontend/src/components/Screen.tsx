@@ -23,6 +23,7 @@ type ScreenProps = {
   hideBottomNav?: boolean;
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
+  wideContent?: boolean;
 };
 
 const navigation = [
@@ -32,7 +33,7 @@ const navigation = [
   { label: 'Perfil', path: '/profile', icon: 'person-outline', activeIcon: 'person' },
 ] as const;
 
-export function Screen({ children, hideBottomNav = false, scroll = true, contentStyle }: ScreenProps) {
+export function Screen({ children, hideBottomNav = false, scroll = true, contentStyle, wideContent = false }: ScreenProps) {
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -59,19 +60,19 @@ export function Screen({ children, hideBottomNav = false, scroll = true, content
     router.replace('/login');
   };
 
-  const contentStyles = [styles.content, isDesktop && styles.contentDesktop, contentStyle, !isDesktop && !hideBottomNav && styles.contentWithMobileNav];
+  const contentStyles = [styles.content, isDesktop && (wideContent ? styles.contentDesktopWide : styles.contentDesktop), contentStyle, !isDesktop && !hideBottomNav && styles.contentWithMobileNav];
 
   return (
     <View style={styles.root}>
       {isDesktop && !hideBottomNav && (
         <View style={styles.desktopHeader}>
-          <View style={styles.headerInner}>
+          <View style={[styles.headerInner, wideContent && styles.headerInnerWide]}>
             <Pressable style={styles.brand} onPress={() => goTo('/home')} accessibilityRole="button" accessibilityLabel="Preço Bão, início">
               <View style={styles.brandMark}><Text style={styles.brandLetter}>P</Text></View>
               <View><Text style={styles.brandName}>Preço Bão</Text><Text style={styles.brandCaption}>COMPARADOR DE MEDICAMENTOS</Text></View>
             </Pressable>
             <View style={styles.desktopNavigation}>
-              {navigation.map((item) => {
+              {navigation.filter((item) => item.path !== '/search').map((item) => {
                 const active = activeTab === item.path.slice(1);
                 return (
                   <Pressable key={item.path} onPress={() => goTo(item.path)} accessibilityRole="button" accessibilityLabel={item.label} accessibilityState={{ selected: active }} style={({ hovered, pressed }) => [styles.desktopNavItem, active && styles.desktopNavItemActive, hovered && styles.desktopNavItemHover, pressed && styles.pressed]}>
@@ -153,6 +154,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   desktopHeader: { width: '100%', backgroundColor: palette.surface, borderBottomWidth: 1, borderBottomColor: palette.border },
   headerInner: { width: '100%', maxWidth: 1360, minHeight: 76, alignSelf: 'center', paddingHorizontal: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 28 },
+  headerInnerWide: { maxWidth: '100%', paddingHorizontal: 24 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 11, minWidth: 220 },
   brandMark: { width: 38, height: 38, borderRadius: 11, backgroundColor: palette.primary, justifyContent: 'center', alignItems: 'center' },
   brandLetter: { color: palette.surface, fontSize: 23, fontWeight: '900' },
@@ -172,6 +174,7 @@ const styles = StyleSheet.create({
   moreButton: { width: 38, height: 38, borderRadius: radius.sm, backgroundColor: palette.surfaceAlt, justifyContent: 'center', alignItems: 'center' },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl },
   contentDesktop: { maxWidth: 1320, paddingHorizontal: 32, paddingTop: 30, paddingBottom: 48 },
+  contentDesktopWide: { maxWidth: '100%', paddingHorizontal: 24, paddingTop: 30, paddingBottom: 48 },
   contentWithMobileNav: { paddingBottom: 80 },
   scrollContent: { flexGrow: 1 },
   mobileNavWrapper: { width: '100%', backgroundColor: palette.surface, borderTopWidth: 1, borderTopColor: palette.border, paddingTop: 7, paddingBottom: Platform.OS === 'web' ? 8 : 12 },

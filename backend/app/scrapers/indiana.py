@@ -249,6 +249,15 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                     laboratorio=dados_enriquecidos["laboratorio"],
                     exige_receita=dados_enriquecidos["exige_receita"],
                     categorias=dados_enriquecidos["categorias"],
+                    categoria_regulatoria=dados_enriquecidos.get(
+                        "categoria_regulatoria"
+                    ),
+                    referencia_anvisa=dados_enriquecidos.get("referencia_anvisa"),
+                    exige_receita_confirmada=dados_enriquecidos.get(
+                        "exige_receita_confirmada"
+                    ),
+                    controle_especial=dados_enriquecidos.get("controle_especial"),
+                    classificacao_fonte=dados_enriquecidos.get("classificacao_fonte"),
                 )
                 db.add(catalogo_item)
                 db.commit()  # Necessário para gerar o ID que será usado na oferta

@@ -3,11 +3,11 @@
 Revision ID: 3a72d8ce1f40
 Revises: 2fb279b2e8b3
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "3a72d8ce1f40"
 down_revision: Union[str, Sequence[str], None] = "2fb279b2e8b3"
@@ -16,14 +16,24 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("catalogo_base", sa.Column("imagem_url", sa.String(500), nullable=True))
-    op.add_column("catalogo_base", sa.Column("imagem_fonte", sa.String(40), nullable=True))
+    op.add_column(
+        "catalogo_base", sa.Column("imagem_url", sa.String(500), nullable=True)
+    )
+    op.add_column(
+        "catalogo_base", sa.Column("imagem_fonte", sa.String(40), nullable=True)
+    )
     op.add_column(
         "catalogo_base", sa.Column("imagem_sku_origem", sa.String(80), nullable=True)
     )
-    op.add_column("catalogo_base", sa.Column("imagem_ean", sa.String(14), nullable=True))
-    op.add_column("catalogo_base", sa.Column("imagem_match", sa.String(24), nullable=True))
-    op.add_column("catalogo_base", sa.Column("imagem_status", sa.String(20), nullable=True))
+    op.add_column(
+        "catalogo_base", sa.Column("imagem_ean", sa.String(14), nullable=True)
+    )
+    op.add_column(
+        "catalogo_base", sa.Column("imagem_match", sa.String(24), nullable=True)
+    )
+    op.add_column(
+        "catalogo_base", sa.Column("imagem_status", sa.String(20), nullable=True)
+    )
     op.add_column(
         "catalogo_base",
         sa.Column("imagem_verificada_em", sa.DateTime(timezone=True), nullable=True),
@@ -46,12 +56,8 @@ def upgrade() -> None:
         ["oferta_id"],
         ["id"],
     )
-    op.create_index(
-        "ix_historico_precos_oferta_id", "historico_precos", ["oferta_id"]
-    )
-    op.add_column(
-        "historico_precos", sa.Column("origem", sa.String(40), nullable=True)
-    )
+    op.create_index("ix_historico_precos_oferta_id", "historico_precos", ["oferta_id"])
+    op.add_column("historico_precos", sa.Column("origem", sa.String(40), nullable=True))
     op.add_column(
         "historico_precos", sa.Column("disponivel", sa.Boolean(), nullable=True)
     )

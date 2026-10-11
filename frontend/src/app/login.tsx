@@ -129,7 +129,8 @@ function getReadableMessage(value: unknown, fallback: string) {
 export default function LoginScreen() {
   const { continueAsGuest, signIn } = useSessionContext();
   const { width } = useWindowDimensions();
-  const isWide = Platform.OS === 'web' && width >= 900;
+  const isWeb = Platform.OS === 'web';
+  const isWide = isWeb && width >= 900;
   const { control, handleSubmit, setError, getValues, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -166,14 +167,11 @@ export default function LoginScreen() {
 
   return (
     <Screen hideBottomNav scroll contentStyle={styles.screenContent}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={isWeb ? styles.webKeyboardContainer : styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View
           style={[
             styles.page,
-            isWide && styles.pageWide,
-            !isWide && {
-              width: Math.max(0, Math.min(width - 36, 720)),
-            },
+            isWide ? styles.pageWide : styles.pageNarrow,
           ]}
         >
           <View style={[styles.brandPanel, isWide ? styles.brandPanelWide : styles.brandPanelNarrow]}>
@@ -187,14 +185,7 @@ export default function LoginScreen() {
             </View>}
           </View>
 
-          <View
-            style={[
-              styles.formPanel,
-              isWide ? styles.formPanelWide : styles.formPanelNarrow,
-              !isWide &&
-                width <= 480 && { width: Math.max(0, width - spacing.xxl * 2) },
-            ]}
-          >
+          <View style={[styles.formPanel, isWide ? styles.formPanelWide : styles.formPanelNarrow]}>
             <View style={styles.headingBlock}>
               <Text style={styles.title}>Entrar na sua conta</Text>
               <Text style={styles.subtitle}>Acesse seus favoritos e acompanhe medicamentos.</Text>
@@ -207,13 +198,13 @@ export default function LoginScreen() {
                   <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => setFocused('email')}
                     placeholder="seu@email.com" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false}
                     keyboardType="email-address" textContentType="emailAddress" accessibilityLabel="Email"
-                    style={[styles.input, focused === 'email' && styles.inputFocused, errors.email && styles.inputError, !isWide && width <= 480 && { width: width - spacing.xxl * 2 }]} />
+                    style={[styles.input, focused === 'email' && styles.inputFocused, errors.email && styles.inputError]} />
                 )} />
                 {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Senha</Text>
-                <View style={[styles.passwordRow, focused === 'password' && styles.inputFocused, errors.password && styles.inputError, !isWide && width <= 480 && { width: width - spacing.xxl * 2 }]}>
+                <View style={[styles.passwordRow, focused === 'password' && styles.inputFocused, errors.password && styles.inputError]}>
                   <Controller control={control} name="password" render={({ field: { onChange, onBlur, value } }) => (
                     <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => setFocused('password')}
                       placeholder="Digite sua senha" placeholderTextColor={palette.muted} secureTextEntry={!showPassword} textContentType="password"
@@ -232,10 +223,10 @@ export default function LoginScreen() {
             </View>}
 
             <View style={styles.actions}>
-              <Pressable style={({ pressed }) => [styles.primaryButton, !isWide && width <= 480 && { width: width - spacing.xxl * 2, alignSelf: 'center' }, pressed && styles.pressed, isSubmitting && styles.disabled]} onPress={handleSubmit(handleLogin)} disabled={isSubmitting} accessibilityRole="button">
+              <Pressable style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, isSubmitting && styles.disabled]} onPress={handleSubmit(handleLogin)} disabled={isSubmitting} accessibilityRole="button">
                 <Text style={styles.primaryButtonText}>{isSubmitting ? 'Entrando...' : 'Entrar'}</Text>
               </Pressable>
-              <Pressable style={({ pressed }) => [styles.secondaryButton, !isWide && width <= 480 && { width: width - spacing.xxl * 2, alignSelf: 'center' }, pressed && styles.pressed]} onPress={() => router.push('/signup' as never)} accessibilityRole="button">
+              <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]} onPress={() => router.push('/signup' as never)} accessibilityRole="button">
                 <Text style={styles.secondaryButtonText}>Criar conta</Text>
               </Pressable>
               <Pressable style={styles.guestButton} onPress={onGuestPress} accessibilityRole="button">
@@ -251,8 +242,10 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  webKeyboardContainer: { width: '100%' },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
   page: { width: '100%', maxWidth: 1060, alignSelf: 'center', gap: spacing.xl },
+  pageNarrow: { maxWidth: 520, paddingHorizontal: spacing.lg, boxSizing: 'border-box' } as any,
   pageWide: { flexDirection: 'row', alignItems: 'stretch', gap: 0, minHeight: 570, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.xl, overflow: 'hidden' },
   brandPanel: { width: '100%' },
   brandPanelNarrow: { maxWidth: 500, alignSelf: 'center' },
@@ -265,7 +258,7 @@ const styles = StyleSheet.create({
   brandHeading: { color: palette.text, fontSize: 34, lineHeight: 41, fontWeight: '800', maxWidth: 390 },
   brandDescription: { color: palette.textSoft, fontSize: 16, lineHeight: 24, maxWidth: 370 },
   formPanel: { flex: 1, width: 'auto', maxWidth: 500, alignSelf: 'stretch', justifyContent: 'center', gap: spacing.xl, paddingVertical: spacing.xl },
-  formPanelNarrow: { paddingHorizontal: spacing.lg, boxSizing: 'border-box' } as any,
+  formPanelNarrow: { width: '100%', paddingVertical: 0 },
   formPanelWide: { paddingHorizontal: 36 },
   headingBlock: { gap: spacing.xs },
   title: { color: palette.text, fontSize: 28, lineHeight: 35, fontWeight: '800' },

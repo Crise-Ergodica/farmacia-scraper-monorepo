@@ -8,16 +8,20 @@ import json
 import os
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
+from urllib.parse import urljoin
 
 import httpx
+from bs4 import BeautifulSoup
 from sqlalchemy import func, select
 
 from app.core.database import SessionLocal
 from app.models import CatalogoBase, Farmacia, OfertaFarmacia
 from app.services.imagens import (
+    embedded_eans,
     image_rejection_reason,
+    select_araujo_product_image,
     select_vtex_item_image,
     validate_image_association,
     verify_image_url,
@@ -42,6 +46,20 @@ def normalized(value: str) -> str:
         unicodedata.normalize("NFD", value).encode("ascii", "ignore").decode().lower()
     )
     return re.sub(r"[^a-z0-9]+", " ", decomposed).strip()
+
+
+def negative_cache_is_fresh(state: dict, source: str, key: str) -> bool:
+    """Retry absent source images after a week, but keep immediate reruns cheap."""
+    checked = state.setdefault("negative_checked_at", {})
+    cache_key = f"{source}:{key}"
+    today = datetime.now(timezone.utc).date()
+    if cache_key not in checked:
+        checked[cache_key] = today.isoformat()
+        return True
+    try:
+        return (today - date.fromisoformat(checked[cache_key])).days < 7
+    except ValueError:
+        return False
 
 
 async def discover_indiana(state: dict) -> dict[str, list[dict]]:
@@ -84,7 +102,8 @@ async def discover_indiana(state: dict) -> dict[str, list[dict]]:
 async def lookup_indiana_sku(sku: str, state: dict) -> dict | None:
     cache: dict[str, dict | None] = state.setdefault("indiana_by_sku", {})
     if sku in cache:
-        return cache[sku]
+        if cache[sku] is not None or negative_cache_is_fresh(state, "indiana", sku):
+            return cache[sku]
     try:
         async with httpx.AsyncClient(timeout=12, follow_redirects=False) as client:
             response = await client.get(
@@ -108,6 +127,10 @@ async def lookup_indiana_sku(sku: str, state: dict) -> dict | None:
             None,
         )
         cache[sku] = exact
+        if exact is None:
+            state.setdefault("negative_checked_at", {})[f"indiana:{sku}"] = (
+                datetime.now(timezone.utc).date().isoformat()
+            )
         await asyncio.sleep(0.25)
         return exact
     except (httpx.HTTPError, ValueError) as exc:
@@ -115,11 +138,142 @@ async def lookup_indiana_sku(sku: str, state: dict) -> dict | None:
         return None
 
 
+async def lookup_indiana_ean(ean: str, state: dict) -> dict | None:
+    """Query an exact EAN beyond the public search pagination ceiling."""
+    cache: dict[str, dict | None] = state.setdefault("indiana_by_ean_lookup", {})
+    if ean in cache:
+        if cache[ean] is not None or negative_cache_is_fresh(state, "indiana_ean", ean):
+            return cache[ean]
+    try:
+        async with httpx.AsyncClient(timeout=12, follow_redirects=False) as client:
+            response = await client.get(
+                SKU_API_URL, params={"fq": f"alternateIds_Ean:{ean}"}
+            )
+            response.raise_for_status()
+            if len(response.content) > 3_000_000:
+                raise ValueError("EAN response too large")
+            products = response.json()
+            if not isinstance(products, list):
+                raise ValueError("Unexpected EAN response")
+        exact = next(
+            (
+                {
+                    "item": item,
+                    "name": product.get("productName"),
+                    "sku": str(item.get("itemId") or ""),
+                    "link": product.get("link"),
+                }
+                for product in products
+                for item in product.get("items") or []
+                if str(item.get("ean") or "").strip() == ean
+                and select_vtex_item_image(item, expected_ean=ean)
+            ),
+            None,
+        )
+        cache[ean] = exact
+        if exact is None:
+            state.setdefault("negative_checked_at", {})[f"indiana_ean:{ean}"] = (
+                datetime.now(timezone.utc).date().isoformat()
+            )
+        await asyncio.sleep(0.25)
+        return exact
+    except (httpx.HTTPError, ValueError) as exc:
+        state.setdefault("indiana_ean_errors", {})[ean] = type(exc).__name__
+        return None
+
+
+async def lookup_araujo_image(offer: OfertaFarmacia, state: dict) -> str | None:
+    """Read the exact product page when its listing used a generic thumbnail."""
+    sku = offer.sku_interno or ""
+    cache = state.setdefault("araujo_by_sku", {})
+    if sku in cache:
+        if cache[sku] is not None or negative_cache_is_fresh(state, "araujo_sku", sku):
+            return cache[sku]
+    url = offer.url_origem or ""
+    if not re.fullmatch(r"https://www\.araujo\.com\.br/[^?#]+/\d+\.html", url):
+        state.setdefault("araujo_errors", {})[sku] = "Invalid product URL"
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
+            response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            response.raise_for_status()
+        if len(response.content) > 3_000_000:
+            state.setdefault("araujo_errors", {})[sku] = "Product page too large"
+            return None
+        image = select_araujo_product_image(
+            response.text, sku=sku, ean=None, product_url=url
+        )
+        cache[sku] = image
+        if not image:
+            state.setdefault("araujo_errors", {})[sku] = "No exact SKU image on page"
+            state.setdefault("negative_checked_at", {})[f"araujo_sku:{sku}"] = (
+                datetime.now(timezone.utc).date().isoformat()
+            )
+        await asyncio.sleep(0.25)
+        return image
+    except (httpx.HTTPError, ValueError) as exc:
+        state.setdefault("araujo_errors", {})[sku] = type(exc).__name__
+        return None
+
+
+async def lookup_araujo_ean(ean: str, state: dict) -> tuple[str, str] | None:
+    """Find an exact EAN photograph on Araújo without creating a commercial offer."""
+    cache = state.setdefault("araujo_by_ean", {})
+    if ean in cache:
+        cached = cache[ean]
+        if cached or negative_cache_is_fresh(state, "araujo_ean", ean):
+            return tuple(cached) if cached else None
+    search_url = "https://www.araujo.com.br/busca"
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
+            response = await client.get(
+                search_url, params={"q": ean}, headers={"User-Agent": "Mozilla/5.0"}
+            )
+            response.raise_for_status()
+            if len(response.content) > 3_000_000:
+                raise ValueError("Search page too large")
+            soup = BeautifulSoup(response.text, "html.parser")
+            product_urls = []
+            for link in soup.select('a[href]'):
+                url = urljoin(search_url, str(link.get("href") or ""))
+                if re.fullmatch(
+                    r"https://www\.araujo\.com\.br/[^?#]+/\d+\.html", url
+                ) and url not in product_urls:
+                    product_urls.append(url)
+            for product_url in product_urls[:5]:
+                page = await client.get(
+                    product_url, headers={"User-Agent": "Mozilla/5.0"}
+                )
+                page.raise_for_status()
+                if len(page.content) > 3_000_000:
+                    continue
+                sku = re.search(r"/(\d+)\.html$", product_url).group(1)
+                image = select_araujo_product_image(
+                    page.text,
+                    sku=f"ARJ{sku}",
+                    ean=ean,
+                    product_url=product_url,
+                )
+                if image and ean in embedded_eans(image):
+                    cache[ean] = [image, f"ARJ{sku}"]
+                    await asyncio.sleep(0.4)
+                    return image, f"ARJ{sku}"
+        cache[ean] = None
+        state.setdefault("negative_checked_at", {})[f"araujo_ean:{ean}"] = (
+            datetime.now(timezone.utc).date().isoformat()
+        )
+        state.setdefault("araujo_ean_errors", {})[ean] = "No exact EAN photo"
+    except (httpx.HTTPError, ValueError) as exc:
+        state.setdefault("araujo_ean_errors", {})[ean] = type(exc).__name__
+    return None
+
+
 async def main(
     limit: int | None = None,
     no_discovery: bool = False,
     recheck_verified: bool = False,
     retry_discovery: bool = False,
+    recheck_invalid: bool = False,
 ) -> None:
     try:
         state = (
@@ -173,9 +327,7 @@ async def main(
                 flush=True,
             )
 
-    processed: set[str] = (
-        set() if recheck_verified else set(state.get("processed_ids", []))
-    )
+    processed: set[str] = set(state.get("processed_ids", []))
     rejected: dict[str, str] = state.get("rejected", {})
     recovered: dict[str, dict] = state.get("recovered", {})
     query = select(CatalogoBase).order_by(CatalogoBase.id)
@@ -198,25 +350,49 @@ async def main(
         targets = []
         for medicine in medicines:
             key = str(medicine.id)
-            if key in processed or (
-                medicine.imagem_status == "verificada" and not recheck_verified
+            if recheck_invalid:
+                image_eans = embedded_eans(medicine.imagem_url or "")
+                if medicine.imagem_status != "verificada" or not (
+                    image_rejection_reason(medicine.imagem_url or "")
+                    or (
+                        medicine.codigo_barras
+                        and image_eans
+                        and medicine.codigo_barras not in image_eans
+                    )
+                ):
+                    continue
+            elif recheck_verified and medicine.imagem_status != "verificada":
+                continue
+            elif not recheck_verified and (
+                key in processed or medicine.imagem_status == "verificada"
             ):
                 continue
             candidates = []
             indiana_skus = set()
+            araujo_offers = []
             if medicine.imagem_url:
-                candidates.append(
-                    (
-                        medicine.imagem_url,
-                        medicine.imagem_fonte,
-                        medicine.imagem_sku_origem,
-                        medicine.imagem_ean,
-                        medicine.imagem_match or "sku",
+                file_eans = embedded_eans(medicine.imagem_url)
+                if (
+                    medicine.codigo_barras
+                    and file_eans
+                    and medicine.codigo_barras not in file_eans
+                ):
+                    rejected[key] = "O EAN no arquivo diverge do medicamento."
+                else:
+                    candidates.append(
+                        (
+                            medicine.imagem_url,
+                            medicine.imagem_fonte,
+                            medicine.imagem_sku_origem,
+                            medicine.imagem_ean,
+                            medicine.imagem_match or "sku",
+                        )
                     )
-                )
             for offer, pharmacy_name in offers_by_catalog.get(medicine.id, []):
                 if (offer.sku_interno or "").startswith("IND"):
                     indiana_skus.add(offer.sku_interno[3:])
+                if (offer.sku_interno or "").startswith("ARJ"):
+                    araujo_offers.append(offer)
                 if not offer.imagem_url:
                     continue
                 valid, match, reason = validate_image_association(
@@ -280,10 +456,12 @@ async def main(
                     "ean": ean,
                     "candidates": candidates,
                     "indiana_skus": sorted(indiana_skus),
+                    "araujo_offers": araujo_offers,
                 }
             )
 
         semaphore = asyncio.Semaphore(10)
+        search_semaphore = asyncio.Semaphore(3)
 
         async def resolve(target: dict) -> tuple[dict, tuple | None, str | None]:
             last_reason = rejected.get(target["key"])
@@ -298,6 +476,35 @@ async def main(
                     return (
                         target,
                         (image_url, source or check.source, sku, ean, match),
+                        None,
+                    )
+                last_reason = check.reason
+
+            for offer in target["araujo_offers"]:
+                async with semaphore:
+                    image_url = await lookup_araujo_image(offer, state)
+                if not image_url:
+                    last_reason = state.get("araujo_errors", {}).get(
+                        offer.sku_interno, last_reason
+                    )
+                    continue
+                valid, match, reason = validate_image_association(
+                    image_url=image_url,
+                    pharmacy_name="Araujo",
+                    sku=offer.sku_interno,
+                    ean=target["ean"],
+                    product_url=offer.url_origem,
+                )
+                if not valid:
+                    last_reason = reason
+                    continue
+                async with semaphore:
+                    check = await verify_image_url(image_url, timeout_seconds=8)
+                if check.ok:
+                    offer.imagem_url = image_url
+                    return (
+                        target,
+                        (image_url, "Araujo", offer.sku_interno, target["ean"], match),
                         None,
                     )
                 last_reason = check.reason
@@ -337,9 +544,53 @@ async def main(
                         None,
                     )
                 last_reason = check.reason
+            if target["ean"] and target["ean"] not in state.get("indiana_by_ean", {}):
+                async with search_semaphore:
+                    record = await lookup_indiana_ean(target["ean"], state)
+                if record:
+                    image_url = select_vtex_item_image(
+                        record["item"],
+                        expected_ean=target["ean"],
+                        expected_sku=record["sku"],
+                    )
+                    if image_url:
+                        async with semaphore:
+                            check = await verify_image_url(image_url, timeout_seconds=5)
+                        if check.ok:
+                            return (
+                                target,
+                                (
+                                    image_url,
+                                    "Indiana",
+                                    f"IND{record['sku']}",
+                                    target["ean"],
+                                    "ean",
+                                ),
+                                None,
+                            )
+                        last_reason = check.reason
+
+            if target["ean"] and len(target["ean"]) == 13:
+                async with search_semaphore:
+                    found = await lookup_araujo_ean(target["ean"], state)
+                if found:
+                    image_url, sku = found
+                    async with semaphore:
+                        check = await verify_image_url(image_url, timeout_seconds=8)
+                    if check.ok:
+                        return (
+                            target,
+                            (image_url, "Araujo", sku, target["ean"], "ean"),
+                            None,
+                        )
+                    last_reason = check.reason
+                else:
+                    last_reason = state.get("araujo_ean_errors", {}).get(
+                        target["ean"], last_reason
+                    )
             return target, None, last_reason
 
-        source_complete = bool(state.get("indiana_complete")) or no_discovery
+        source_complete = bool(state.get("indiana_complete"))
         for offset in range(0, len(targets), 40):
             batch = targets[offset : offset + 40]
             results = await asyncio.gather(*(resolve(target) for target in batch))
@@ -443,6 +694,11 @@ if __name__ == "__main__":
     parser.add_argument("--no-discovery", action="store_true")
     parser.add_argument("--recheck-verified", action="store_true")
     parser.add_argument(
+        "--recheck-invalid",
+        action="store_true",
+        help="Reprocess verified images rejected by local identity or URL checks.",
+    )
+    parser.add_argument(
         "--retry-discovery",
         action="store_true",
         help="Retry the paginated source scan from its saved offset after a failure.",
@@ -454,5 +710,6 @@ if __name__ == "__main__":
             args.no_discovery,
             args.recheck_verified,
             args.retry_discovery,
+            args.recheck_invalid,
         )
     )

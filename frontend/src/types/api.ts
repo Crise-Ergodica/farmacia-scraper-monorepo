@@ -28,6 +28,11 @@ export interface Medicamento {
   laboratorio: string;
   exige_receita: boolean;
   categorias: string[];
+  categoria_regulatoria?: string | null;
+  referencia_anvisa?: boolean | null;
+  exige_receita_confirmada?: boolean | null;
+  controle_especial?: boolean | null;
+  classificacao_fonte?: string | null;
   imagem_url?: string | null;
   imagem_ref?: string | null;
   imagem_fonte?: string | null;
