@@ -81,6 +81,19 @@ def test_produto_extraido_schema_limpeza_ean():
     assert produto.ean == "123456789"
 
 
+def test_produto_extraido_rejects_zero_price_from_failed_scrape():
+    dados = {
+        "id": "12345",
+        "sku_interno": "ARJ12345",
+        "name_search": "Dipirona 500mg",
+        "preco": 0,
+        "link": "https://farmacia.com/dipirona",
+    }
+
+    with pytest.raises(ValidationError):
+        ProdutoExtraidoSchema.model_validate(dados)
+
+
 def test_catalogo_base_schema_validacao_sucesso():
     dados = {
         "codigo_barras": "1234567890123",

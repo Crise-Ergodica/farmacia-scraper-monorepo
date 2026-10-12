@@ -2,11 +2,11 @@
 Módulo responsável pela definição dos contratos de dados (Schemas) do Catálogo.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from hashlib import sha256
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from app.services.imagens import image_delivery_rejection_reason
 
@@ -110,6 +110,13 @@ class HistoricoBase(BaseModel):
     preco: Decimal
     data_registro: datetime
     farmacia_id: int
+
+    @field_validator("data_registro")
+    @classmethod
+    def normalize_history_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 class HistoricoOut(HistoricoBase):

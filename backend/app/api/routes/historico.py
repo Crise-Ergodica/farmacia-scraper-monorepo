@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -41,6 +41,15 @@ def get_medicine_history(
 ):
     if db.get(CatalogoBase, medicamento_id) is None:
         raise HTTPException(status_code=404, detail="Medicamento não encontrado.")
+
+    total_statement = select(func.count()).select_from(HistoricoPreco).where(
+        HistoricoPreco.medicamento_id == medicamento_id
+    )
+    if farmacia_id is not None:
+        total_statement = total_statement.where(
+            HistoricoPreco.farmacia_id == farmacia_id
+        )
+    total_observacoes = db.execute(total_statement).scalar_one()
 
     statement = (
         select(HistoricoPreco, Farmacia.nome_fantasia)
@@ -104,5 +113,6 @@ def get_medicine_history(
         medicamento_id=medicamento_id,
         pharmacies=pharmacies,
         periodo=periodo,
+        total_observacoes=total_observacoes,
         statistics=statistics,
     )

@@ -1,8 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _assume_utc_for_naive_timestamp(value: datetime) -> datetime:
+    """Database timestamps are stored without tzinfo but represent UTC instants."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 class PricePointSchema(BaseModel):
@@ -18,6 +25,11 @@ class PricePointSchema(BaseModel):
     oferta_id: Optional[int] = None
     origem: Optional[str] = None
     disponivel: Optional[bool] = None
+
+    @field_validator("data_registro")
+    @classmethod
+    def normalize_timestamp_timezone(cls, value: datetime) -> datetime:
+        return _assume_utc_for_naive_timestamp(value)
 
 
 class PharmacyHistorySchema(BaseModel):
@@ -46,6 +58,11 @@ class PharmacyHistoryStatistics(BaseModel):
     primeira_observacao: datetime
     ultima_observacao: datetime
 
+    @field_validator("primeira_observacao", "ultima_observacao")
+    @classmethod
+    def normalize_observation_timezone(cls, value: datetime) -> datetime:
+        return _assume_utc_for_naive_timestamp(value)
+
 
 class MedicineHistoryResponse(BaseModel):
     """Response schema for the medicine price history endpoint.
@@ -58,4 +75,5 @@ class MedicineHistoryResponse(BaseModel):
     medicamento_id: int
     pharmacies: list[PharmacyHistorySchema]
     periodo: str = "all"
+    total_observacoes: int = 0
     statistics: dict[int, PharmacyHistoryStatistics] = Field(default_factory=dict)

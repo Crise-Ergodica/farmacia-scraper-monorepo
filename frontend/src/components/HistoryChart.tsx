@@ -26,6 +26,7 @@ export type HistoryChartSeries = {
 
 type HistoryChartProps = {
   series: HistoryChartSeries[];
+  emptyMessage?: string;
 };
 
 type ActivePoint = {
@@ -84,7 +85,7 @@ function getLineSegmentStyle(
   };
 }
 
-export function HistoryChart({ series }: HistoryChartProps) {
+export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
   const isWeb = Platform.OS === 'web';
 
   const [chartWidth, setChartWidth] = useState(0);
@@ -250,11 +251,10 @@ export function HistoryChart({ series }: HistoryChartProps) {
 
   if (!series.length || !timestamps.length) {
     return (
-      <View style={styles.emptyCard}>
-        <Text style={styles.emptyTitle}>Sem histórico disponível</Text>
-
+      <View testID="history-chart-empty" style={styles.emptyCard}>
+        <Text style={styles.emptyTitle}>Histórico de observações</Text>
         <Text style={styles.emptyText}>
-          Quando o backend retornar o histórico, o gráfico de linha será exibido aqui.
+          {emptyMessage || 'Ainda não há observações de preço registradas para este medicamento.'}
         </Text>
       </View>
     );

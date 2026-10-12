@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.api.routes.catalogo import redirecionar_imagem_catalogo
+from app.api.routes.catalogo import ler_historico, redirecionar_imagem_catalogo
 from app.api.routes.historico import get_medicine_history
 from app.models.base import Base
 from app.models.catalogo import CatalogoBase
@@ -618,6 +618,101 @@ def test_price_history_only_records_changes_and_period_endpoint_filters(db):
     assert response.statistics[pharmacy.id].menor_preco == Decimal("9.00")
     assert response.statistics[pharmacy.id].variacao_absoluta == Decimal("-1.00")
     assert offer.observado_em == now + timedelta(days=2)
+    assert event.data_registro == now
 
     empty_period = get_medicine_history(product.id, "7d", pharmacy.id, db)
     assert empty_period.pharmacies == []
+    assert empty_period.total_observacoes == 2
+
+
+def test_price_observation_rejects_invalid_zero_without_mutating_offer(db):
+    offer = OfertaFarmacia(
+        sku_interno="VALID-PRICE",
+        preco=Decimal("10.79"),
+        quantidade_estoque=1,
+        disponivel=True,
+        url_origem="https://farmacia.example/valid-price",
+        farmacia_id=1,
+        catalogo_id=1,
+    )
+    event = registrar_observacao_preco(
+        offer,
+        preco=Decimal("0"),
+        observado_em=datetime.now(),
+        origem="teste",
+        farmacia_id=1,
+        medicamento_id=1,
+        preco_anterior=Decimal("10.79"),
+    )
+
+    assert event is None
+    assert offer.preco == Decimal("10.79")
+    assert offer.observado_em is None
+
+
+def test_history_keeps_initial_pharmacy_observations_and_unavailable_offers(db):
+    product = CatalogoBase(name_search="Produto com duas farmácias")
+    indiana = Farmacia(
+        cnpj="11111111111111",
+        razao_social="Indiana Ltda",
+        nome_fantasia="Indiana",
+        endereco_completo="Local 1",
+    )
+    araujo = Farmacia(
+        cnpj="22222222222222",
+        razao_social="Araujo Ltda",
+        nome_fantasia="Araujo",
+        endereco_completo="Local 2",
+    )
+    db.add_all([product, indiana, araujo])
+    db.flush()
+    first_at = datetime(2026, 9, 1, 12, 0)
+    offers = [
+        OfertaFarmacia(
+            sku_interno="IND-1",
+            preco=Decimal("10.00"),
+            quantidade_estoque=1,
+            disponivel=True,
+            url_origem="https://indiana.example/item",
+            farmacia_id=indiana.id,
+            catalogo_id=product.id,
+        ),
+        OfertaFarmacia(
+            sku_interno="ARJ-1",
+            preco=Decimal("12.00"),
+            quantidade_estoque=0,
+            disponivel=False,
+            url_origem="https://araujo.example/item",
+            farmacia_id=araujo.id,
+            catalogo_id=product.id,
+        ),
+    ]
+    db.add_all(offers)
+    db.flush()
+    for offer, pharmacy, price in zip(offers, [indiana, araujo], ["10.00", "12.00"]):
+        event = registrar_observacao_preco(
+            offer,
+            preco=Decimal(price),
+            observado_em=first_at,
+            origem=pharmacy.nome_fantasia,
+            farmacia_id=pharmacy.id,
+            medicamento_id=product.id,
+            preco_anterior=None,
+        )
+        assert event is not None
+        db.add(event)
+    db.commit()
+
+    response = get_medicine_history(product.id, "all", None, db)
+    assert response.total_observacoes == 2
+    assert {item.pharmacy_name for item in response.pharmacies} == {"Indiana", "Araujo"}
+    assert all(len(item.history) == 1 for item in response.pharmacies)
+    assert all(
+        item.history[0].data_registro.tzinfo is not None
+        for item in response.pharmacies
+    )
+    assert response.statistics[araujo.id].primeiro_preco == Decimal("12.00")
+
+    legacy_events = ler_historico(product.id, db)
+    assert len(legacy_events) == 2
+    assert all(event.medicamento_id == product.id for event in legacy_events)

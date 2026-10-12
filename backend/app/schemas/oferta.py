@@ -45,7 +45,9 @@ class ProdutoExtraidoSchema(BaseModel):
         return v
 
     preco: float = Field(
-        default=0.0, ge=0.0, description="Preço do produto (precisão flutuante inicial)"
+        gt=0.0,
+        allow_inf_nan=False,
+        description="Preço positivo confirmado na coleta",
     )
     link: str = Field(..., max_length=500, description="URL de origem do produto")
     imagem_url: str | None = Field(

@@ -120,6 +120,7 @@ export default function HistoryScreen() {
   const [series, setSeries] = useState<HistoryChartSeries[]>([]);
   const [selectedPharmacies, setSelectedPharmacies] = useState<number[] | null>(null);
   const [historyStats, setHistoryStats] = useState<{ key: string; label: string; minimum: number; maximum: number; average: number; variation: number | null }[]>([]);
+  const [totalHistoryObservations, setTotalHistoryObservations] = useState(0);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [historyMessage, setHistoryMessage] = useState('');
   const [loadedMedicine, setLoadedMedicine] = useState<Medicamento | undefined>();
@@ -179,6 +180,13 @@ export default function HistoryScreen() {
 
   const lowestOffer = useMemo(() => getLowestOffer(currentOffers), [currentOffers]);
   const visibleSeries = useMemo(() => selectedPharmacies === null ? series : series.filter((item) => selectedPharmacies.includes(Number(item.key))), [selectedPharmacies, series]);
+  const chartEmptyMessage = historyMessage
+    ? 'Não foi possível consultar o histórico agora. Tente novamente mais tarde.'
+    : selectedPharmacies !== null && series.length > 0 && visibleSeries.length === 0
+    ? 'Selecione ao menos uma farmácia para visualizar as observações.'
+    : series.length === 0 && totalHistoryObservations > 0 && period !== 'all'
+      ? `Não há observações neste período. Existem ${totalHistoryObservations} observações em outras datas; selecione Tudo para consultá-las.`
+      : 'O acompanhamento ainda não possui observações reais de preço. Uma coleta bem-sucedida registrará o primeiro ponto.';
 
   const summaryCardWidth = isDesktop ? '31.5%' : isTablet ? '48%' : '100%';
 
@@ -187,6 +195,8 @@ export default function HistoryScreen() {
     const fetchHistory = async () => {
       if (!medicine || medicineId === null) {
         setSeries([]);
+        setHistoryStats([]);
+        setTotalHistoryObservations(0);
         setIsLoadingHistory(false);
         return;
       }
@@ -196,7 +206,7 @@ export default function HistoryScreen() {
 
       try {
         const response = await api.get(`/api/v1/medicines/${medicineId}/history?periodo=${period}`);
-        const data = response.data as { pharmacies?: { farmacia_id: number; pharmacy_name?: string; history: { data_registro: string; preco: number }[] }[]; statistics?: Record<string, { menor_preco: number; maior_preco: number; preco_medio: number; variacao_percentual: number | null }> };
+        const data = response.data as { pharmacies?: { farmacia_id: number; pharmacy_name?: string; history: { data_registro: string; preco: number }[] }[]; statistics?: Record<string, { menor_preco: number; maior_preco: number; preco_medio: number; variacao_percentual: number | null }>; total_observacoes?: number };
         const normalized = (data.pharmacies || []).map((item, index) => ({
           key: String(item.farmacia_id),
           label: item.pharmacy_name || `Farm\u00e1cia ${item.farmacia_id}`,
@@ -209,17 +219,19 @@ export default function HistoryScreen() {
         }));
         if (active) {
           setSeries(normalized);
+          setTotalHistoryObservations(Number(data.total_observacoes ?? normalized.reduce((count, item) => count + item.history.length, 0)));
           setSelectedPharmacies(null);
           setHistoryStats(normalized.flatMap((item) => {
             const stat = data.statistics?.[item.key];
             return stat ? [{ key: item.key, label: item.label, minimum: Number(stat.menor_preco), maximum: Number(stat.maior_preco), average: Number(stat.preco_medio), variation: stat.variacao_percentual === null ? null : Number(stat.variacao_percentual) }] : [];
           }));
-          setHistoryMessage(normalized.length ? '' : 'Ainda não há variações de preço registradas neste período.');
+          setHistoryMessage('');
         }
       } catch {
         if (active) {
           setSeries([]);
           setHistoryStats([]);
+          setTotalHistoryObservations(0);
           setHistoryMessage('N\u00e3o foi poss\u00edvel carregar o hist\u00f3rico real agora. As ofertas atuais continuam dispon\u00edveis abaixo.');
         }
       } finally {
@@ -435,7 +447,7 @@ export default function HistoryScreen() {
           <Text style={styles.loadingHistoryText}>Carregando histórico...</Text>
         </View>
       ) : (
-        <HistoryChart series={visibleSeries} />
+        <HistoryChart series={visibleSeries} emptyMessage={chartEmptyMessage} />
       )}
 
       {!!historyStats.length && (
