@@ -24,6 +24,7 @@ const IMAGE_PHARMACY_DOMAINS: Record<string, string> = {
   'www.farmaciasnissei.com.br': 'farmaciasnissei.com.br',
   'farmaciamodelo.com.br': 'farmaciamodelo.com.br',
   'www.farmaciamodelo.com.br': 'farmaciamodelo.com.br',
+  'drogariaspacheco.vteximg.com.br': 'drogariaspacheco.com.br',
 };
 function imageBelongsToOffer(
   imageUrl: string,

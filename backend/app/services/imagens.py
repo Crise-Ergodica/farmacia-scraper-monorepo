@@ -18,6 +18,7 @@ from app.models.catalogo import CatalogoBase
 
 ALLOWED_IMAGE_HOSTS = {
     "farmaciaindiana.vteximg.com.br": "Indiana",
+    "drogariaspacheco.vteximg.com.br": "Pacheco",
     "i3-imagens-prd.araujo.com.br": "Araujo",
     "www.araujo.com.br": "Araujo",
     "www.farmaciasnissei.com.br": "Nissei",
@@ -177,6 +178,8 @@ def offer_image_delivery_rejection_reason(
         if "nissei" in pharmacy
         else "FarmaciaModelo"
         if "modelo" in pharmacy
+        else "Pacheco"
+        if "pacheco" in pharmacy
         else None
     )
     if source != expected or expected is None:
@@ -190,6 +193,7 @@ def offer_image_delivery_rejection_reason(
         "Indiana": "farmaciaindiana.com.br",
         "Nissei": "farmaciasnissei.com.br",
         "FarmaciaModelo": "farmaciamodelo.com.br",
+        "Pacheco": "drogariaspacheco.com.br",
     }[expected]
     if product_host != domain and not product_host.endswith(f".{domain}"):
         return "Product URL does not match the offer pharmacy."
@@ -239,6 +243,11 @@ def catalog_image_matches_record(catalog: CatalogoBase) -> bool:
 
     if recorded_ean_match:
         return True
+
+    if source == "Pacheco":
+        if catalog.imagem_match in {"sku", "sku_item", "ean", "catalog_duplicate"}:
+            return True
+        return False
 
     if source == "Araujo":
         sku = re.fullmatch(r"ARJ(\d+)", catalog.imagem_sku_origem or "")
@@ -323,6 +332,8 @@ def validate_image_association(
         if "nissei" in normalized_pharmacy
         else "FarmaciaModelo"
         if "modelo" in normalized_pharmacy
+        else "Pacheco"
+        if "pacheco" in normalized_pharmacy
         else None
     )
     if expected_source is None:
@@ -375,6 +386,27 @@ def validate_image_association(
         ):
             return False, source, "Imagem externa exige vínculo confirmado por EAN."
         return True, "ean", None
+
+    if source == "Pacheco":
+        try:
+            product_host = (urlsplit(product_url or "").hostname or "").lower()
+        except ValueError:
+            return False, source, "URL do produto inválida."
+        if (
+            not identity_confirmed
+            or not product_url
+            or (
+                product_host != "drogariaspacheco.com.br"
+                and not product_host.endswith(".drogariaspacheco.com.br")
+            )
+        ):
+            return False, source, "Imagem da Pacheco exige vínculo confirmado com o domínio oficial."
+        match_kind = (
+            "ean"
+            if image_eans and ean and any(gtin_matches(ean, image_ean) for image_ean in image_eans)
+            else "sku"
+        )
+        return True, match_kind, None
 
     if not re.fullmatch(r"IND\d+", sku or "") or not product_url:
         return False, source, "SKU da Indiana ausente para conferir a imagem."
