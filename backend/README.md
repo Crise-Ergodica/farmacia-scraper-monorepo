@@ -1,46 +1,232 @@
-# `backend/`
+# Backend — Preço Bão
 
-A pasta `backend/` abriga o coração lógico e a inteligência de processamento de dados do nosso sistema de raspagem de dados de farmácias. A intenção inicial desta arquitetura é que ela funcione como uma API RESTful independente, construída utilizando o framework FastAPI em Python, focando em alta performance e assincronismo. É crucial entender que esta é apenas a proposta inicial do sistema e tudo pode mudar conforme o projeto escala ou novos gargalos de rede sejam descobertos. Atualmente, planejamos que este diretório contenha toda a lógica de web scraping, utilizando bibliotecas especializadas para buscar de forma concorrente os melhores preços, laboratórios e disponibilidade de medicamentos nas farmácias da região. Além da extração, esta pasta também é responsável por calcular a distância entre o usuário e o estabelecimento, utilizando fórmulas matemáticas baseadas nas coordenadas recebidas do aplicativo. Para manter a escalabilidade, a estrutura interna divide-se estritamente entre modelos de banco de dados (ORM) e esquemas de validação de dados (Pydantic), garantindo que a entrada e saída da API sejam tipadas e seguras. A longo prazo, se o volume de farmácias aumentar drasticamente, a arquitetura assíncrona permitirá uma transição mais suave para filas de mensageria, sem precisar reescrever o núcleo. Por enquanto, a intenção inicial é manter a simplicidade arquitetural para a entrega rápida do Produto Mínimo Viável (MVP), isolando regras de negócio em serviços.
+API RESTful em FastAPI para coleta, enriquecimento e consulta de preços de medicamentos. O backend expõe catálogo, ofertas, histórico de preços, favoritos e autenticação JWT via `fastapi-users`, além de hospedar scrapers e rotinas de manutenção de imagens.
 
-## `app/`
+## Arquitetura
 
-A pasta `app/` atua como o contêiner principal e o diretório raiz para todo o código-fonte operacional da nossa aplicação backend de web scraping. A intenção inicial deste diretório no sistema é encapsular estritamente o domínio da aplicação, separando de forma clara a lógica de negócios interna de arquivos de configuração externos, metadados de empacotamento ou suítes de testes independentes. Ao concentrar todos os módulos de execução do FastAPI dentro desta fronteira estrutural, nós adotamos indiretamente os princípios de design orientado a domínio, o que facilita imensamente a localização de bugs e a manutenção diária do código por qualquer desenvolvedor da equipe. Neste primeiro momento focado na entrega rápida do MVP, manteremos todo o ecossistema de rotas, conexão com o banco de dados e algoritmos de extração de dados de farmácias confinados aqui, garantindo um alto nível de coesão interna. Naturalmente, tudo pode mudar à medida que o projeto escalar e novas necessidades arquiteturais surgirem. Se no futuro decidirmos, por exemplo, separar o serviço de scraping da API RESTful em dois microserviços completamente distintos para otimizar o uso de CPU, essa pasta `app/` atual será o ponto de partida lógico para a refatoração, pois ela já concentra todo o valor do negócio. A sua existência garante um repositório limpo e organizado.
-
-- `app/api/` O diretório `api/` é estrategicamente desenhado para abrigar todas as rotas, endpoints e controladores de rede da nossa aplicação FastAPI. A intenção inicial deste sistema é centralizar a camada de comunicação HTTP, atuando como o único ponto de entrada para as requisições provenientes do nosso aplicativo móvel React Native Expo. Aqui, nós definiremos os caminhos das URLs (como a rota de busca de medicamentos ou a listagem de farmácias próximas) e aplicaremos injeções de dependência fundamentais, como a obtenção de sessões ativas do banco de dados ou a verificação de tokens de autenticação de usuários. Para o MVP da semana que vem, esta pasta manterá os controladores relativamente finos e diretos, recebendo a chamada do frontend, repassando os parâmetros para a camada de serviços e devolvendo a resposta formatada em JSON. No entanto, é fundamental compreender que tudo pode mudar conforme os gargalos de rede e requisitos do produto evoluírem até o final do ano. Posteriormente, poderemos precisar implementar versionamento severo de API criando subdiretórios como `/v1` e `/v2` aqui dentro, para garantir que os usuários com versões antigas do aplicativo móvel não percam o acesso repentinamente caso alteremos a estrutura de dados de retorno de um laboratório farmacêutico.
-- `app/core/` A pasta `app/core/` desempenha o papel crucial de centralizar as configurações vitais, parâmetros de segurança e inicializações globais do nosso servidor backend. A intenção inicial do sistema para este diretório é isolar componentes que não pertencem a nenhuma funcionalidade de negócio específica (como "produtos" ou "farmácias"), mas que são absolutamente essenciais para que o web scraper e a API funcionem adequadamente no ambiente de infraestrutura. Isso inclui a definição das regras de Cross-Origin Resource Sharing (CORS) para permitir que o frontend se comunique com o servidor sem bloqueios de navegador, a lógica central de tratamento de erros customizados, e as classes base de configuração do Pydantic que leem as variáveis de ambiente. É vital destacar que tudo pode mudar no decorrer do ciclo de vida da engenharia de software do projeto. Se a segurança da aplicação exigir no futuro a implementação de autenticação robusta via JSON Web Tokens (JWT) ou a limitação de taxa de requisições (rate limiting) para evitar ataques de negação de serviço, toda essa lógica transversal de infraestrutura de aplicação será orquestrada a partir deste núcleo, mantendo o restante do código limpo de preocupações puramente sistêmicas.
-- `app/models/` O diretório `app/models/` é inteiramente dedicado a definir a arquitetura relacional e persistente do nosso banco de dados. A intenção inicial deste sistema é abrigar estritamente as classes de Mapeamento Objeto-Relacional (ORM), utilizando ferramentas de ponta como SQLAlchemy ou SQLModel. Nestes arquivos, nós desenharemos como as tabelas de "Farmácias", "Medicamentos" e "Histórico de Preços" se relacionam estruturalmente no banco de dados PostgreSQL, definindo chaves primárias, chaves estrangeiras, limites de caracteres e restrições de nulidade. Separar os modelos de banco de dados do resto da lógica do sistema é uma prática arquitetural indispensável para garantir a integridade da persistência dos milhares de dados que vamos raspar. Vale ressaltar, contudo, que tudo pode mudar à medida que a volumetria de dados raspados crescer. Se o armazenamento relacional tradicional se tornar um gargalo de lentidão para a busca por geolocalização, poderemos migrar ou adaptar os modelos desta pasta para suportar extensões espaciais complexas, ou até mesmo mesclar bancos de dados NoSQL futuramente. Por enquanto, a disciplina de isolar a modelagem de dados aqui protege a aplicação contra falhas sistêmicas e facilita as migrações automáticas de esquema.
-- `app/schemas/` A pasta `app/schemas/` trabalha em conjunto direto, porém com responsabilidade diametralmente oposta, à pasta de modelos. A intenção inicial deste sistema é abrigar as classes do Pydantic responsáveis por validar estritamente todos os dados que entram ou saem da nossa API, atuando como um filtro de segurança e consistência. Enquanto os `models/` cuidam de como o dado é salvo no disco, os `schemas/` garantem que o payload JSON enviado pelo aplicativo móvel React Native contenha os tipos corretos (por exemplo, garantindo que a latitude seja um float válido e não uma string arbitrária) antes mesmo de a requisição atingir a nossa regra de negócio. Essa segregação de I/O é a fundação de uma API segura e autodocumentada. Evidentemente, tudo pode mudar na arquitetura se os requisitos do cliente se tornarem drasticamente dinâmicos. A flexibilidade desta pasta nos permite criar esquemas de leitura (com dados sensíveis filtrados) e esquemas de escrita (exigindo campos obrigatórios diferentes) para a exata mesma entidade de banco de dados, garantindo que nunca vazaremos dados internos do sistema para o ambiente externo de forma não intencional e sem tratamento adequado prévio.
-- `app/scrapers/` O diretório `app/scrapers/` é o motor de extração de valor deste projeto e o ponto mais sensível da nossa arquitetura de dados. A intenção inicial deste sistema é abrigar todos os scripts Python customizados, utilizando bibliotecas como `BeautifulSoup` e `httpx`, encarregados de navegar no HTML das farmácias locais, fazer o parsing estrutural das tags e extrair os nomes dos laboratórios, preços e disponibilidade de estoque dos medicamentos. Cada farmácia alvo deverá ter seu módulo de extração isolado aqui, padronizando a saída confusa da internet para formatos limpos que a nossa aplicação entenda. Obviamente, por lidarmos com a volatilidade da internet, tudo pode mudar da noite para o dia. Os layouts dos sites das farmácias sofrerão alterações, exigindo que a equipe de engenharia volte a este diretório rotineiramente para consertar seletores CSS quebrados ou atualizar algoritmos de requisição. Além disso, se a coleta estática se mostrar ineficiente diante de sites construídos pesadamente com JavaScript moderno, poderemos ter que introduzir tecnologias de scraping mais complexas, como Playwright ou Selenium, mudando completamente o paradigma de I/O destes módulos internos isolados.
-- `app/services/` A pasta `app/services/` representa a camada de caso de uso e regras de negócio pura do nosso web scraper de farmácias. A intenção inicial deste sistema é orquestrar o fluxo de informações, garantindo que os controladores da API permaneçam enxutos e sem conhecimento de lógicas complexas. É aqui que os algoritmos de cálculo de distância espacial (como a Fórmula de Haversine) serão implementados. Quando um usuário buscar por um remédio no aplicativo, é a classe de serviço localizada nesta pasta que coordenará as ações: ela chamará os módulos da pasta `scrapers/`, cruzará esses dados em memória, aplicará filtros de laboratório exigidos pelo usuário e, finalmente, preparará a estrutura para ser formatada e enviada de volta ao cliente. Mas esteja ciente de que tudo pode mudar conforme a regra de negócio se densificar. Se o processamento síncrono da busca nas farmácias ultrapassar limites aceitáveis de tempo de espera do usuário, os serviços contidos nesta pasta precisarão ser completamente reescritos para delegar as tarefas pesadas a serviços de processamento em segundo plano ou filas distribuídas, mantendo a arquitetura sustentável.
-- `tests/` O diretório `tests/` atua como a nossa apólice de seguro contra regressões no código do backend em evolução constante. A intenção inicial deste sistema é acomodar toda a suíte de testes automatizados, desde testes unitários finos para a fórmula de distância até testes de integração que validam se os nossos endpoints FastAPI respondem corretamente sem quebrar o banco de dados. Em um projeto onde os `scrapers/` precisarão de manutenção frequente devido às mudanças nas farmácias, rodar o `pytest` contido aqui garantirá que não introduziremos novos bugs ao consertar antigos. É importante notar, no entanto, que tudo pode mudar em relação às nossas estratégias de qualidade. Inicialmente faremos o uso de dados estáticos falseados (mocks) para evitar fazer centenas de requisições de rede durante a execução dos testes e sermos bloqueados pelas farmácias. No futuro, poderemos expandir essa pasta agressivamente para incluir testes de carga, testes de contrato e testes end-to-end sofisticados, que validarão a confiabilidade sistêmica do produto como um todo antes de cada deploy no ambiente de produção final.
-- `app/__init__.py` O arquivo `__init__.py`, localizado dentro do diretório `app/`, desempenha uma função estrutural técnica absolutamente vital para a linguagem Python, transformando um simples agrupamento de pastas e diretórios em um pacote modular reconhecido formalmente pelo interpretador. A intenção inicial deste arquivo no nosso sistema de farmácias é marcar explicitamente a fronteira do nosso módulo principal de aplicação, permitindo que outros arquivos e os nossos scripts da pasta de testes consigam importar componentes internos de forma limpa, confiável e absoluta, utilizando a sintaxe de importação padrão e elegante do Python. Historicamente, nas versões mais antigas da linguagem, o interpretador exigia obrigatoriamente a presença contínua deste arquivo oculto para que qualquer importação de submódulos funcionasse corretamente de forma sistêmica. Embora as versões modernas tenham introduzido gradualmente o conceito mais dinâmico de pacotes de namespace implícitos, a manutenção explícita do `__init__.py` continua sendo amplamente considerada a melhor prática de engenharia de software para organizar arquiteturas limpas.
-- `app/main.py` O arquivo `app/main.py` serve fundamentalmente como o principal ponto de ignição neuvrálgica de toda a nossa infraestrutura de software, orquestrando a subida efetiva do servidor de processos. A intenção inicial deste sistema contido neste único script é instanciar concretamente o objeto principal do framework FastAPI, que passará a escutar ativamente todas as conexões HTTP provindas dos celulares dos usuários espalhados pela cidade. É rigorosamente nas entranhas processuais deste arquivo que as políticas de segurança defensivas primárias, como os middlewares interceptadores globais de CORS, são meticulosamente anexadas, assegurando que o nosso web scraper não bloqueie acidentalmente as legítimas requisições geradas pelo painel do aplicativo desenvolvido utilizando a tecnologia multiplataforma do Expo. Adicionalmente, este módulo atua como um grande roteador central, encarregado de importar todas as sub-rotas isoladas que construímos no diretório de APIs e unificá-las elegantemente em um único grafo estruturado, tornando a documentação gerada automaticamente acessível e coesa.
-- `pyproject.toml` O arquivo `pyproject.toml`, devidamente acomodado na raiz da pasta do backend, representa o padrão ouro moderno e absoluto para o gerenciamento de empacotamento, controle de qualidade de código e orquestração de dependências no complexo ecossistema atual do Python. A intenção inicial deste sistema declarativo é erradicar definitivamente a instabilidade crônica causada pelos antigos, frágeis e ultrapassados métodos de controle baseados exclusivamente em arquivos de texto simples, os quais rotineiramente provocavam colisões destrutivas de versões de bibliotecas críticas durante as complicadas fases de subida para o servidor. Através da utilização nativa de ferramentas contemporâneas extremamente robustas, nós garantiremos matematicamente que a versão específica e vitalícia do `BeautifulSoup4` ou do `FastAPI` utilizada rigorosamente na máquina de desenvolvimento local será perfeitamente replicada sem quaisquer margens para falhas na infraestrutura de produção espelhada no contêiner do Docker principal.
-- `.env` O arquivo `.env`, o qual deve sempre e compulsoriamente residir na raiz protegida da pasta lógica de execução do projeto de backend, é a principal trincheira técnica invisível que blinda e viabiliza a segurança operacional avançada e as configurações flexíveis do nosso servidor focado nas coletas locais. A intenção inicial deste sistema puramente baseado em chave e valor é abraçar incontestavelmente os mais respeitáveis e testados princípios da engenharia moderna inerentes à consagrada metodologia das aplicações de doze fatores globais. Ao abstrairmos completamente do código fonte estático as senhas absolutas dos bancos de dados sensíveis e os caminhos de endereçamento variável das redes locais de orquestração, nós anulamos por completo o gravíssimo e comum risco cibernético de realizar envios permanentes de credenciais privadas corporativas e chaves para o repositório público na nuvem de armazenamento online.
-# Execução e segurança
-
-Configure `DATABASE_URL`, `JWT_SECRET` e `BACKEND_CORS_ORIGINS` no ambiente ou em
-`backend/.env` (veja `.env.example`). `JWT_SECRET` deve ser um valor aleatório longo
-e estável entre reinícios. Para ambientes já implantados, migre o segredo de forma
-planejada: trocar seu valor invalida os tokens existentes. Não use o valor de exemplo
-em produção.
-
-```powershell
-cd backend
-poetry install
-poetry run alembic upgrade head
-poetry run uvicorn app.main:app --reload
-poetry run python -m pytest -q
-poetry run ruff check app tests
+```text
+backend/
+├── app/
+│   ├── api/routes/       # Endpoints FastAPI (catálogo, usuários, histórico)
+│   ├── core/             # Configuração, banco de dados, auth JWT e utilitários
+│   ├── models/           # Modelos SQLAlchemy (ORM)
+│   ├── schemas/          # Schemas Pydantic (validação de entrada/saída)
+│   ├── scrapers/         # Módulos de scraping por farmácia
+│   ├── services/         # Regras de negócio, enriquecimento e imagens
+│   ├── main.py           # Ponto de entrada da aplicação
+│   └── __init__.py
+├── migrations/           # Migrações Alembic
+├── scripts/              # ETL CMED, manutenção de imagens e auditorias
+├── tests/                # Testes unitários e de integração (pytest)
+├── docker-compose.yml    # PostgreSQL, API, túnel Cloudflare e manutenção
+├── alembic.ini           # Configuração do Alembic
+├── pyproject.toml        # Dependências Poetry e configuração de ferramentas
+└── .env.example          # Template de variáveis de ambiente
 ```
 
-Os módulos atualizados nesta refatoração passam no Ruff. A verificação global
-ainda aponta pendências de estilo em módulos legados do repositório, inclusive
-scrapers que foram mantidos sem alterações.
+### Camadas
 
-As tabelas associativas de favoritos já têm chave primária composta por usuário e
-item. Esta alteração usa essas chaves existentes; não exige migration nem altera
-registros. Os endpoints `/users/me/favoritos/*` exigem JWT e retornam os dados do
-usuário autenticado. O logout JWT remove o token do cliente; tokens emitidos
-continuam válidos até expirar (uma hora) porque a estratégia JWT não possui lista
-de revogação no servidor.
+- **`api/routes/`**: controladores finos que recebem requisições HTTP, delegam aos serviços e retornam JSON. Rotas atuais: `catalogo`, `usuarios`, `historico`.
+- **`core/`**: configurações globais. `auth.py` configura `fastapi-users` com backend JWT. `database.py` gerencia sessões SQLAlchemy. `utils.py` contém funções auxiliares. CORS é configurado em `main.py` lendo `BACKEND_CORS_ORIGINS` como lista JSON; o regex `https?://(localhost|127\.0\.0\.1)(:\d+)?` libera qualquer porta local para o Expo dev server.
+- **`models/`**: tabelas PostgreSQL via SQLAlchemy. Entidades principais: `CatalogoBase`, `OfertaFarmacia`, `AnvisaMedicamento`, `HistoricoPreco`, `Usuario`, `Farmacia`. Favoritos usam tabelas associativas com chave primária composta (`usuario_medicamento_favorito`, `usuario_farmacia_favorita`).
+- **`schemas/`**: validação Pydantic separada dos modelos ORM. Schemas de leitura e escrita podem divergir para filtrar campos sensíveis.
+- **`scrapers/`**: módulos isolados por farmácia (`araujo.py`, `indiana.py`) com base comum em `base.py`. Usam `httpx` e `BeautifulSoup`. Layouts mudam frequentemente; cada scraper precisa de manutenção contínua.
+- **`services/`**: orquestração de regras de negócio. `enriquecimento.py` cruza dados CMED com ofertas raspadas. `imagens.py` valida e associa URLs de imagens. `image_reference_portability.py` migra referências legadas. `preco_observacoes.py` normaliza observações de preço.
+
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env` (ou use `make envs` na raiz):
+
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | URL de conexão PostgreSQL para uso local (`127.0.0.1:4242`) |
+| `DATABASE_URL_DOCKER` | URL de conexão para contêineres (`db:5432`) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Credenciais do PostgreSQL |
+| `JWT_SECRET` | Segredo aleatório longo para assinatura JWT. Trocar invalida tokens existentes |
+| `BACKEND_CORS_ORIGINS` | Lista JSON de origens permitidas (ex: `["http://localhost:8081"]`) |
+| `IMAGE_MONITOR_ENABLED` | Ativa monitoramento periódico de URLs de imagens |
+| `IMAGE_RECOVERY_ENABLED` | Ativa recuperação automática de imagens quebradas |
+| `IMAGE_MONITOR_BATCH_SIZE` | Quantidade de imagens verificadas por ciclo |
+| `IMAGE_RECOVERY_BATCH_SIZE` | Quantidade de imagens recuperadas por ciclo |
+| `IMAGE_MONITOR_RECHECK_HOURS` | Intervalo mínimo entre reverificações da mesma imagem |
+| `IMAGE_MONITOR_CONCURRENCY` | Concorrência máxima nas verificações de imagem |
+| `IMAGE_MONITOR_HOST_INTERVAL` | Delay entre requisições ao mesmo host (respeito a rate limits) |
+| `IMAGE_MAINTENANCE_INTERVAL_SECONDS` | Intervalo entre ciclos do serviço de manutenção |
+
+Senhas com caracteres especiais devem usar percent-encoding nos URLs de conexão.
+
+## Comandos locais
+
+```sh
+cd backend
+poetry install                              # Instala dependências
+poetry run alembic upgrade head             # Aplica migrações
+poetry run uvicorn app.main:app --reload    # Inicia API em modo desenvolvimento
+poetry run python -m pytest -q              # Roda testes
+poetry run ruff check app tests             # Verifica estilo de código
+```
+
+Na raiz do monorepo, os comandos equivalentes são `make setup-back`, `make migrate-back`, `make run-back`.
+
+## Docker Compose
+
+O `docker-compose.yml` define quatro serviços:
+
+| Serviço | Descrição |
+|---|---|
+| `db` | PostgreSQL 15 Alpine. Porta `4242` (host) → `5432` (contêiner). Volume persistente `postgres_data`. Health check via `pg_isready`. |
+| `api` | FastAPI na porta `8000`. Depende de `db` saudável. Usa `DATABASE_URL_DOCKER`. |
+| `image-maintenance` | Ciclo contínuo de verificação e recuperação de imagens. Perfil `maintenance` (não inicia por padrão). |
+| `tunnel` | Cloudflare Tunnel (`cloudflared`) expondo a API publicamente. Útil para acessar a API de dispositivos móveis fora da rede local sem configurar IP público ou DNS. |
+
+### Execução
+
+```sh
+# Subir apenas banco e API
+docker compose up -d db api
+
+# Subir tudo incluindo manutenção de imagens
+docker compose --profile maintenance up -d
+
+# Derrubar e destruir volumes
+docker compose down -v
+```
+
+A porta `4242` do PostgreSQL é exposta no host para permitir conexões diretas de clientes SQL externos (DBeaver, psql, etc.) durante o desenvolvimento.
+
+## Pipeline ETL (CMED)
+
+O catálogo base vem da planilha oficial da ANVISA/CMED. O pipeline tem duas etapas:
+
+1. **Conversão** (`scripts/convert_cmed_xls_to_csv.py`): lê o XLSX (pulando 41 linhas de cabeçalho), limpa colunas vazias e exporta CSV UTF-8 com separador `;`.
+2. **Ingestão** (`scripts/ingest_anvisa_cmed.py`): normaliza EANs (remove hifens, espaços, zeros à esquerda; aceita 13 ou 14 dígitos), faz upsert no modelo `AnvisaMedicamento` via SQLAlchemy.
+
+Execute pela raiz:
+
+```sh
+make etl-run                                                    # Caminhos padrão
+make etl-run CMED_XLSX=data/nova.xlsx CMED_CSV=data/cmed.csv   # Caminhos customizados
+```
+
+### Scripts adicionais
+
+| Script | Função |
+|---|---|
+| `ingest_anvisa_oficial.py` | Ingestão alternativa com classificação oficial ANVISA |
+| `manter_imagens_catalogo.py` | Verifica URLs de imagens e recupera candidatas pendentes (usado pelo serviço `image-maintenance`) |
+| `processar_imagens.py` | Processamento em lote de imagens do catálogo |
+| `capturar_frontend_imagens.py` | Captura imagens renderizadas no frontend para validação |
+| `portar_referencias_imagens.py` | Migra referências de imagens entre formatos legados |
+| `reclassificar_imagens_genericas.py` | Reclassifica imagens genéricas com base em metadados |
+| `auditar_integridade_catalogo.py` | Verifica consistência entre catálogo, ofertas e imagens |
+| `validar_imagens_catalogo.py` | Valida URLs de imagens ativas no catálogo |
+| `verificar_cobertura_referencias_imagens.py` | Reporta cobertura de referências de imagens por produto |
+| `testar_restauracao_referencias.py` | Testa restauração de referências de imagens a partir de backups |
+| `validar_favoritos_imagem_browser.py` | Valida imagens de favoritos via navegador headless |
+| `validar_fluxos_imagem_frontend.py` | Valida fluxos completos de exibição de imagens no frontend |
+
+## Endpoints
+
+Rotas montadas em `app/main.py`:
+
+### Health check
+
+| Método | Path | Descrição |
+|---|---|---|
+| GET | `/` | Retorna `{"Hello": "Aurora"}` |
+
+### Catálogo (`/catalogo`)
+
+| Método | Path | Descrição |
+|---|---|---|
+| GET | `/catalogo` | Lista paginada de medicamentos com busca e filtros |
+| GET | `/catalogo/farmacias` | Lista todas as farmácias cadastradas |
+| GET | `/catalogo/mais-baratos` | Medicamentos mais baratos (limite configurável) |
+| GET | `/catalogo/filtros/opcoes` | Opções disponíveis para filtros dinâmicos |
+| GET | `/catalogo/medicamentos/{id}` | Detalhes do medicamento com ofertas |
+| GET | `/catalogo/medicamentos/{id}/imagem` | Redirecionamento para imagem do medicamento (oculto do schema) |
+
+### Autenticação e Usuários
+
+Autenticação gerenciada por `fastapi-users` (configurado em `app/core/auth.py`).
+
+| Método | Path | Descrição |
+|---|---|---|
+| POST | `/auth/jwt/login` | Login com email e senha, retorna JWT |
+| POST | `/auth/register` | Cadastro de nova conta |
+| GET | `/users/me` | Perfil do usuário autenticado |
+| PATCH | `/users/me` | Atualiza perfil do usuário autenticado |
+
+### Favoritos
+
+Favoritos são divididos em dois recursos independentes. Todos exigem JWT válido.
+
+**Medicamentos:**
+
+| Método | Path | Descrição |
+|---|---|---|
+| GET | `/users/me/favoritos/medicamentos` | Lista medicamentos favoritos |
+| POST | `/users/me/favoritos/medicamentos/{id}` | Adiciona medicamento aos favoritos |
+| DELETE | `/users/me/favoritos/medicamentos/{id}` | Remove medicamento dos favoritos |
+
+**Farmácias:**
+
+| Método | Path | Descrição |
+|---|---|---|
+| GET | `/users/me/favoritos/farmacias` | Lista farmácias favoritas |
+| POST | `/users/me/favoritos/farmacias/{id}` | Adiciona farmácia aos favoritos |
+| DELETE | `/users/me/favoritos/farmacias/{id}` | Remove farmácia dos favoritos |
+
+### Histórico de Preços (`/api/v1/medicines`)
+
+| Método | Path | Descrição |
+|---|---|---|
+| GET | `/api/v1/medicines/{id}/history` | Histórico de preços por medicamento. Parâmetros: `periodo` (`7d`, `30d`, `90d`, `6m`, `1y`, `all`), `farmacia_id` (opcional) |
+
+Tokens JWT expiram em uma hora. Não há lista de revogação no servidor; logout remove o token apenas no cliente.
+
+## Modelos de dados
+
+| Modelo | Tabela | Descrição |
+|---|---|---|
+| `CatalogoBase` | `catalogo_base` | Catálogo unificado de medicamentos (SKU interno, EAN, nome, laboratório) |
+| `AnvisaMedicamento` | `anvisa_medicamento` | Dados oficiais CMED/ANVISA |
+| `OfertaFarmacia` | `oferta_farmacia` | Preços e disponibilidade raspados por farmácia |
+| `HistoricoPreco` | `historico_preco` | Série temporal de preços por oferta |
+| `Farmacia` | `farmacia` | Cadastro de farmácias alvo |
+| `Usuario` | `usuario` | Contas de usuário com hash de senha |
+| `usuario_medicamento_favorito` | `usuario_medicamento_favorito` | Associação muitos-para-muitos (usuário ↔ medicamento favorito) |
+| `usuario_farmacia_favorita` | `usuario_farmacia_favorita` | Associação muitos-para-muitos (usuário ↔ farmácia favorita) |
+
+## Testes
+
+```sh
+poetry run python -m pytest -q                                  # Todos os testes
+poetry run python -m pytest tests/test_api_usuarios.py -v       # Arquivo específico
+```
+
+Suíte atual cobre: integridade do catálogo, filtros de classificação, sessões e favoritos, histórico de preços e imagens, manutenção de imagens, portabilidade de referências, validação de modelos, idempotência de scrapers sem EAN, e integração com banco de dados.
+
+Testes usam mocks para evitar requisições reais a farmácias. Dados de teste são configurados em `tests/conftest.py`.
+
+## Migrações
+
+Gerenciadas pelo Alembic. Configuração em `alembic.ini` e `migrations/env.py`.
+
+```sh
+poetry run alembic upgrade head                         # Aplica todas as migrações pendentes
+poetry run alembic revision --autogenerate -m "descricao"  # Cria nova migração a partir das mudanças nos modelos
+poetry run alembic downgrade -1                         # Reverte última migração
+poetry run alembic history                              # Lista todas as migrações existentes
+```
+
+Migrações existentes cobrem: tabelas iniciais, modelo ANVISA, separação catálogo/ofertas, categorias e enriquecimento, usuários e favoritos, referências de imagens, histórico com observações, SKU vs EAN, expansão de ingrediente ativo, e manutenção de imagens.
+
+## Segurança
+
+- `JWT_SECRET` deve ser gerado aleatoriamente e mantido estável entre reinícios.
+- Nunca commite `.env`. Use `.env.example` como template.
+- CORS permite localhost em qualquer porta via regex para compatibilidade com Expo dev server.
+- Tokens JWT não são revogados no servidor; expiram naturalmente em uma hora.
+- Senhas de banco com caracteres especiais exigem percent-encoding nos URLs.
+- A autenticação usa `fastapi-users` com backend JWT. Configuração completa em `app/core/auth.py`.

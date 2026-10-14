@@ -1,44 +1,99 @@
-# Projeto: Farmacia-Scrapper-Monorepo
+# Preço Bão — Monorepo
 
-Este documento descreve a arquitetura base do nosso monorepo. As definições abaixo servem como um guia do nosso direcionamento técnico atual para a construção da plataforma de coleta e exibição de preços de medicamentos.
+Plataforma de coleta e comparação de preços de medicamentos em farmácias da região. O repositório é um monorepo com backend em Python (FastAPI), frontend em React Native (Expo) e scripts de bootstrap para configuração de ambiente.
 
-## Estrutura de Diretórios
+## Visão geral do fluxo
 
-### `backend/`
+1. **ETL CMED**: a planilha oficial da ANVISA é convertida para CSV e ingerida no PostgreSQL, criando o catálogo base de medicamentos.
+2. **Scraping**: módulos em `backend/app/scrapers/` coletam preços e disponibilidade nas farmácias alvo.
+3. **Enriquecimento**: serviços em `backend/app/services/` cruzam dados, calculam distâncias e mantêm imagens verificadas.
+4. **API**: o FastAPI expõe catálogo, ofertas, histórico de preços e favoritos via endpoints REST.
+5. **Frontend**: o app Expo consome a API e apresenta busca, filtros, detalhes, histórico e favoritos.
 
-A pasta `backend/` abriga o coração lógico e a inteligência de processamento de dados do nosso sistema de raspagem de dados de farmácias. A intenção inicial desta arquitetura é que ela funcione como uma API RESTful independente, construída utilizando o framework FastAPI em Python, focando em alta performance e assincronismo. É crucial entender que esta é apenas a proposta inicial do sistema e tudo pode mudar conforme o projeto escala ou novos gargalos de rede sejam descobertos. Atualmente, planejamos que este diretório contenha toda a lógica de web scraping, utilizando bibliotecas especializadas para buscar de forma concorrente os melhores preços, laboratórios e disponibilidade de medicamentos nas farmácias da região. Além da extração, esta pasta também é responsável por calcular a distância entre o usuário e o estabelecimento, utilizando fórmulas matemáticas baseadas nas coordenadas recebidas do aplicativo. Para manter a escalabilidade, a estrutura interna divide-se estritamente entre modelos de banco de dados (ORM) e esquemas de validação de dados (Pydantic), garantindo que a entrada e saída da API sejam tipadas e seguras. A longo prazo, se o volume de farmácias aumentar drasticamente, a arquitetura assíncrona permitirá uma transição mais suave para filas de mensageria, sem precisar reescrever o núcleo. Por enquanto, a intenção inicial é manter a simplicidade arquitetural para a entrega rápida do Produto Mínimo Viável (MVP), isolando regras de negócio em serviços.
+## Comandos Make (raiz)
 
-### `bootstrap/`
+Todos os comandos são executados na raiz do repositório.
 
-O bootstrap, no contexto da arquitetura de repositórios de software, define-se como um script automatizado, ou um conjunto de scripts alojados em um diretório homônimo na raiz do projeto, cuja função estrita é a configuração inicial e determinística do ambiente de desenvolvimento local. Para saber mais [clique aqui](bootstrap/README.md)
+| Comando | Descrição |
+|---|---|
+| `make help` | Lista todos os comandos disponíveis |
+| `make setup` | Configura o projeto inteiro: cria `.env`, sobe banco, instala dependências, roda migrações |
+| `make envs` | Copia `.env.example` para `.env` em backend e frontend |
+| `make db-up` | Sobe o PostgreSQL via Docker Compose |
+| `make db-down` | Derruba contêineres e destrói volumes persistentes |
+| `make db-reset` | Reseta o banco do zero (destrói, sobe e aplica migrações) |
+| `make setup-back` | Instala dependências Python com Poetry |
+| `make migrate-back` | Aplica migrações Alembic no banco |
+| `make setup-front` | Instala dependências Node.js do Expo |
+| `make run-back` | Inicia o FastAPI em modo reload |
+| `make run-front` | Inicia o app Expo |
+| `make etl-convert` | Converte planilha CMED XLSX para CSV |
+| `make etl-ingest` | Ingesta o CSV da CMED no PostgreSQL |
+| `make etl-run` | Roda o pipeline ETL completo (conversão + ingestão) |
 
-### `frontend/`
+### Variáveis do ETL
 
-O diretório `frontend/` é o repositório central de toda a interface de usuário e experiência de interação do nosso aplicativo móvel. A intenção inicial para esta camada do sistema é utilizar o ecossistema React Native em conjunto com o Expo, garantindo um desenvolvimento ágil e a entrega de um aplicativo funcional tanto para dispositivos Android quanto iOS a partir de uma única base de código em TypeScript. Ressaltamos que esta é a arquitetura inicial planejada para o Produto Mínimo Viável (MVP), e tudo pode mudar caso haja a necessidade técnica de ejetar o Expo para acessar módulos nativos muito específicos no futuro. Neste momento, o objetivo é que esta pasta contenha todos os componentes visuais, telas de navegação, e a lógica de consumo da nossa API em Python. A estrutura está desenhada para separar claramente a apresentação visual das regras de negócio do lado do cliente. Componentes reutilizáveis, como botões padronizados e cartões de exibição de produtos farmacêuticos, ficarão isolados, enquanto as telas principais orquestrarão a exibição dos dados de laboratórios e distâncias. Além disso, o gerenciamento de estado global e as chamadas de rede estarão estritamente modularizados aqui. O uso estrito do TypeScript tem a intenção inicial de documentar implicitamente as estruturas esperadas, minimizando erros de tempo de execução e facilitando a manutenção futura.
+Os caminhos dos arquivos CMED podem ser sobrescritos no terminal:
 
-### `.github/`
-O diretório `.github/` atua como o alicerce invisível da governança e da padronização de processos do nosso monorepo focado no web scraping de farmácias da região. A intenção inicial deste sistema estrutural é garantir que todas as contribuições, sejam elas relatórios de bugs na extração de dados ou a proposição de novas funcionalidades no aplicativo móvel, sigam um fluxo de trabalho estritamente organizado e previsível desde o dia zero do projeto. É fundamental compreender, no entanto, que esta formatação reflete apenas a nossa intenção inicial de manter a sanidade do código durante a fase de desenvolvimento acelerado do Produto Mínimo Viável (MVP), e naturalmente, tudo pode mudar à medida que a equipe de engenharia crescer e os fluxos de integração contínua se tornarem mais sofisticados.
+```sh
+make etl-run CMED_XLSX=data/nova_planilha.xlsx CMED_CSV=data/cmed_atual.csv
+```
 
-Atualmente, planejamos que esta pasta hospede os templates fundamentais de interação do repositório, notadamente o `ISSUE_TEMPLATE.md` e o `PULL_REQUEST_TEMPLATE.md`. A presença imperativa desses arquivos guia os desenvolvedores a fornecerem contextos técnicos claros, logs de erros específicos do FastAPI ou do React Native, e os passos exatos para reproduzir falhas na raspagem de preços antes de submeterem qualquer alteração para a ramificação principal. Essa barreira de qualidade inicial evita que o código perca a coesão, garantindo que a comunicação técnica da equipe seja altamente eficiente. 
+## Estrutura do repositório
 
-Além disso, a intenção inicial é que este diretório sirva como a futura fundação para os fluxos de trabalho do GitHub Actions (CI/CD). Quando o projeto escalar para um site completo até o final do ano, essas automações hospedadas aqui poderão rodar os testes automatizados do Python e as checagens estáticas do TypeScript de forma autônoma a cada novo commit. Por enquanto, a adoção antecipada da pasta `.github/` visa apenas estabelecer uma sólida cultura de revisão por pares, que será absolutamente vital para escalar o catálogo de medicamentos de forma sustentável e segura.
+| Diretório | Conteúdo |
+|---|---|
+| [`backend/`](backend/README.md) | API FastAPI, scrapers, modelos, schemas, serviços, scripts ETL e testes |
+| [`frontend/`](frontend/README.md) | App React Native com Expo Router, componentes, hooks e serviços |
+| [`bootstrap/`](bootstrap/README.md) | Scripts de provisionamento de ambiente (Linux e Windows) |
 
----
+## Infraestrutura
 
-## Arquivos de Configuração e Orquestração
+O `docker-compose.yml` do backend define quatro serviços:
 
-### `Makefile`
+| Serviço | Descrição |
+|---|---|
+| `db` | PostgreSQL 15 Alpine. Porta `4242` (host) → `5432` (contêiner). Volume persistente `postgres_data`. |
+| `api` | FastAPI na porta `8000`. Depende de `db` saudável. |
+| `image-maintenance` | Ciclo contínuo de verificação e recuperação de imagens. Perfil `maintenance` (não inicia por padrão). |
+| `tunnel` | Cloudflare Tunnel (`cloudflared`) expondo a API publicamente. Útil para testar o app mobile em dispositivos físicos fora da rede local sem configurar IP público ou DNS. |
 
-O arquivo `Makefile` foi introduzido na raiz do nosso monorepo como uma ferramenta central de automação e produtividade para os desenvolvedores envolvidos no projeto de web scraping de farmácias. A intenção inicial por trás da adoção deste utilitário clássico é fornecer uma interface de linha de comando padronizada, simplificada e agnóstica em relação aos diferentes ecossistemas que coabitam neste repositório. Como estamos lidando simultaneamente com scripts de Python no backend e códigos em TypeScript no frontend, a carga cognitiva de memorizar os comandos de instalação e execução de ambos os ambientes é consideravelmente alta. É essencial frisar, porém, que esta é a abordagem arquitetural inicial adotada para acelerar o desenvolvimento do nosso MVP, e tudo pode mudar no futuro caso a equipe decida migrar para orquestradores de monorepo mais complexos.
+A porta `4242` do PostgreSQL é exposta no host para permitir conexões diretas de clientes SQL externos (DBeaver, psql, etc.) durante o desenvolvimento.
 
-Atualmente, o nosso planejamento define que o `Makefile` deve conter diretivas simples e autoexplicativas, atuando como um catálogo unificado de atalhos utilitários. Por exemplo, em vez de o desenvolvedor precisar navegar manualmente até a pasta do backend, ativar um ambiente virtual e invocar o servidor com múltiplos parâmetros para iniciar o FastAPI, ele precisará digitar apenas um comando conciso. Da mesma forma, inicializar o aplicativo móvel no Expo ou disparar a suíte de testes automatizados se tornará uma tarefa trivial e completamente livre de erros de digitação.
+## Pré-requisitos
 
-Essa padronização promovida pelo `Makefile` tem um impacto positivo na integração de novos membros da equipe. A curva de aprendizado inicial é drasticamente reduzida quando os comandos vitais de ciclo de vida do software estão centralizados e devidamente comentados dentro de um único arquivo de texto na raiz do projeto. Por isso, a intenção inicial é que este arquivo sirva não apenas como uma ferramenta de execução rápida, mas como uma documentação viva e pragmática dos processos operacionais mais corriqueiros do nosso sistema. Dessa maneira, nós conseguimos garantir que o foco da engenharia permaneça estritamente na construção da lógica de scraping.
+- Python 3.11+ com Poetry
+- Node.js 18+ com npm
+- Docker e Docker Compose
+- Git
 
-### `.editorconfig`
+Para instalar tudo automaticamente em uma máquina nova, use os scripts em [`bootstrap/`](bootstrap/README.md).
 
-O arquivo `.editorconfig` repousa silenciosamente na raiz do nosso monorepo e atua como um diplomata fundamental entre os diferentes ambientes de desenvolvimento integrados (IDEs) e editores de texto utilizados pela nossa equipe de engenharia. A intenção inicial deste sistema de configuração universal é garantir uma padronização tipográfica e visual estrita do código-fonte antes mesmo que ferramentas mais pesadas de análise estática (como o ESLint no React Native ou o Flake8 no Python) precisem intervir e alertar sobre erros de formatação na esteira de integração. Em um repositório híbrido como o nosso, onde o ecossistema Python tipicamente exige uma indentação rigorosa de quatro espaços para demarcar blocos lógicos de execução, enquanto o ecossistema TypeScript do frontend tradicionalmente adota o padrão mais compacto de apenas dois espaços, este arquivo resolve conflitos de estilo de forma invisível e elegante. Ao abrirmos um arquivo dentro da pasta do backend, o `.editorconfig` instrui automaticamente o nosso editor, seja ele o VS Code ou o PyCharm, a aplicar as regras corretas de espaçamento de Python; ao pularmos para o frontend, ele reajusta o comportamento da tecla "Tab" instantaneamente. Além do tamanho da indentação, ele padroniza o formato de quebra de linha (LF para sistemas baseados em Unix, em vez do problemático CRLF do Windows), garantindo que o interpretador do Docker não falhe silenciosamente ao ler nossos scripts de inicialização, e obriga a inserção de uma linha em branco no final de cada arquivo editado, respeitando os padrões clássicos e exigências de compilação da engenharia de software (padrão POSIX).
+## Configuração rápida
 
-### `.gitignore`
+```sh
+make setup
+```
 
-O arquivo `.gitignore` atua primordialmente como o guardião inflexível das fronteiras do nosso repositório de controle de versão, sendo possivelmente o arquivo de configuração de segurança estática mais crítico que reside na raiz do nosso monorepo. A intenção inicial deste sistema puramente declarativo é instruir o algoritmo do Git, de forma explícita e irrevogável, sobre quais pastas modulares, extensões compiladas e arquivos sensíveis ou sistemicamente irrelevantes devem ser completamente ignorados e jamais enviados sob nenhuma circunstância para o servidor de hospedagem de código na nuvem. Em um projeto arrojado de web scraping de farmácias que lida simultaneamente e de forma pesada com dois ecossistemas gigantescos (Node.js e Python), a quantidade de "lixo" computacional gerado localmente pelas máquinas durante o desenvolvimento é verdadeiramente colossal. Este arquivo garante matematicamente que a gigantesca e densa pasta `node_modules` do frontend em React Native, as indecifráveis pastas de cache de compilação do interpretador Python (`__pycache__`), e os isolados ambientes virtuais de execução (`venv` ou `.venv`) fiquem restritos única e exclusivamente ao disco rígido do desenvolvedor local que os gerou. Mais crucial e determinante do que simplesmente economizar espaço de armazenamento e preciosa banda de rede, o `.gitignore` é a nossa primeiríssima e principal linha de defesa cibernética passiva: ele impede ativamente o rastreamento de versionamento do arquivo `.env`, garantindo que chaves privadas de API, senhas vitais de produção do banco de dados PostgreSQL e tokens sensíveis de autenticação não vazem publicamente de forma acidental e catastrófica durante um commit feito às pressas no fim do dia.
+Este comando executa toda a sequência: cria arquivos `.env`, sobe o PostgreSQL, instala dependências do backend e frontend, e aplica migrações. Após a conclusão:
+
+```sh
+make run-back   # API em http://localhost:8000
+make run-front  # Expo em http://localhost:8081
+```
+
+## Segurança
+
+- Nunca commite arquivos `.env`. Eles são gerados localmente por `make envs`.
+- `JWT_SECRET` deve ser um valor aleatório longo e estável. Trocar invalida tokens existentes.
+- `BACKEND_CORS_ORIGINS` aceita lista JSON de origens permitidas. Em desenvolvimento, o regex já libera localhost em qualquer porta.
+- Senhas de banco devem usar percent-encoding se contiverem caracteres especiais nos URLs de conexão.
+
+## Documentação por diretório
+
+Cada diretório principal possui seu próprio README com detalhes específicos:
+
+- [Backend](backend/README.md) — arquitetura, endpoints, scripts, modelos, testes e migrações
+- [Frontend](frontend/README.md) — estrutura do app, hooks, componentes, comandos e endpoints consumidos
+- [Frontend src](frontend/src/README.md) — referência detalhada de hooks, componentes, serviços e tipos
+- [Bootstrap](bootstrap/README.md) — scripts de provisionamento e solução de problemas

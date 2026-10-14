@@ -1,23 +1,58 @@
-# `bootstrap/`
+# Bootstrap — Provisionamento de Ambiente
 
-O bootstrap, no contexto da arquitetura de repositórios de software, define-se como um script automatizado — ou um conjunto de scripts alojados em um diretório homônimo na raiz do projeto — cuja função estrita é a configuração inicial e determinística do ambiente de desenvolvimento local.
+Scripts idempotentes para preparar máquinas de desenvolvimento com todas as dependências necessárias ao projeto. O objetivo é eliminar configuração manual e garantir que qualquer pessoa atinja o estado de prontidão com um único comando.
 
-Ele atua como um contrato executável projetado para eliminar integralmente a necessidade de intervenção manual na preparação de um ecossistema de código. Ao ser executado, o processo de bootstrap encarrega-se de tarefas fundamentais, que incluem, mas não se limitam a: instalação de dependências operacionais e bibliotecas, cópia e parametrização de variáveis de ambiente locais e a inicialização de estruturas de dados e conexões locais.
+## Princípios
 
-A exigência técnica primária desse componente é a idempotência. O bootstrap deve possuir a capacidade de ser executado sucessivas vezes sem corromper o estado atual do sistema ou gerar redundâncias operacionais. O seu propósito final é garantir que qualquer recurso humano alocado ao projeto atinja o estado de prontidão (o momento exato em que se pode iniciar a escrita e o teste de código) por meio da execução de um único comando, erradicando a subjetividade e a falha humana inerentes a configurações baseadas exclusivamente em documentação textual.
+- **Idempotência**: os scripts podem ser executados múltiplas vezes sem corromper o ambiente ou gerar redundâncias.
+- **Determinismo**: o resultado final é sempre o mesmo, independente do estado anterior da máquina.
+- **Automação total**: nenhuma intervenção manual é necessária durante a execução.
 
-## `setup_linux.sh`
+## Scripts disponíveis
 
-O código apresentado trata-se de um script de provisionamento de infraestrutura em nível de sistema, projetado para distribuições Linux baseadas em Debian. Sua finalidade técnica é automatizar a preparação inicial de uma máquina local para o desenvolvimento de software por meio da instalação não-interativa de pacotes essenciais, motores de contêinerização e gerenciadores de dependências, garantindo assim o estabelecimento de um ambiente de trabalho padronizado e determinístico sem a necessidade de intervenção manual em múltiplas etapas.
+### Linux (`setup_linux.sh`)
+
+Provisiona distribuições baseadas em Debian (Ubuntu, Mint, Pop!_OS). Instala:
+
+- Git
+- Docker e Docker Compose
+- Python 3.11+ e Poetry
+- Node.js 18+ e npm
+
+Requer privilégios administrativos:
 
 ```sh
 sudo bash ./bootstrap/setup_linux.sh
 ```
 
-## `setup_windows.ps1`
+### Windows (`setup_windows.ps1`)
 
-O código apresentado consiste em um script de provisionamento de infraestrutura em nível de sistema, projetado especificamente para ambientes operacionais Windows. Sua finalidade técnica é automatizar a preparação inicial de uma máquina local para o desenvolvimento de software, exigindo execução com privilégios administrativos e utilizando o gerenciador de pacotes nativo do sistema para realizar a instalação silenciosa de ferramentas essenciais, motores de contêinerização e gerenciadores de dependências, garantindo a atualização imediata das variáveis de ambiente e o estabelecimento de um ambiente de trabalho padronizado e determinístico sem a necessidade de configuração manual etapa por etapa.
+Provisiona ambientes Windows usando Chocolatey como gerenciador de pacotes. Instala o mesmo conjunto de ferramentas do script Linux. Requer PowerShell com política de execução liberada e privilégios administrativos:
 
 ```ps1
 Set-ExecutionPolicy Bypass -Scope Process -Force; .\bootstrap\setup_windows.ps1
 ```
+
+## Após o bootstrap
+
+Com as dependências instaladas, volte à raiz do repositório e execute:
+
+```sh
+make setup
+```
+
+Este comando cria os arquivos `.env`, sobe o PostgreSQL, instala as dependências do backend e frontend, e aplica as migrações. O projeto fica pronto para desenvolvimento.
+
+## Solução de problemas
+
+| Sintoma | Causa provável | Correção |
+|---|---|---|
+| `poetry: command not found` | Poetry não está no PATH após instalação | Reinicie o terminal ou execute `source ~/.bashrc` |
+| `docker: permission denied` | Usuário não está no grupo `docker` | Execute `sudo usermod -aG docker $USER` e faça logout/login |
+| `npm install` falha com EACCES | Permissões incorretas no diretório global npm | Corrija permissões com `npm config set prefix ~/.npm-global` ou use um gerenciador de versões Node de sua preferência (nvm, fnm, volta) |
+| Script Windows falha na política de execução | Política restritiva persistente | Execute como administrador ou altere a política no escopo `LocalMachine` |
+| `make db-up` trava no health check | PostgreSQL demorou mais que o esperado | Aguarde ou aumente o `sleep` no Makefile temporariamente |
+
+## Manutenção dos scripts
+
+Ao adicionar novas dependências ao projeto, atualize ambos os scripts (`setup_linux.sh` e `setup_windows.ps1`) para manter a paridade entre plataformas. Teste em uma máquina limpa antes de committer alterações.
