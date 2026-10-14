@@ -1,393 +1,258 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-
+import { FilterChip } from '../../components/FilterChip';
+import { CatalogFiltersSidebar } from '../../components/CatalogFiltersSidebar';
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
 import { SearchBar } from '../../components/SearchBar';
-import { useAppContext } from '../../context/AppContext';
+import { useCatalogContext } from '../../context/AppContext';
+import { api } from '../../services/api';
+import { CatalogSort } from '../../services/catalog';
 import { Medicamento } from '../../types/api';
 import { palette, radius, spacing } from '../../theme';
 
-const PHARMACIES = [
-  { id: 1, name: 'Farmácia Indiana' },
-  { id: 2, name: 'Drogaria Araújo' },
-] as const;
+type Pharmacy = { id: number; nome_fantasia: string };
 
 export default function HomeScreen() {
   const router = useRouter();
-
-  const isWeb = Platform.OS === 'web';
-
-  const {
-    isLoading,
-    markAsViewed,
-    searchMedicines,
-    selectedFilters,
-  } = useAppContext();
-
+  const { width } = useWindowDimensions();
+  const { markAsViewed, selectedFilters, selectedPharmacyId, setSelectedPharmacyId, loadCatalogPage } = useCatalogContext();
   const [search, setSearch] = useState('');
-
-  const [pageByPharmacy, setPageByPharmacy] = useState<Record<number, number>>({
-    1: 1,
-    2: 1,
-  });
-
-  const itemsPerPage = isWeb ? 8 : 6;
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
+  const [pharmaciesLoading, setPharmaciesLoading] = useState(true);
+  const [pharmaciesError, setPharmaciesError] = useState(false);
+  const [items, setItems] = useState<Medicamento[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [sortBy, setSortBy] = useState<CatalogSort>('relevancia');
+  const [sortMenuVisible, setSortMenuVisible] = useState(false);
+  const limit = width < 520 ? 8 : 12;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const isWeb = Platform.OS === 'web';
+  const hasDesktopSidebar = isWeb && width >= 1120;
+  const desktopColumns = hasDesktopSidebar ? (width >= 1640 ? 4 : width >= 1280 ? 3 : 2) : undefined;
 
   useEffect(() => {
-    setPageByPharmacy({
-      1: 1,
-      2: 1,
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 280);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    let active = true;
+    api.get<Pharmacy[]>('/catalogo/farmacias')
+      .then(({ data }) => { if (active) setPharmacies(data); })
+      .catch(() => { if (active) setPharmaciesError(true); })
+      .finally(() => { if (active) setPharmaciesLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => { setPage(1); }, [debouncedSearch, selectedPharmacyId, selectedFilters, sortBy]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(false);
+    loadCatalogPage({
+      query: debouncedSearch,
+      pharmacyId: selectedPharmacyId ?? undefined,
+      offset: (page - 1) * limit,
+      limit,
+      filters: selectedFilters,
+      sortBy,
+    }).then((result) => {
+      if (!active) return;
+      setItems(result.items);
+      setTotal(result.total);
+    }).catch(() => {
+      if (active) setError(true);
+    }).finally(() => {
+      if (active) setLoading(false);
     });
-  }, [search, selectedFilters]);
+    return () => { active = false; };
+  }, [debouncedSearch, selectedPharmacyId, selectedFilters, sortBy, page, limit, loadCatalogPage, reload]);
 
-  const medicinesByPharmacy = useMemo(() => {
-    const baseList = searchMedicines(search);
+  const sortOptions: { value: CatalogSort; label: string }[] = [
+    { value: 'relevancia', label: 'Relevância' },
+    { value: 'menor_preco', label: 'Menor preço' },
+    { value: 'maior_preco', label: 'Maior preço' },
+    { value: 'nome', label: 'Nome (A–Z)' },
+  ];
+  const selectedSortLabel = sortOptions.find((option) => option.value === sortBy)?.label ?? 'Relevância';
 
-    const result: Record<number, Medicamento[]> = {};
+  const heading = useMemo(() => selectedPharmacyId === null
+    ? 'Compare preços de medicamentos'
+    : pharmacies.find((item) => item.id === selectedPharmacyId)?.nome_fantasia || 'Medicamentos', [pharmacies, selectedPharmacyId]);
 
-    for (const pharmacy of PHARMACIES) {
-      result[pharmacy.id] = baseList
-        .filter((medicine) =>
-          (medicine.ofertas || []).some(
-            (offer) => offer.farmacia_id === pharmacy.id
-          )
-        )
-        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    }
-
-    return result;
-  }, [search, searchMedicines]);
-
-  const totalResults = useMemo(() => {
-    return Object.values(medicinesByPharmacy).reduce(
-      (total, medicines) => total + medicines.length,
-      0
-    );
-  }, [medicinesByPharmacy]);
-
-  const openDetail = (medicineId: number) => {
-    markAsViewed(medicineId);
-    router.push(`/medicine/${medicineId}`);
+  const openDetail = (id: number) => {
+    markAsViewed(id);
+    router.push(`/medicine/${id}`);
   };
-
-  const goToPage = (pharmacyId: number, page: number, totalPages: number) => {
-    const safePage = Math.max(1, Math.min(page, totalPages));
-
-    setPageByPharmacy((current) => ({
-      ...current,
-      [pharmacyId]: safePage,
-    }));
-  };
-
-  const renderPharmacySection = (pharmacyId: number, pharmacyName: string) => {
-    const pharmacyMedicines = medicinesByPharmacy[pharmacyId] || [];
-
-    const totalPages = Math.max(
-      1,
-      Math.ceil(pharmacyMedicines.length / itemsPerPage)
-    );
-
-    const currentPage = Math.min(pageByPharmacy[pharmacyId] || 1, totalPages);
-
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-
-    const paginatedItems = pharmacyMedicines.slice(start, end);
-
-    return (
-      <View key={pharmacyId} style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={[styles.title, isWeb && styles.titleWeb]}>
-              {pharmacyName}
-            </Text>
-
-            <Text style={styles.countText}>
-              {pharmacyMedicines.length} medicamento(s) encontrado(s)
-            </Text>
-          </View>
-        </View>
-
-        {pharmacyMedicines.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>
-              Nenhum medicamento encontrado nessa farmácia.
-            </Text>
-          </View>
-        ) : (
-          <>
-            <View style={[styles.grid, isWeb && styles.gridWeb]}>
-              {paginatedItems.map((medicine) => (
-                <MedicineCard
-                  key={`${pharmacyId}-${medicine.id}`}
-                  medicine={medicine}
-                  onPress={() => openDetail(medicine.id)}
-                  compact
-                />
-              ))}
-            </View>
-
-            {totalPages > 1 ? (
-              <View style={styles.pagination}>
-                <Pressable
-                  style={(state: { pressed: boolean; hovered?: boolean }) => [
-                    styles.pageButton,
-                    isWeb && state.hovered && styles.pageButtonHovered,
-                    state.pressed && styles.pageButtonPressed,
-                    currentPage === 1 && styles.pageButtonDisabled,
-                  ]}
-                  disabled={currentPage === 1}
-                  onPress={() =>
-                    goToPage(pharmacyId, currentPage - 1, totalPages)
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.pageButtonText,
-                      currentPage === 1 && styles.pageButtonTextDisabled,
-                    ]}
-                  >
-                    Anterior
-                  </Text>
-                </Pressable>
-
-                <Text style={styles.pageInfo}>
-                  Página {currentPage} de {totalPages}
-                </Text>
-
-                <Pressable
-                  style={(state: { pressed: boolean; hovered?: boolean }) => [
-                    styles.pageButton,
-                    isWeb && state.hovered && styles.pageButtonHovered,
-                    state.pressed && styles.pageButtonPressed,
-                    currentPage === totalPages && styles.pageButtonDisabled,
-                  ]}
-                  disabled={currentPage === totalPages}
-                  onPress={() =>
-                    goToPage(pharmacyId, currentPage + 1, totalPages)
-                  }
-                >
-                  <Text
-                    style={[
-                      styles.pageButtonText,
-                      currentPage === totalPages &&
-                        styles.pageButtonTextDisabled,
-                    ]}
-                  >
-                    Próxima
-                  </Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </>
-        )}
-      </View>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <Screen contentStyle={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={palette.primary} />
-        <Text style={styles.loadingText}>Carregando medicamentos...</Text>
-      </Screen>
-    );
-  }
 
   return (
-    <Screen contentStyle={styles.screenContent}>
-      <View style={styles.searchWrapper}>
-        <SearchBar
-          value={search}
-          onChangeText={setSearch}
-          onSubmit={() => {}}
-          onFilter={() => router.push('/filters')}
-          placeholder="Preço Bão"
-        />
+    <Screen contentStyle={styles.screen} wideContent={hasDesktopSidebar}>
+      <View style={[styles.intro, width <= 480 && styles.introCompact]}>
+        <Text style={styles.eyebrow}>PREÇO BÃO · COMPARADOR</Text>
+        <Text style={[styles.pageTitle, width <= 480 && styles.pageTitleCompact]}>Encontre o melhor preço</Text>
+        <Text style={styles.description}>{'Pesquise e compare pre\u00e7os de medicamentos.'}</Text>
       </View>
 
-      {totalResults === 0 ? (
-        <View style={styles.noResultsBox}>
-          <Text style={styles.noResultsTitle}>
-            Nenhum remédio foi encontrado
-          </Text>
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        onSubmit={() => setDebouncedSearch(search.trim())}
+        onFilter={hasDesktopSidebar ? undefined : () => router.push('/filters')}
+        filterCount={selectedFilters.length + Number(selectedPharmacyId !== null)}
+        placeholder={width <= 360 ? 'Medicamento ou princípio ativo' : 'Buscar medicamento ou princípio ativo'}
+      />
 
-          <Text style={styles.noResultsText}>
-            Tente alterar a busca ou remover os filtros selecionados.
-          </Text>
+      <View style={[styles.catalogLayout, hasDesktopSidebar && styles.catalogLayoutDesktop]}>
+      {hasDesktopSidebar && <CatalogFiltersSidebar />}
+      <View style={[styles.catalogResults, hasDesktopSidebar && styles.catalogResultsDesktop]}>
+      {!hasDesktopSidebar && <>
+        <View style={[styles.filterHeader, width <= 480 && styles.filterHeaderCompact]}>
+          <Text style={styles.sectionLabel}>Farmácias</Text>
+        </View>
+        {pharmaciesLoading ? <ActivityIndicator color={palette.primary} /> : pharmaciesError ? (
+          <Text style={styles.message}>Não foi possível carregar as farmácias.</Text>
+        ) : (
+          <View style={styles.pharmacyFilters}>
+            <FilterChip label="Todas" active={selectedPharmacyId === null} onPress={() => setSelectedPharmacyId(null)} />
+            {pharmacies.map((pharmacy) => (
+              <FilterChip
+                key={pharmacy.id}
+                label={pharmacy.nome_fantasia}
+                active={selectedPharmacyId === pharmacy.id}
+                onPress={() => setSelectedPharmacyId(pharmacy.id)}
+              />
+            ))}
+          </View>
+        )}
+      </>}
+
+      <View style={[styles.resultHeader, width < 520 && styles.resultHeaderCompact]}>
+        <View>
+          <Text style={styles.sectionTitle}>{heading}</Text>
+          <Text style={styles.resultCount}>{total.toLocaleString('pt-BR')} medicamentos</Text>
+        </View>
+        <View style={[styles.resultActions, width < 520 && styles.resultActionsCompact]}>
+          <View style={styles.sortWrap}>
+            <Pressable
+              onPress={() => setSortMenuVisible((visible) => !visible)}
+              accessibilityRole="button"
+              accessibilityLabel={`Ordenar: ${selectedSortLabel}`}
+              accessibilityState={{ expanded: sortMenuVisible }}
+              style={styles.sortButton}
+            >
+              <Ionicons name="swap-vertical-outline" size={16} color={palette.primaryDark} />
+              <Text style={styles.sortButtonText}>{selectedSortLabel}</Text>
+              <Ionicons name={sortMenuVisible ? 'chevron-up' : 'chevron-down'} size={14} color={palette.textSoft} />
+            </Pressable>
+            {sortMenuVisible && (
+              <View style={styles.sortMenu}>
+                {sortOptions.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => { setSortBy(option.value); setSortMenuVisible(false); }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: sortBy === option.value }}
+                    style={[styles.sortOption, sortBy === option.value && styles.sortOptionActive]}
+                  >
+                    <Text style={[styles.sortOptionText, sortBy === option.value && styles.sortOptionTextActive]}>{option.label}</Text>
+                    {sortBy === option.value && <Ionicons name="checkmark" size={16} color={palette.primaryDark} />}
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+          {loading && <ActivityIndicator size="small" color={palette.primary} />}
+        </View>
+      </View>
+
+      {error ? (
+        <View style={styles.messageBox}>
+          <Text style={styles.message}>Não foi possível carregar os medicamentos.</Text>
+          <Pressable onPress={() => setReload((current) => current + 1)} accessibilityRole="button">
+            <Text style={styles.retry}>Tentar novamente</Text>
+          </Pressable>
+        </View>
+      ) : loading && items.length === 0 ? (
+        <View style={styles.loading}><ActivityIndicator size="large" color={palette.primary} /><Text style={styles.message}>Buscando ofertas...</Text></View>
+      ) : items.length === 0 ? (
+        <View style={styles.messageBox}>
+          <Text style={styles.sectionTitle}>Nenhum medicamento encontrado</Text>
+          <Text style={styles.message}>Altere a busca ou remova algum filtro para ver mais ofertas.</Text>
         </View>
       ) : (
-        PHARMACIES.map((pharmacy) =>
-          renderPharmacySection(pharmacy.id, pharmacy.name)
-        )
+        <View style={[styles.grid, isWeb && styles.gridWeb, width <= 480 && styles.gridMobileList]}>
+          {items.map((medicine) => (
+            <MedicineCard key={medicine.id} medicine={medicine} onPress={() => openDetail(medicine.id)} compact columns={desktopColumns} />
+          ))}
+        </View>
       )}
+
+      {totalPages > 1 && (
+        <View style={styles.pagination}>
+          <Pressable disabled={page <= 1 || loading} onPress={() => setPage((current) => Math.max(1, current - 1))} accessibilityRole="button" style={styles.pageButton}>
+            <Text style={styles.pageButtonText}>Anterior</Text>
+          </Pressable>
+          <Text style={styles.pageInfo}>Página {page} de {totalPages}</Text>
+          <Pressable disabled={page >= totalPages || loading} onPress={() => setPage((current) => Math.min(totalPages, current + 1))} accessibilityRole="button" style={styles.pageButton}>
+            <Text style={styles.pageButtonText}>Próxima</Text>
+          </Pressable>
+        </View>
+      )}
+      </View>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screenContent: {
-    paddingTop: Platform.OS === 'web' ? spacing.md : 18,
-    paddingBottom: Platform.OS === 'web' ? spacing.xl : 118,
-  },
-
-  searchWrapper: {
-    marginTop: Platform.OS === 'web' ? 0 : 6,
-    marginBottom: Platform.OS === 'web' ? spacing.sm : spacing.md,
-  },
-
-  section: {
-    marginTop: Platform.OS === 'web' ? spacing.xl : spacing.lg,
-  },
-
-  sectionHeader: {
-    marginBottom: Platform.OS === 'web' ? spacing.md : spacing.sm,
-  },
-
-  title: {
-    fontSize: 28,
-    color: palette.primary,
-    fontWeight: '700',
-  },
-
-  titleWeb: {
-    fontSize: 34,
-  },
-
-  countText: {
-    marginTop: 6,
-    fontSize: 14,
-    color: palette.textSoft,
-  },
-
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 14,
-  },
-
-  gridWeb: {
-    justifyContent: 'flex-start',
-    rowGap: 28,
-    columnGap: 24,
-  },
-
-  emptyBox: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
-    padding: spacing.lg,
-  },
-
-  emptyText: {
-    fontSize: 15,
-    color: palette.textSoft,
-  },
-
-  noResultsBox: {
-    marginTop: spacing.xl,
-    backgroundColor: palette.surface,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-
-  noResultsTitle: {
-    color: palette.text,
-    fontSize: 22,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-
-  noResultsText: {
-    marginTop: spacing.sm,
-    color: palette.textSoft,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-
-  pagination: {
-    marginTop: Platform.OS === 'web' ? spacing.lg : spacing.md,
-    marginBottom: Platform.OS === 'web' ? 0 : spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-  },
-
-  pageButton: {
-    minWidth: Platform.OS === 'web' ? 100 : 92,
-    height: Platform.OS === 'web' ? 42 : 40,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  pageButtonHovered: {
-    backgroundColor: palette.primaryDark,
-    transform: [
-      {
-        translateY: -2,
-      },
-    ],
-  },
-
-  pageButtonPressed: {
-    opacity: 0.86,
-    transform: [
-      {
-        scale: 0.98,
-      },
-    ],
-  },
-
-  pageButtonDisabled: {
-    backgroundColor: '#D7D7D7',
-  },
-
-  pageButtonText: {
-    color: palette.surface,
-    fontWeight: '700',
-    fontSize: Platform.OS === 'web' ? 14 : 13,
-  },
-
-  pageButtonTextDisabled: {
-    color: '#7C7C7C',
-  },
-
-  pageInfo: {
-    fontSize: Platform.OS === 'web' ? 14 : 13,
-    color: palette.text,
-    fontWeight: '600',
-  },
-
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-    paddingTop: spacing.xl * 2,
-  },
-
-  loadingText: {
-    marginTop: spacing.md,
-    color: palette.textSoft,
-    fontSize: 16,
-  },
+  screen: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
+  catalogLayout: { width: '100%' },
+  catalogLayoutDesktop: { marginTop: 22, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg },
+  catalogResults: { width: '100%', minWidth: 0, flex: 1 },
+  catalogResultsDesktop: { width: 'auto', flex: 1 },
+  intro: { marginBottom: spacing.lg, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: palette.border },
+  introCompact: { marginBottom: spacing.sm, paddingBottom: spacing.xs },
+  eyebrow: { color: palette.primaryDark, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  pageTitle: { color: palette.text, fontSize: 32, lineHeight: 39, fontWeight: '800', letterSpacing: -0.5, marginTop: spacing.xs },
+  pageTitleCompact: { fontSize: 25, lineHeight: 31 },
+  description: { color: palette.textSoft, fontSize: 14, lineHeight: 20, marginTop: spacing.xs },
+  filterHeader: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: palette.border },
+  filterHeaderCompact: { marginTop: spacing.sm, paddingBottom: 2 },
+  sectionLabel: { color: palette.text, fontSize: 14, fontWeight: '700' },
+  pharmacyFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
+  resultHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: spacing.md, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: palette.border, zIndex: 2 },
+  resultHeaderCompact: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.md },
+  resultActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  resultActionsCompact: { width: '100%', justifyContent: 'space-between' },
+  sortWrap: { position: 'relative', zIndex: 3 },
+  sortButton: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: palette.border, borderRadius: radius.sm, backgroundColor: palette.surface },
+  sortButtonText: { color: palette.text, fontSize: 13, fontWeight: '600' },
+  sortMenu: { position: 'absolute', top: 43, right: 0, minWidth: 174, padding: 4, borderWidth: 1, borderColor: palette.border, borderRadius: radius.sm, backgroundColor: palette.surface, shadowColor: '#172033', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5, zIndex: 4 },
+  sortOption: { minHeight: 38, paddingHorizontal: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.sm },
+  sortOptionActive: { backgroundColor: palette.primarySoft },
+  sortOptionText: { color: palette.text, fontSize: 13 },
+  sortOptionTextActive: { color: palette.primaryDark, fontWeight: '700' },
+  sectionTitle: { color: palette.text, fontSize: 19, fontWeight: '800' },
+  resultCount: { color: palette.textSoft, fontSize: 13, marginTop: 2 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md },
+  gridWeb: { justifyContent: 'space-between', columnGap: spacing.md, rowGap: spacing.lg },
+  gridMobileList: { width: '100%', flexDirection: 'column', justifyContent: 'flex-start', rowGap: spacing.sm },
+  messageBox: { padding: spacing.lg, backgroundColor: palette.surface, borderRadius: radius.md, gap: spacing.sm },
+  message: { color: palette.textSoft, fontSize: 14, lineHeight: 20 },
+  retry: { color: palette.primaryDark, fontSize: 14, fontWeight: '700' },
+  loading: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  pagination: { marginTop: spacing.xl, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: palette.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  pageButton: { minHeight: 40, justifyContent: 'center', backgroundColor: palette.primary, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.sm },
+  pageButtonText: { color: palette.surface, fontSize: 13, fontWeight: '700' },
+  pageInfo: { color: palette.text, fontSize: 13, fontWeight: '600' },
 });

@@ -1,15 +1,17 @@
 import os
 import sys
+from pathlib import Path
+
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
-from pathlib import Path
 
 # Configura o path do projeto para permitir importar os módulos app
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from app.core.database import SessionLocal, engine
-from app.models.anvisa import AnvisaMedicamento
+from app.core.database import SessionLocal  # noqa: E402
+from app.models.anvisa import AnvisaMedicamento  # noqa: E402
+
 
 def normalize_ean(ean_str: str):
     """
@@ -23,12 +25,12 @@ def normalize_ean(ean_str: str):
     if pd.isna(ean_str) or not isinstance(ean_str, str):
         return []
 
-    eans_brutos = ean_str.split(',')
+    eans_brutos = ean_str.split(",")
     eans_validos = []
 
     for ean in eans_brutos:
         # Limpeza
-        ean_limpo = ean.strip().replace('-', '').replace(' ', '')
+        ean_limpo = ean.strip().replace("-", "").replace(" ", "")
 
         # Remove zeros à esquerda (as vezes a Anvisa manda coisas como 00007891234567)
         # ean_limpo = ean_limpo.lstrip('0')
@@ -48,41 +50,43 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
     print(f"Lendo o CSV {csv_filepath}...")
 
     try:
-        # Lê todas as colunas como string para evitar perdas de precisão em IDs numéricos (como EAN)
-        df = pd.read_csv(csv_filepath, sep=';', encoding='utf-8', dtype=str, keep_default_na=False)
+        # Lê colunas como strings para preservar a precisão dos identificadores.
+        df = pd.read_csv(
+            csv_filepath, sep=";", encoding="utf-8", dtype=str, keep_default_na=False
+        )
     except Exception as e:
         print(f"Falha ao ler o CSV: {e}")
         sys.exit(1)
 
-    # Verificar colunas mínimas
-    colunas_esperadas = ['EAN 1', 'SUBSTÂNCIA', 'LABORATÓRIO', 'TARJA']
-
-    # Fazemos uma correspondência parcial, pois as colunas às vezes mudam um pouco no cabeçalho
+    # Fazemos correspondência parcial porque os cabeçalhos variam entre arquivos.
     # "EAN 1", "SUBSTÂNCIA", "LABORATÓRIO", "TARJA"
     col_map = {}
     for col in df.columns:
         col_upper = col.upper()
-        if 'EAN 1' in col_upper or 'EAN' in col_upper and 'ean_col' not in col_map:
-            col_map['ean_col'] = col
-        elif 'SUBSTÂNCIA' in col_upper or 'PRINCIPIO ATIVO' in col_upper:
-            col_map['substancia_col'] = col
-        elif 'LABORATÓRIO' in col_upper:
-            col_map['lab_col'] = col
-        elif 'TARJA' in col_upper:
-            col_map['tarja_col'] = col
+        if "EAN 1" in col_upper or "EAN" in col_upper and "ean_col" not in col_map:
+            col_map["ean_col"] = col
+        elif "SUBSTÂNCIA" in col_upper or "PRINCIPIO ATIVO" in col_upper:
+            col_map["substancia_col"] = col
+        elif "LABORATÓRIO" in col_upper:
+            col_map["lab_col"] = col
+        elif "TARJA" in col_upper:
+            col_map["tarja_col"] = col
 
     if len(col_map) < 4:
-        print(f"Aviso: Não encontrou as colunas exatas. Usando fallback. Colunas do arquivo: {df.columns.tolist()}")
+        print(
+            "Aviso: Não encontrou as colunas esperadas. Usando fallback. "
+            f"Colunas disponíveis: {df.columns.tolist()}"
+        )
         # Tenta pegar as que achar.
-        ean_col = col_map.get('ean_col', 'EAN 1')
-        substancia_col = col_map.get('substancia_col', 'SUBSTÂNCIA')
-        lab_col = col_map.get('lab_col', 'LABORATÓRIO')
-        tarja_col = col_map.get('tarja_col', 'TARJA')
+        ean_col = col_map.get("ean_col", "EAN 1")
+        substancia_col = col_map.get("substancia_col", "SUBSTÂNCIA")
+        lab_col = col_map.get("lab_col", "LABORATÓRIO")
+        tarja_col = col_map.get("tarja_col", "TARJA")
     else:
-        ean_col = col_map['ean_col']
-        substancia_col = col_map['substancia_col']
-        lab_col = col_map['lab_col']
-        tarja_col = col_map['tarja_col']
+        ean_col = col_map["ean_col"]
+        substancia_col = col_map["substancia_col"]
+        lab_col = col_map["lab_col"]
+        tarja_col = col_map["tarja_col"]
 
     print("Iniciando transformação...")
 
@@ -98,14 +102,14 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
         eans_validos = normalize_ean(eans_str)
 
         for ean in eans_validos:
-            # Idempotência: caso o mesmo EAN apareça várias vezes no CSV, mantemos a última (ou primeira)
+            # Mantém uma entrada por EAN quando houver duplicatas no arquivo.
             # Para evitar estourar memória com DB queries
             if ean not in medicamentos_a_inserir:
                 medicamentos_a_inserir[ean] = {
                     "ean": ean,
                     "principio_ativo": substancia,
                     "laboratorio": laboratorio,
-                    "tarja": tarja
+                    "tarja": tarja,
                 }
 
     lista_inserir = list(medicamentos_a_inserir.values())
@@ -120,20 +124,21 @@ def run_etl(csv_filepath: str, batch_size: int = 10000):
 
     with SessionLocal() as db:
         for i in range(0, total_registros, batch_size):
-            lote = lista_inserir[i:i+batch_size]
+            lote = lista_inserir[i : i + batch_size]
 
             stmt = insert(AnvisaMedicamento).values(lote)
             # On conflict do nothing
-            stmt = stmt.on_conflict_do_nothing(
-                index_elements=['ean']
-            )
+            stmt = stmt.on_conflict_do_nothing(index_elements=["ean"])
 
             db.execute(stmt)
             db.commit()
 
-            print(f"Inseridos {min(i+batch_size, total_registros)} / {total_registros}")
+            print(
+                f"Inseridos {min(i + batch_size, total_registros)} / {total_registros}"
+            )
 
     print("Carga finalizada com sucesso.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

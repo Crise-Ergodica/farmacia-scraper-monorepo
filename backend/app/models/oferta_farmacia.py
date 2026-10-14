@@ -1,17 +1,25 @@
 """
 Módulo responsável pela definição do modelo de Oferta e Estoque Local.
 """
-from decimal import Decimal
+
 from datetime import datetime
-from sqlalchemy import String, ForeignKey, Numeric, DateTime, Boolean, Integer
+from decimal import Decimal
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
 from .base import Base
+
+if TYPE_CHECKING:
+    from .catalogo import CatalogoBase
+    from .farmacia import Farmacia
 
 
 class OfertaFarmacia(Base):
     """
-    Representa a precificação e a disponibilidade física de um item do catálogo em uma loja.
+    Representa preço e disponibilidade local de um item do catálogo.
 
     :ivar id: Identificador único e chave primária da oferta.
     :vartype id: int
@@ -38,6 +46,7 @@ class OfertaFarmacia(Base):
     :ivar produto_catalogo: Relacionamento ORM com a entidade CatalogoBase.
     :vartype produto_catalogo: CatalogoBase
     """
+
     __tablename__ = "ofertas_farmacia"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -47,12 +56,25 @@ class OfertaFarmacia(Base):
     disponivel: Mapped[bool] = mapped_column(Boolean, default=True)
     url_origem: Mapped[str] = mapped_column(String(500), unique=True, index=True)
     imagem_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    atualizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    atualizado_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now(), nullable=True
+    )
+    observado_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     farmacia_id: Mapped[int] = mapped_column(ForeignKey("farmacias.id"))
     catalogo_id: Mapped[int] = mapped_column(ForeignKey("catalogo_base.id"))
 
     farmacia: Mapped["Farmacia"] = relationship("Farmacia", back_populates="ofertas")
-    produto_catalogo: Mapped["CatalogoBase"] = relationship("CatalogoBase", back_populates="ofertas")
+    produto_catalogo: Mapped["CatalogoBase"] = relationship(
+        "CatalogoBase", back_populates="ofertas"
+    )
+
+    @property
+    def farmacia_nome(self) -> str | None:
+        return self.farmacia.nome_fantasia if self.farmacia else None

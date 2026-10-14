@@ -5,6 +5,8 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*"],
+    // Generated browser profiles, screenshots, and Expo export bundles are
+    // validation artifacts, not application source files.
+    ignores: ["dist/*", ".expo/**", ".expo-export-*/**", "reports/**"],
   }
 ]);

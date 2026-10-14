@@ -1,20 +1,24 @@
 """
 Módulo responsável pela definição do modelo de dados de Farmácias.
 """
-from decimal import Decimal
+
 from datetime import datetime
-from sqlalchemy import String, Numeric, DateTime
+from decimal import Decimal
+
+from sqlalchemy import DateTime, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
 from .base import Base
-from .oferta_farmacia import OfertaFarmacia
 from .historico import HistoricoPreco
+from .oferta_farmacia import OfertaFarmacia
+
 
 class Farmacia(Base):
     """
     Representa a entidade corporativa e física da Farmácia no banco de dados.
 
-    Esta classe gerencia os dados cadastrais, a localização geográfica precisa 
+    Esta classe gerencia os dados cadastrais, a localização geográfica precisa
     e o relacionamento com o inventário de medicamentos disponíveis.
 
     :param id: Identificador único e chave primária da farmácia.
@@ -40,6 +44,7 @@ class Farmacia(Base):
     :param medicamentos: Coleção de medicamentos associados a esta farmácia.
     :type medicamentos: list[Medicamento]
     """
+
     __tablename__ = "farmacias"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -50,9 +55,16 @@ class Farmacia(Base):
     endereco_completo: Mapped[str] = mapped_column(String(255))
     latitude: Mapped[Decimal] = mapped_column(Numeric(9, 6), nullable=True)
     longitude: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=True)
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now(), nullable=True
+    )
 
-
-    ofertas: Mapped[list["OfertaFarmacia"]] = relationship("OfertaFarmacia", back_populates="farmacia", cascade="all, delete-orphan")
-    historico_precos: Mapped[list["HistoricoPreco"]] = relationship("HistoricoPreco", backref="farmacia_rel", cascade="all, delete-orphan")
+    ofertas: Mapped[list["OfertaFarmacia"]] = relationship(
+        "OfertaFarmacia", back_populates="farmacia", cascade="all, delete-orphan"
+    )
+    historico_precos: Mapped[list["HistoricoPreco"]] = relationship(
+        "HistoricoPreco", backref="farmacia_rel", cascade="all, delete-orphan"
+    )

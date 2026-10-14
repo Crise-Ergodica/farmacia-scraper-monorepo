@@ -1,0 +1,7 @@
+﻿.image_audit_state.json
+.image_audit_state.*.tmp
+reports/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

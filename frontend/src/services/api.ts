@@ -2,7 +2,7 @@ import { create } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 export const TOKEN_KEY = 'auth_token';
 
 /**
@@ -33,6 +33,11 @@ export const tokenStorage = {
 };
 
 let unauthorizedCallback: (() => void) | null = null;
+let activeToken: string | null | undefined;
+
+export const setActiveToken = (token: string | null) => {
+  activeToken = token;
+};
 
 export const setUnauthorizedCallback = (callback: () => void) => {
   unauthorizedCallback = callback;
@@ -45,7 +50,7 @@ export const api = create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await tokenStorage.get();
+      const token = activeToken === undefined ? await tokenStorage.get() : activeToken;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -62,7 +67,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const sentToken = error.config?.headers?.Authorization;
+    if (error.response?.status === 401 &&
+        !error.config?.url?.includes('/auth/jwt/login') && sentToken &&
+        sentToken === `Bearer ${activeToken}`) {
       if (unauthorizedCallback) {
         unauthorizedCallback();
       }

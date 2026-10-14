@@ -18,40 +18,40 @@ export const palette = {
 
 export const spacing = {
   xs: 6,
-  sm: 10,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 44,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 36,
 };
 
 export const radius = {
-  sm: 10,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
   pill: 999,
 };
 
 export const shadow = {
   soft: {
     shadowColor: '#0F172A',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
+    shadowOpacity: 0.025,
+    shadowRadius: 6,
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 3,
     },
-    elevation: 4,
+    elevation: 2,
   },
   medium: {
     shadowColor: '#0F172A',
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
     shadowOffset: {
       width: 0,
-      height: 12,
+      height: 6,
     },
-    elevation: 6,
+    elevation: 3,
   },
 };

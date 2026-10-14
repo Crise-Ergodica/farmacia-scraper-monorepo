@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Image,
   Linking,
   Platform,
   Pressable,
@@ -13,11 +12,13 @@ import {
 } from 'react-native';
 
 import { AuthRequiredModal } from '../../../components/AuthRequiredModal';
+import { MedicineImage } from '../../../components/MedicineImage';
 import { Screen } from '../../../components/Screen';
 import { SearchBar } from '../../../components/SearchBar';
-import { useAppContext } from '../../../context/AppContext';
+import { useCatalogContext, useFavoritesContext, useSessionContext } from '../../../context/AppContext';
+import { getLaboratoryDisplayName } from '../../../services/catalog';
 import { palette, radius, spacing } from '../../../theme';
-import { Oferta } from '../../../types/api';
+import { Medicamento, Oferta } from '../../../types/api';
 
 type OfertaComExtras = Oferta & {
   farmacia_nome?: string;
@@ -25,11 +26,6 @@ type OfertaComExtras = Oferta & {
     nome_fantasia?: string;
     razao_social?: string;
   };
-};
-
-const PHARMACY_NAME_MAP: Record<number, string> = {
-  1: 'Farmácia Indiana',
-  2: 'Drogaria Araújo',
 };
 
 function getOfferPrice(offer?: Oferta) {
@@ -60,8 +56,7 @@ function getPharmacyName(offer: OfertaComExtras) {
     offer.farmacia_nome ||
     offer.farmacia?.nome_fantasia ||
     offer.farmacia?.razao_social ||
-    PHARMACY_NAME_MAP[offer.farmacia_id] ||
-    `Farmácia ${offer.farmacia_id}`
+    'Farmácia participante'
   );
 }
 
@@ -69,16 +64,15 @@ export default function MedicineDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
 
-  const {
-    getMedicineById,
-    favoriteIds,
-    toggleFavorite,
-    markAsViewed,
-    sessionMode,
-  } = useAppContext();
+  const { getMedicineById, loadMedicineById, markAsViewed } = useCatalogContext();
+  const { favoriteIds, toggleFavorite } = useFavoritesContext();
+  const { sessionMode } = useSessionContext();
 
   const [search, setSearch] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [loadedMedicine, setLoadedMedicine] = useState<Medicamento | undefined>();
+  const [loadingMedicine, setLoadingMedicine] = useState(true);
+  const [medicineLoadError, setMedicineLoadError] = useState(false);
 
   const { width } = useWindowDimensions();
 
@@ -89,13 +83,32 @@ export default function MedicineDetailScreen() {
     return Number.isFinite(parsedId) ? parsedId : null;
   }, [params.id]);
 
-  const medicine = useMemo(() => {
+  const cachedMedicine = useMemo(() => {
     if (medicineId === null) {
       return undefined;
     }
 
     return getMedicineById(medicineId);
   }, [getMedicineById, medicineId]);
+
+  const medicine = cachedMedicine || loadedMedicine;
+
+  useEffect(() => {
+    let active = true;
+    if (medicineId === null) {
+      setLoadedMedicine(undefined);
+      setLoadingMedicine(false);
+      return;
+    }
+    setLoadedMedicine(undefined);
+    setMedicineLoadError(false);
+    setLoadingMedicine(true);
+    loadMedicineById(medicineId).then((item) => {
+      if (active) { setLoadedMedicine(item); setMedicineLoadError(false); }
+    }).catch(() => { if (active) setMedicineLoadError(true); })
+      .finally(() => { if (active) setLoadingMedicine(false); });
+    return () => { active = false; };
+  }, [loadMedicineById, medicineId]);
 
   useEffect(() => {
     if (medicineId !== null) {
@@ -108,7 +121,7 @@ export default function MedicineDetailScreen() {
       return [];
     }
 
-    return [...medicine.ofertas].sort((a, b) => getOfferPrice(a) - getOfferPrice(b));
+    return medicine.ofertas.filter((offer) => offer.disponivel !== false).sort((a, b) => getOfferPrice(a) - getOfferPrice(b));
   }, [medicine]);
 
   const lowest = offers[0];
@@ -117,10 +130,11 @@ export default function MedicineDetailScreen() {
   const isWeb = Platform.OS === 'web';
   const isDesktop = isWeb && width >= 1100;
   const isTablet = isWeb && width >= 850 && width < 1100;
+  const laboratoryName = getLaboratoryDisplayName(medicine?.laboratorio);
 
-  const imageUrl = lowest?.imagem_url;
   const productUrl = normalizeUrl(lowest?.url_origem);
   const lowestPrice = lowest ? Number(lowest.preco) : undefined;
+
 
   const handleToggleFavorite = () => {
     if (sessionMode !== 'authenticated') {
@@ -151,6 +165,10 @@ export default function MedicineDetailScreen() {
     }
   };
 
+  if (!medicine && loadingMedicine) {
+    return <Screen><View style={styles.notFoundBox}><Text style={styles.notFoundText}>Carregando medicamento...</Text></View></Screen>;
+  }
+
   if (!medicine) {
     return (
       <Screen>
@@ -165,7 +183,7 @@ export default function MedicineDetailScreen() {
           <Ionicons name="alert-circle-outline" size={42} color={palette.primary} />
           <Text style={styles.notFoundTitle}>Medicamento não encontrado</Text>
           <Text style={styles.notFoundText}>
-            Não foi possível localizar esse medicamento no catálogo carregado.
+            {medicineLoadError ? 'Não foi possível carregar este medicamento. Verifique a conexão e tente novamente.' : 'Esse medicamento não foi encontrado no catálogo.'}
           </Text>
         </View>
       </Screen>
@@ -183,30 +201,15 @@ export default function MedicineDetailScreen() {
 
       <View style={[styles.layout, isDesktop && styles.layoutDesktop]}>
         <View style={styles.mainColumn}>
-          <View
-            style={[
-              styles.imageCard,
-              isTablet && styles.imageCardTablet,
-              isDesktop && styles.imageCardDesktop,
-              imageUrl && styles.imageCardWithImage,
-            ]}
-          >
-            {imageUrl ? (
-              <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="contain" />
-            ) : (
-              <Ionicons name="image-outline" size={isDesktop ? 64 : 52} color={palette.text} />
-            )}
-          </View>
+          <MedicineImage medicine={medicine} style={[styles.imageCard, isTablet && styles.imageCardTablet, isDesktop && styles.imageCardDesktop]} />
 
           <View style={styles.headerRow}>
             <View style={styles.infoBlock}>
-              <Text style={[styles.name, isDesktop && styles.nameDesktop]}>
+              <Text numberOfLines={3} ellipsizeMode="tail" style={[styles.name, isDesktop && styles.nameDesktop]}>
                 {medicine.nome}
               </Text>
 
-              <Text style={[styles.price, isDesktop && styles.priceDesktop]}>
-                {formatPrice(lowestPrice)}
-              </Text>
+              {lowest ? <Text style={[styles.price, isDesktop && styles.priceDesktop]}>{formatPrice(lowestPrice)}</Text> : null}
 
               {lowest ? (
                 <Text style={styles.lowestStoreText}>
@@ -217,7 +220,13 @@ export default function MedicineDetailScreen() {
               )}
             </View>
 
-            <Pressable style={styles.favoriteButton} onPress={handleToggleFavorite}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              accessibilityState={{ selected: isFavorite }}
+              style={styles.favoriteButton}
+              onPress={handleToggleFavorite}
+            >
               <Ionicons
                 name={isFavorite ? 'heart' : 'heart-outline'}
                 size={30}
@@ -233,13 +242,29 @@ export default function MedicineDetailScreen() {
               Princípio ativo: {medicine.principio_ativo || 'Não informado'}
             </Text>
             <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
-              Laboratório: {medicine.laboratorio || 'Não informado'}
+              Laboratório: {laboratoryName || 'Não informado'}
             </Text>
             <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
               Código de barras: {medicine.codigo_barras || 'Não informado'}
             </Text>
             <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
-              {medicine.exige_receita ? 'Exige receita médica.' : 'Venda livre.'}
+              {medicine.categoria_regulatoria
+                ? `Categoria ANVISA: ${medicine.categoria_regulatoria}.`
+                : 'Categoria regulatória não confirmada pela ANVISA.'}
+            </Text>
+            <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
+              {medicine.referencia_anvisa === true
+                ? 'Consta na lista ANVISA de medicamentos de referência.'
+                : medicine.referencia_anvisa === false
+                  ? 'Não consta na lista ANVISA de medicamentos de referência.'
+                  : 'Status como medicamento de referência não confirmado.'}
+            </Text>
+            <Text style={[styles.description, isDesktop && styles.descriptionDesktop]}>
+              {medicine.exige_receita_confirmada === true
+                ? 'Receita confirmada na fonte CMED consultada.'
+                : medicine.exige_receita_confirmada === false
+                  ? 'Venda sem receita confirmada na fonte consultada.'
+                  : 'Exigência de receita não confirmada na fonte consultada.'}
             </Text>
           </View>
 
@@ -267,55 +292,44 @@ export default function MedicineDetailScreen() {
           </View>
         </View>
 
-        <View style={[styles.offersPanel, isDesktop && styles.offersPanelDesktop]}>
-          <View style={styles.offersHeader}>
-            <Text style={styles.offersTitle}>Outras farmácias disponíveis</Text>
-            <Text style={styles.offersSubtitle}>{offers.length} ofertas encontradas</Text>
-          </View>
+        {offers.length !== 1 ? <View style={[styles.offersPanel, isDesktop && styles.offersPanelDesktop]}>
+          {offers.length > 1 ? (
+            <View style={styles.offersHeader}>
+              <Text style={styles.offersTitle}>Comparar ofertas</Text>
+              <Text style={styles.offersSubtitle}>{offers.length} farmácias disponíveis</Text>
+            </View>
+          ) : null}
 
           {lowest ? (
             <View style={styles.lowestBox}>
               <Text style={styles.lowestLabel}>Menor preço</Text>
-              <Text style={styles.lowestPharmacy}>
-                {getPharmacyName(lowest as OfertaComExtras)}
-              </Text>
+              <Text style={styles.lowestPharmacy}>{getPharmacyName(lowest as OfertaComExtras)}</Text>
               <Text style={styles.lowestPrice}>{formatPrice(Number(lowest.preco))}</Text>
             </View>
-          ) : null}
+          ) : (
+            <Text style={styles.emptyOffers}>Nenhuma oferta disponível no momento.</Text>
+          )}
 
-          <View style={styles.offersList}>
-            {offers.map((offer) => {
+          {offers.length > 1 ? <View style={styles.offersList}>
+            {offers.slice(1).map((offer) => {
               const pharmacyName = getPharmacyName(offer as OfertaComExtras);
               const offerUrl = normalizeUrl(offer.url_origem);
-
               return (
                 <View key={offer.id} style={styles.offerRow}>
                   <View style={styles.offerLeft}>
-                    <View style={styles.offerDot} />
-
                     <View style={styles.offerInfo}>
-                      <Text style={styles.offerName} numberOfLines={1}>
-                        {pharmacyName}
-                      </Text>
-
-                      <Text style={styles.offerPrice}>
-                        {formatPrice(Number(offer.preco))}
-                      </Text>
+                      <Text style={styles.offerName} numberOfLines={1}>{pharmacyName}</Text>
+                      <Text style={styles.offerPrice}>{formatPrice(Number(offer.preco))}</Text>
                     </View>
                   </View>
-
-                  <Pressable
-                    style={[styles.offerSiteButton, !offerUrl && styles.disabledSmallButton]}
-                    disabled={!offerUrl}
-                    onPress={() => handleOpenProductSite(offerUrl)}
-                  >
+                  <Pressable style={[styles.offerSiteButton, !offerUrl && styles.disabledSmallButton]} disabled={!offerUrl} onPress={() => handleOpenProductSite(offerUrl)}>
                     <Text style={styles.offerSiteButtonText}>Abrir site</Text>
                   </Pressable>
                 </View>
               );
             })}
-          </View>
-        </View>
+          </View> : null}
+        </View> : null}
       </View>
 
       <AuthRequiredModal
@@ -342,26 +356,18 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1.35,
     borderRadius: radius.lg,
-    backgroundColor: '#ECECEC',
+    backgroundColor: palette.surface,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-  },
-  imageCardWithImage: {
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
   },
   imageCardTablet: {
     aspectRatio: 1.55,
   },
   imageCardDesktop: {
-    height: 420,
+    height: 340,
     aspectRatio: undefined,
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
+    maxWidth: 760,
   },
   headerRow: {
     flexDirection: 'row',
@@ -372,6 +378,7 @@ const styles = StyleSheet.create({
   },
   infoBlock: {
     flex: 1,
+    minWidth: 0,
   },
   favoriteButton: {
     width: 48,
@@ -386,7 +393,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     color: palette.text,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: spacing.xs,
   },
   nameDesktop: {
@@ -408,7 +415,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '600',
     color: palette.text,
     marginTop: spacing.xl,
     marginBottom: spacing.sm,
@@ -419,8 +426,8 @@ const styles = StyleSheet.create({
   },
   description: {
     color: palette.textSoft,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 21,
   },
   descriptionDesktop: {
     fontSize: 16,
@@ -467,11 +474,10 @@ const styles = StyleSheet.create({
     backgroundColor: palette.muted,
   },
   offersPanel: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: '#E4E4E4',
-    padding: spacing.md,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    borderWidth: 0,
+    padding: 0,
   },
   offersPanelDesktop: {
     width: 390,
@@ -491,11 +497,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: palette.textSoft,
   },
+  emptyOffers: { color: palette.textSoft, fontSize: 14, lineHeight: 21, padding: spacing.md },
   lowestBox: {
     borderRadius: radius.md,
-    backgroundColor: '#F5F9FF',
-    borderWidth: 1,
-    borderColor: palette.border,
+    backgroundColor: palette.backgroundSoft,
+    borderWidth: 0,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -520,16 +526,19 @@ const styles = StyleSheet.create({
   },
   offerRow: {
     gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: '#F7F7F7',
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: palette.border,
   },
   offerLeft: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
+    flex: 1,
+    minWidth: 0,
   },
   offerDot: {
     width: 12,
@@ -540,6 +549,7 @@ const styles = StyleSheet.create({
   },
   offerInfo: {
     flex: 1,
+    minWidth: 0,
   },
   offerName: {
     fontSize: 15,

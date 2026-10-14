@@ -1,18 +1,24 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Any, Dict, List
+
 from pydantic import ValidationError
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import SessionLocal
+from app.core.utils import validar_ean13
 from app.models.catalogo import CatalogoBase
-from app.models.oferta_farmacia import OfertaFarmacia
-from app.models.historico import HistoricoPreco
 from app.models.farmacia import Farmacia
+from app.models.oferta_farmacia import OfertaFarmacia
 from app.schemas.oferta import ProdutoExtraidoSchema
 from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
-from app.core.utils import validar_ean13
+from app.services.imagens import register_image_candidate
+from app.services.preco_observacoes import registrar_observacao_preco
+
 
 class BasePharmacyScraper(ABC):
     def __init__(
@@ -22,7 +28,7 @@ class BasePharmacyScraper(ABC):
         farmacia_nome_fantasia: str,
         farmacia_endereco: str,
         num_workers: int = 3,
-        batch_size: int = 50
+        batch_size: int = 50,
     ):
         self.fila = asyncio.Queue()
         self.num_workers = num_workers
@@ -61,21 +67,21 @@ class BasePharmacyScraper(ABC):
                     continue
 
                 # Validação de EAN - limpa EAN se for inválido
-                ean_valido = prod_validado.ean if prod_validado.ean and validar_ean13(prod_validado.ean) else None
-                # Se mudamos a validação de ean, mas é immutable no Schema de saida, passamos como copia
-                # Contudo podemos usar ele validado para as proximas etapas
+                ean_valido = (
+                    prod_validado.ean
+                    if prod_validado.ean and validar_ean13(prod_validado.ean)
+                    else None
+                )
+                # Usa a cópia validada nas próximas etapas do processamento.
                 prod_validado.ean = ean_valido
 
-                # Prepara dicionário consolidado para o banco (enriquecido será preenchido em lote)
-                item_enriquecido = {
-                    "validado": prod_validado,
-                    "enriquecido": None
-                }
+                # O enriquecimento será preenchido antes da gravação do lote.
+                item_enriquecido = {"validado": prod_validado, "enriquecido": None}
 
                 batch.append(item_enriquecido)
 
                 if len(batch) >= self.batch_size:
-                    # Salva em lote usando uma thread separada para não bloquear o loop de eventos
+                    # Salva em thread separada sem bloquear o loop de eventos.
                     await asyncio.to_thread(self._processar_e_salvar_lote, batch.copy())
                     batch.clear()
 
@@ -98,13 +104,15 @@ class BasePharmacyScraper(ABC):
             batch = ServicoEnriquecimentoFarmacologico.enriquecer_lote(db, batch)
 
             # 1. Garante que a farmácia existe
-            farmacia = db.query(Farmacia).filter(Farmacia.cnpj == self.farmacia_cnpj).first()
+            farmacia = (
+                db.query(Farmacia).filter(Farmacia.cnpj == self.farmacia_cnpj).first()
+            )
             if not farmacia:
                 farmacia = Farmacia(
                     cnpj=self.farmacia_cnpj,
                     razao_social=self.farmacia_razao_social,
                     nome_fantasia=self.farmacia_nome_fantasia,
-                    endereco_completo=self.farmacia_endereco
+                    endereco_completo=self.farmacia_endereco,
                 )
                 db.add(farmacia)
                 db.commit()
@@ -116,20 +124,27 @@ class BasePharmacyScraper(ABC):
                 prod: ProdutoExtraidoSchema = item["validado"]
                 enriquecido: dict = item["enriquecido"]
 
-                # Chave de desduplicação pode ser o ean ou, se não existir, o name_search.
-                # EAN é prioritario e é a chave unica indexada pelo ON CONFLICT.
-                # Produtos sem EAN (nulos) não causam conflito ON CONFLICT do EAN no postgres,
-                # Mas vamos inseri-los normalmente (desduplicados pelo nome se sem ean, para simplificar).
-
-                chave_dedup = prod.ean if prod.ean else prod.name_search
+                # Only EAN has a global catalog uniqueness guarantee. Products
+                # without EAN are resolved below by exact offer URL or the
+                # pharmacy's official SKU, never by display name alone.
+                if not prod.ean:
+                    continue
+                chave_dedup = prod.ean
 
                 catalogo_values_dict[chave_dedup] = {
                     "codigo_barras": prod.ean,
                     "name_search": prod.name_search,
-                    "principio_ativo": enriquecido['principio_ativo'],
-                    "laboratorio": enriquecido['laboratorio'],
-                    "exige_receita": enriquecido['exige_receita'],
-                    "categorias": enriquecido['categorias']
+                    "principio_ativo": enriquecido["principio_ativo"],
+                    "laboratorio": enriquecido["laboratorio"],
+                    "exige_receita": enriquecido["exige_receita"],
+                    "categorias": enriquecido["categorias"],
+                    "categoria_regulatoria": enriquecido.get("categoria_regulatoria"),
+                    "referencia_anvisa": enriquecido.get("referencia_anvisa"),
+                    "exige_receita_confirmada": enriquecido.get(
+                        "exige_receita_confirmada"
+                    ),
+                    "controle_especial": enriquecido.get("controle_especial"),
+                    "classificacao_fonte": enriquecido.get("classificacao_fonte"),
                 }
 
             catalogo_values = list(catalogo_values_dict.values())
@@ -139,46 +154,86 @@ class BasePharmacyScraper(ABC):
                 stmt = insert(CatalogoBase).values(catalogo_values)
                 # O conflito pode ser no codigo_barras
                 stmt = stmt.on_conflict_do_update(
-                    index_elements=['codigo_barras'],
+                    index_elements=["codigo_barras"],
                     set_={
                         "name_search": stmt.excluded.name_search,
                         "principio_ativo": stmt.excluded.principio_ativo,
                         "laboratorio": stmt.excluded.laboratorio,
                         "exige_receita": stmt.excluded.exige_receita,
-                        "categorias": stmt.excluded.categorias
+                        "categorias": stmt.excluded.categorias,
+                        "categoria_regulatoria": func.coalesce(
+                            stmt.excluded.categoria_regulatoria,
+                            CatalogoBase.categoria_regulatoria,
+                        ),
+                        "referencia_anvisa": func.coalesce(
+                            stmt.excluded.referencia_anvisa,
+                            CatalogoBase.referencia_anvisa,
+                        ),
+                        "exige_receita_confirmada": func.coalesce(
+                            stmt.excluded.exige_receita_confirmada,
+                            CatalogoBase.exige_receita_confirmada,
+                        ),
+                        "controle_especial": func.coalesce(
+                            stmt.excluded.controle_especial,
+                            CatalogoBase.controle_especial,
+                        ),
+                        "classificacao_fonte": func.coalesce(
+                            stmt.excluded.classificacao_fonte,
+                            CatalogoBase.classificacao_fonte,
+                        ),
                     },
-                    where=(CatalogoBase.codigo_barras.is_not(None))
+                    where=(CatalogoBase.codigo_barras.is_not(None)),
                 )
 
                 db.execute(stmt)
                 db.commit()
 
             # Recupera IDs
-            eans_no_lote = [item["validado"].ean for item in batch if item["validado"].ean]
-            nomes_no_lote_sem_ean = [item["validado"].name_search for item in batch if not item["validado"].ean]
-
+            eans_no_lote = [
+                item["validado"].ean for item in batch if item["validado"].ean
+            ]
             mapa_catalogo = {}
             if eans_no_lote:
-                catalogos_com_ean = db.query(CatalogoBase).filter(CatalogoBase.codigo_barras.in_(eans_no_lote)).all()
+                catalogos_com_ean = (
+                    db.query(CatalogoBase)
+                    .filter(CatalogoBase.codigo_barras.in_(eans_no_lote))
+                    .all()
+                )
                 for c in catalogos_com_ean:
                     mapa_catalogo[c.codigo_barras] = c.id
 
-            if nomes_no_lote_sem_ean:
-                catalogos_sem_ean = db.query(CatalogoBase).filter(
-                    CatalogoBase.codigo_barras.is_(None),
-                    CatalogoBase.name_search.in_(nomes_no_lote_sem_ean)
-                ).all()
-                for c in catalogos_sem_ean:
-                    mapa_catalogo[c.name_search] = c.id
-
-
-            # Prepare to query existing OfertaFarmacia to check for price changes
+            # Fetch existing offers once so the shared history policy can compare
+            # each new price with the persisted value before mutating it.
             urls_no_lote = [item["validado"].link for item in batch]
-            precos_existentes = {}
+            ofertas_existentes_por_url = {}
             if urls_no_lote:
-                ofertas_existentes = db.query(OfertaFarmacia).filter(OfertaFarmacia.url_origem.in_(urls_no_lote)).all()
+                ofertas_existentes = (
+                    db.query(OfertaFarmacia)
+                    .filter(OfertaFarmacia.url_origem.in_(urls_no_lote))
+                    .with_for_update()
+                    .all()
+                )
                 for oferta in ofertas_existentes:
-                    precos_existentes[oferta.url_origem] = oferta.preco
+                    ofertas_existentes_por_url[oferta.url_origem] = oferta
+
+            skus_no_lote_sem_ean = {
+                item["validado"].sku_interno
+                for item in batch
+                if not item["validado"].ean and item["validado"].sku_interno
+            }
+            ofertas_existentes_por_sku: dict[str, list[OfertaFarmacia]] = {}
+            if skus_no_lote_sem_ean:
+                for oferta in (
+                    db.query(OfertaFarmacia)
+                    .filter(
+                        OfertaFarmacia.farmacia_id == farmacia.id,
+                        OfertaFarmacia.sku_interno.in_(skus_no_lote_sem_ean),
+                    )
+                    .all()
+                ):
+                    ofertas_existentes_por_sku.setdefault(
+                        oferta.sku_interno, []
+                    ).append(oferta)
 
             # Desduplicação da OfertaFarmacia no lote atual
             oferta_dicts_map = {}
@@ -187,10 +242,55 @@ class BasePharmacyScraper(ABC):
                 catalogo_id = None
                 if prod.ean and prod.ean in mapa_catalogo:
                     catalogo_id = mapa_catalogo[prod.ean]
-                elif not prod.ean and prod.name_search in mapa_catalogo:
-                    catalogo_id = mapa_catalogo[prod.name_search]
+                elif not prod.ean:
+                    existing_offer = ofertas_existentes_por_url.get(prod.link)
+                    if existing_offer is None and prod.sku_interno:
+                        sku_matches = ofertas_existentes_por_sku.get(
+                            prod.sku_interno, []
+                        )
+                        if len(sku_matches) == 1:
+                            existing_offer = sku_matches[0]
+                    if existing_offer is not None:
+                        catalogo_id = existing_offer.catalogo_id
+                    else:
+                        batch_key = prod.sku_interno or prod.link
+                        catalogo_id = mapa_catalogo.get(batch_key)
+                        if catalogo_id is None:
+                            enriched: dict = item["enriquecido"]
+                            catalogo_item = CatalogoBase(
+                                codigo_barras=None,
+                                name_search=prod.name_search,
+                                principio_ativo=enriched["principio_ativo"],
+                                laboratorio=enriched["laboratorio"],
+                                exige_receita=enriched["exige_receita"],
+                                categorias=enriched["categorias"],
+                                categoria_regulatoria=enriched.get(
+                                    "categoria_regulatoria"
+                                ),
+                                referencia_anvisa=enriched.get("referencia_anvisa"),
+                                exige_receita_confirmada=enriched.get(
+                                    "exige_receita_confirmada"
+                                ),
+                                controle_especial=enriched.get("controle_especial"),
+                                classificacao_fonte=enriched.get("classificacao_fonte"),
+                            )
+                            db.add(catalogo_item)
+                            db.flush()
+                            catalogo_id = catalogo_item.id
+                            mapa_catalogo[batch_key] = catalogo_id
 
                 if catalogo_id:
+                    catalogo_item = db.get(CatalogoBase, catalogo_id)
+                    if catalogo_item is not None:
+                        register_image_candidate(
+                            catalogo_item,
+                            image_url=prod.imagem_url,
+                            pharmacy_name=self.farmacia_nome_fantasia,
+                            sku=prod.sku_interno,
+                            ean=prod.ean,
+                            product_url=prod.link,
+                            identity_confirmed=True,
+                        )
                     # Chave de desduplicação pela URL origem que é a unique key
                     oferta_dicts_map[prod.link] = {
                         "sku_interno": prod.sku_interno,
@@ -200,39 +300,40 @@ class BasePharmacyScraper(ABC):
                         "url_origem": prod.link,
                         "imagem_url": prod.imagem_url,
                         "farmacia_id": farmacia.id,
-                        "catalogo_id": catalogo_id
+                        "catalogo_id": catalogo_id,
                     }
 
-            oferta_dicts = list(oferta_dicts_map.values())
-
-            historico_dicts = []
+            observed_at = datetime.now(timezone.utc)
+            changes: list[tuple[OfertaFarmacia, Decimal | None, dict]] = []
             for url, oferta_data in oferta_dicts_map.items():
-                preco_novo = oferta_data["preco"]
-                preco_antigo = precos_existentes.get(url)
+                offer = ofertas_existentes_por_url.get(url)
+                previous_price = offer.preco if offer is not None else None
+                if offer is None:
+                    offer = OfertaFarmacia(**oferta_data)
+                    db.add(offer)
+                else:
+                    offer.sku_interno = oferta_data["sku_interno"]
+                    offer.quantidade_estoque = oferta_data["quantidade_estoque"]
+                    offer.disponivel = oferta_data["disponivel"]
+                    offer.url_origem = oferta_data["url_origem"]
+                    if oferta_data["imagem_url"]:
+                        offer.imagem_url = oferta_data["imagem_url"]
+                changes.append((offer, previous_price, oferta_data))
 
-                # If it's a new offer or the price has changed, add to history
-                if preco_antigo is None or preco_novo != preco_antigo:
-                    historico_dicts.append({
-                        "medicamento_id": oferta_data["catalogo_id"],
-                        "farmacia_id": oferta_data["farmacia_id"],
-                        "preco": preco_novo
-                    })
-
-            if oferta_dicts:
-                # Upsert OfertaFarmacia
-                stmt_oferta = insert(OfertaFarmacia).values(oferta_dicts)
-                stmt_oferta = stmt_oferta.on_conflict_do_update(
-                    index_elements=['url_origem'],
-                    set_={
-                        "preco": stmt_oferta.excluded.preco,
-                        "imagem_url": stmt_oferta.excluded.imagem_url
-                    }
+            # IDs for new offers are needed to retain the exact offer lineage.
+            db.flush()
+            for offer, previous_price, oferta_data in changes:
+                history_event = registrar_observacao_preco(
+                    offer,
+                    preco=oferta_data["preco"],
+                    observado_em=observed_at,
+                    origem=self.farmacia_nome_fantasia,
+                    farmacia_id=oferta_data["farmacia_id"],
+                    medicamento_id=oferta_data["catalogo_id"],
+                    preco_anterior=previous_price,
                 )
-                db.execute(stmt_oferta)
-
-            if historico_dicts:
-                stmt_historico = insert(HistoricoPreco).values(historico_dicts)
-                db.execute(stmt_historico)
+                if history_event:
+                    db.add(history_event)
 
             db.commit()
 
@@ -242,9 +343,11 @@ class BasePharmacyScraper(ABC):
         finally:
             db.close()
 
-    async def executar_com_backoff(self, funcao, *args, max_retries=5, initial_delay=2.0, **kwargs):
+    async def executar_com_backoff(
+        self, funcao, *args, max_retries=5, initial_delay=2.0, **kwargs
+    ):
         """
-        Implementa a estratégia genérica de Exponential Backoff para lidar com Rate Limits.
+        Implementa backoff exponencial para lidar com limites de requisição.
         """
         retries = 0
         delay = initial_delay
@@ -261,7 +364,9 @@ class BasePharmacyScraper(ABC):
                     if retries > max_retries:
                         print(f"Max retries excedido para o status HTTP {status}.")
                         return response
-                    print(f"Rate limit / Server Error ({status}). Retrying in {delay}s...")
+                    print(
+                        f"Rate limit / Server Error ({status}). Retrying in {delay}s..."
+                    )
                     await asyncio.sleep(delay)
                     delay *= 2
                     continue
@@ -276,9 +381,14 @@ class BasePharmacyScraper(ABC):
                     if status_code == 429 or status_code >= 500:
                         retries += 1
                         if retries > max_retries:
-                            print(f"Max retries excedido para a falha HTTP {status_code}.")
+                            print(
+                                f"Max retries excedido para a falha HTTP {status_code}."
+                            )
                             raise e
-                        print(f"Rate limit / Server Error ({status_code}). Retrying in {delay}s...")
+                        print(
+                            f"Rate limit / Server Error ({status_code}). "
+                            f"Retrying in {delay}s..."
+                        )
                         await asyncio.sleep(delay)
                         delay *= 2
                         continue

@@ -16,7 +16,7 @@ import {
 import { z } from 'zod';
 
 import { Screen } from '../components/Screen';
-import { useAppContext } from '../context/AppContext';
+import { useSessionContext } from '../context/AppContext';
 import { palette, radius, spacing } from '../theme';
 
 const loginSchema = z.object({
@@ -50,6 +50,7 @@ function translateBackendMessage(message: string) {
 
   if (
     normalized.includes('incorrect') ||
+    normalized.includes('login_bad_credentials') ||
     normalized.includes('unauthorized') ||
     normalized.includes('invalid credentials') ||
     normalized.includes('invalid login') ||
@@ -125,73 +126,32 @@ function getReadableMessage(value: unknown, fallback: string) {
   return fallback;
 }
 
-function isValidEmail(value: string) {
-  const email = value.trim();
-
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 export default function LoginScreen() {
-  const { continueAsGuest, signIn } = useAppContext();
-
+  const { continueAsGuest, signIn } = useSessionContext();
   const { width } = useWindowDimensions();
-
   const isWeb = Platform.OS === 'web';
   const isWide = isWeb && width >= 900;
-
-  const {
-    control,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-    getValues,
-  } = useForm<LoginFormValues>({
+  const { control, handleSubmit, setError, getValues, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   });
-
   const [showPassword, setShowPassword] = useState(false);
-
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
-
-  const [feedback, setFeedback] = useState<{
-    type: 'error' | 'success';
-    text: string;
-  } | null>(null);
+  const [focused, setFocused] = useState<'email' | 'password' | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const handleLogin = async (data: LoginFormValues) => {
     setFeedback(null);
-
     try {
       const result = await signIn(data.email, data.password);
-
       if (!result.ok) {
-        setFeedback({
-          type: 'error',
-          text: getReadableMessage(
-            result.message,
-            'Não foi possível entrar. Verifique email e senha.'
-          ),
-        });
+        setFeedback({ type: 'error', text: getReadableMessage(result.message, 'Não foi possível entrar. Verifique email e senha.') });
         setError('root', { message: result.message });
         return;
       }
-
-      setFeedback({
-        type: 'success',
-        text: getReadableMessage(result.message, 'Login realizado com sucesso.'),
-      });
-
+      setFeedback({ type: 'success', text: getReadableMessage(result.message, 'Login realizado com sucesso.') });
       router.replace('/(app)/home' as never);
-    } catch (error) {
-      setFeedback({
-        type: 'error',
-        text: 'Erro ao tentar entrar. Tente novamente.',
-      });
+    } catch {
+      setFeedback({ type: 'error', text: 'Erro ao tentar entrar. Tente novamente.' });
     }
   };
 
@@ -201,230 +161,78 @@ export default function LoginScreen() {
       continueAsGuest();
       router.replace('/(app)/home' as never);
     } else {
-      setFeedback({
-        type: 'error',
-        text: 'Para entrar como convidado, deixe os campos vazios.',
-      });
+      setFeedback({ type: 'error', text: 'Para entrar como convidado, deixe os campos vazios.' });
     }
   };
 
   return (
-    <Screen
-      hideBottomNav
-      scroll
-      contentStyle={[styles.screenContent, isWide && styles.screenContentWeb]}
-    >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={[styles.page, isWide && styles.pageWeb]}>
-          <View style={[styles.hero, !isWide && styles.heroMobile]}>
-            <View style={styles.logoBox}>
-              <Text style={styles.logoText}>P</Text>
+    <Screen hideBottomNav scroll contentStyle={styles.screenContent}>
+      <KeyboardAvoidingView style={isWeb ? styles.webKeyboardContainer : styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View
+          style={[
+            styles.page,
+            isWide ? styles.pageWide : styles.pageNarrow,
+          ]}
+        >
+          <View style={[styles.brandPanel, isWide ? styles.brandPanelWide : styles.brandPanelNarrow]}>
+            <View style={styles.brandRow}>
+              <View style={styles.logoBox}><Text style={styles.logoText}>P</Text></View>
+              <Text style={styles.brandName}>Preço Bão</Text>
             </View>
-
-            <Text style={[styles.heroTitle, !isWide && styles.heroTitleMobile]}>
-              Bem-vindo ao Preço Bão
-            </Text>
-
-            <Text style={styles.heroSubtitle}>
-              Compare medicamentos, acompanhe preços e encontre ofertas nas farmácias disponíveis.
-            </Text>
-
-            <View style={styles.benefits}>
-              <View style={styles.benefitItem}>
-                <View style={styles.benefitIcon}>
-                  <Ionicons name="search-outline" size={18} color={palette.primary} />
-                </View>
-
-                <Text style={styles.benefitText}>
-                  Busca rápida de medicamentos
-                </Text>
-              </View>
-
-              <View style={styles.benefitItem}>
-                <View style={styles.benefitIcon}>
-                  <Ionicons name="heart-outline" size={18} color={palette.primary} />
-                </View>
-
-                <Text style={styles.benefitText}>
-                  Favoritos para usuários logados
-                </Text>
-              </View>
-
-              <View style={styles.benefitItem}>
-                <View style={styles.benefitIcon}>
-                  <Ionicons
-                    name="pricetag-outline"
-                    size={18}
-                    color={palette.primary}
-                  />
-                </View>
-
-                <Text style={styles.benefitText}>
-                  Comparação de menor preço
-                </Text>
-              </View>
-            </View>
+            {isWide && <View style={styles.brandCopy}>
+              <Text style={styles.brandHeading}>Seu medicamento, pelo melhor preço.</Text>
+              <Text style={styles.brandDescription}>Pesquise preços e mantenha seus favoritos em um só lugar.</Text>
+            </View>}
           </View>
 
-          <View style={[styles.card, isWide && styles.cardWeb]}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.title}>Entrar</Text>
-
-              <Text style={styles.subtitle}>
-                Acesse sua conta ou continue como convidado.
-              </Text>
+          <View style={[styles.formPanel, isWide ? styles.formPanelWide : styles.formPanelNarrow]}>
+            <View style={styles.headingBlock}>
+              <Text style={styles.title}>Entrar na sua conta</Text>
+              <Text style={styles.subtitle}>Acesse seus favoritos e acompanhe medicamentos.</Text>
             </View>
 
             <View style={styles.form}>
-              <View>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        emailFocused && styles.inputWrapperFocused,
-                        errors.email && styles.inputWrapperError,
-                      ]}
-                    >
-                      <Ionicons name="mail-outline" size={20} color={palette.primary} />
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Email"
-                        placeholderTextColor={palette.muted}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        textContentType="emailAddress"
-                        style={[styles.input, isWeb && styles.inputWeb]}
-                        onFocus={() => setEmailFocused(true)}
-                        onBlur={() => {
-                          setEmailFocused(false);
-                          onBlur();
-                        }}
-                      />
-                    </View>
-                  )}
-                />
-                {errors.email && <Text style={styles.inputHelperText}>{errors.email.message}</Text>}
+              <View style={styles.field}>
+                <Text style={styles.label}>Email</Text>
+                <Controller control={control} name="email" render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => setFocused('email')}
+                    placeholder="seu@email.com" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false}
+                    keyboardType="email-address" textContentType="emailAddress" accessibilityLabel="Email"
+                    style={[styles.input, focused === 'email' && styles.inputFocused, errors.email && styles.inputError]} />
+                )} />
+                {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
               </View>
-
-              <View>
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        passwordFocused && styles.inputWrapperFocused,
-                        errors.password && styles.inputWrapperError,
-                      ]}
-                    >
-                      <Ionicons name="lock-closed-outline" size={20} color={palette.primary} />
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Senha"
-                        placeholderTextColor={palette.muted}
-                        secureTextEntry={!showPassword}
-                        textContentType="password"
-                        style={[styles.input, isWeb && styles.inputWeb]}
-                        onFocus={() => setPasswordFocused(true)}
-                        onBlur={() => {
-                          setPasswordFocused(false);
-                          onBlur();
-                        }}
-                      />
-                      <Pressable
-                        style={styles.eyeButton}
-                        onPress={() => setShowPassword((current) => !current)}
-                      >
-                        <Ionicons
-                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={21}
-                          color={palette.textSoft}
-                        />
-                      </Pressable>
-                    </View>
-                  )}
-                />
-                {errors.password && <Text style={styles.inputHelperText}>{errors.password.message}</Text>}
+              <View style={styles.field}>
+                <Text style={styles.label}>Senha</Text>
+                <View style={[styles.passwordRow, focused === 'password' && styles.inputFocused, errors.password && styles.inputError]}>
+                  <Controller control={control} name="password" render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => setFocused('password')}
+                      placeholder="Digite sua senha" placeholderTextColor={palette.muted} secureTextEntry={!showPassword} textContentType="password"
+                      accessibilityLabel="Senha" style={styles.passwordInput} />
+                  )} />
+                  <Pressable onPress={() => setShowPassword((current) => !current)} style={styles.eyeButton} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textSoft} />
+                  </Pressable>
+                </View>
+                {errors.password && <Text style={styles.helperText}>{errors.password.message}</Text>}
               </View>
             </View>
 
-            {feedback ? (
-              <View
-                style={[
-                  styles.feedbackBox,
-                  feedback.type === 'error'
-                    ? styles.feedbackError
-                    : styles.feedbackSuccess,
-                ]}
-              >
-                <Ionicons
-                  name={
-                    feedback.type === 'error'
-                      ? 'alert-circle-outline'
-                      : 'checkmark-circle-outline'
-                  }
-                  size={19}
-                  color={feedback.type === 'error' ? palette.danger : palette.success}
-                />
+            {feedback && <View style={[styles.feedbackBox, feedback.type === 'error' ? styles.feedbackError : styles.feedbackSuccess]} accessibilityRole="alert">
+              <Text style={styles.feedbackText}>{feedback.text}</Text>
+            </View>}
 
-                <Text style={styles.feedbackText}>{feedback.text}</Text>
-              </View>
-            ) : null}
-
-            <Pressable
-              style={(state: { pressed: boolean }) => [
-                styles.button,
-                state.pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-              onPress={handleSubmit(handleLogin)}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Entrando...' : 'Entrar'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={(state: { pressed: boolean }) => [
-                styles.guestButton,
-                state.pressed && styles.buttonPressed,
-              ]}
-              onPress={onGuestPress}
-            >
-              <Text style={styles.guestButtonText}>Continuar como convidado</Text>
-            </Pressable>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-
-              <Text style={styles.dividerText}>ou</Text>
-
-              <View style={styles.divider} />
+            <View style={styles.actions}>
+              <Pressable style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, isSubmitting && styles.disabled]} onPress={handleSubmit(handleLogin)} disabled={isSubmitting} accessibilityRole="button">
+                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Entrando...' : 'Entrar'}</Text>
+              </Pressable>
+              <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]} onPress={() => router.push('/signup' as never)} accessibilityRole="button">
+                <Text style={styles.secondaryButtonText}>Criar conta</Text>
+              </Pressable>
+              <Pressable style={styles.guestButton} onPress={onGuestPress} accessibilityRole="button">
+                <Text style={styles.guestButtonText}>Continuar como convidado</Text>
+              </Pressable>
             </View>
-
-            <Pressable
-              style={(state: { pressed: boolean }) => [
-                styles.createAccountButton,
-                state.pressed && styles.buttonPressed,
-              ]}
-              onPress={() => router.push('/signup' as never)}
-            >
-              <Text style={styles.createAccountText}>Criar conta</Text>
-            </Pressable>
-
-            <Text style={styles.helperText}>
-              Usuário teste: teste@precobao.com / 123456
-            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -433,356 +241,49 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-
-  screenContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingBottom: spacing.xl,
-  },
-
-  screenContentWeb: {
-    minHeight: '100vh' as any,
-  },
-
-  page: {
-    width: '100%',
-    gap: spacing.lg,
-  },
-
-  pageWeb: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 56,
-  },
-
-  hero: {
-    flex: 1,
-    maxWidth: 520,
-  },
-
-  heroMobile: {
-    maxWidth: '100%',
-  },
-
-  logoBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    backgroundColor: palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    elevation: 5,
-  },
-
-  logoText: {
-    color: palette.surface,
-    fontSize: 38,
-    fontWeight: '900',
-  },
-
-  heroTitle: {
-    color: palette.text,
-    fontSize: 46,
-    lineHeight: 52,
-    fontWeight: '900',
-    maxWidth: 500,
-  },
-
-  heroTitleMobile: {
-    fontSize: 32,
-    lineHeight: 38,
-  },
-
-  heroSubtitle: {
-    color: palette.textSoft,
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: spacing.md,
-    maxWidth: 480,
-  },
-
-  benefits: {
-    marginTop: spacing.xl,
-    gap: spacing.md,
-  },
-
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-
-  benefitIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: palette.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  benefitText: {
-    color: palette.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  card: {
-    width: '100%',
-    maxWidth: 460,
-    alignSelf: 'center',
-    backgroundColor: palette.surface,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: spacing.lg,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    shadowOffset: {
-      width: 0,
-      height: 14,
-    },
-    elevation: 6,
-  },
-
-  cardWeb: {
-    padding: spacing.xl,
-  },
-
-  cardHeader: {
-    marginBottom: spacing.xl,
-  },
-
-  title: {
-    color: palette.text,
-    fontSize: 31,
-    fontWeight: '900',
-  },
-
-  subtitle: {
-    color: palette.textSoft,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: spacing.xs,
-  },
-
-  form: {
-    gap: spacing.md,
-  },
-
-  inputWrapper: {
-    minHeight: 56,
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radius.lg,
-    backgroundColor: palette.surface,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-
-  inputWrapperFocused: {
-    borderColor: palette.primary,
-    borderWidth: 2,
-  },
-
-  inputWrapperError: {
-    borderColor: palette.danger,
-    borderWidth: 1,
-  },
-
-  inputHelperText: {
-    color: palette.danger,
-    fontSize: 13,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-
-  input: {
-    flex: 1,
-    color: palette.text,
-    fontSize: 16,
-    paddingVertical: spacing.sm,
-  },
-
-  inputWeb: {
-    fontSize: 17,
-    outlineWidth: 0,
-    outlineColor: 'transparent',
-    outlineStyle: 'none' as any,
-  },
-
-  eyeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  feedbackBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.lg,
-  },
-
-  feedbackError: {
-    backgroundColor: '#FFF1F1',
-    borderWidth: 1,
-    borderColor: '#F0B7B7',
-  },
-
-  feedbackSuccess: {
-    backgroundColor: '#F1FFF4',
-    borderWidth: 1,
-    borderColor: '#B9E4C1',
-  },
-
-  feedbackText: {
-    flex: 1,
-    color: palette.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  button: {
-    height: 54,
-    borderRadius: radius.pill,
-    backgroundColor: palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.xl,
-
-
-
-  },
-
-  buttonHovered: {
-    backgroundColor: palette.primaryDark,
-    transform: [
-      {
-        translateY: -2,
-      },
-    ],
-  },
-
-  buttonPressed: {
-    opacity: 0.86,
-    transform: [
-      {
-        scale: 0.98,
-      },
-    ],
-  },
-
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-
-  buttonText: {
-    color: palette.surface,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-
-  guestButton: {
-    height: 52,
-    borderRadius: radius.pill,
-    backgroundColor: palette.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.md,
-
-
-
-  },
-
-  guestButtonHovered: {
-    backgroundColor: '#CFE6FF',
-    transform: [
-      {
-        translateY: -2,
-      },
-    ],
-  },
-
-  guestButtonText: {
-    color: palette.primary,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: palette.border,
-  },
-
-  dividerText: {
-    color: palette.textSoft,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  createAccountButton: {
-    height: 52,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.primary,
-    backgroundColor: palette.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-
-
-
-  },
-
-  createAccountButtonHovered: {
-    backgroundColor: palette.primarySoft,
-    transform: [
-      {
-        translateY: -2,
-      },
-    ],
-  },
-
-  createAccountText: {
-    color: palette.primary,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-
-  helperText: {
-    color: palette.textSoft,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    fontSize: 13,
-    lineHeight: 19,
-  },
+  flex: { flex: 1 },
+  webKeyboardContainer: { width: '100%' },
+  screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
+  page: { width: '100%', maxWidth: 1060, alignSelf: 'center', gap: spacing.xl },
+  pageNarrow: { maxWidth: 520, paddingHorizontal: spacing.lg, boxSizing: 'border-box' } as any,
+  pageWide: { flexDirection: 'row', alignItems: 'stretch', gap: 0, minHeight: 570, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.xl, overflow: 'hidden' },
+  brandPanel: { width: '100%' },
+  brandPanelNarrow: { maxWidth: 500, alignSelf: 'center' },
+  brandPanelWide: { width: '47%', padding: 44, backgroundColor: palette.surfaceBlue, justifyContent: 'space-between' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  logoBox: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
+  logoText: { color: palette.surface, fontSize: 24, fontWeight: '800' },
+  brandName: { color: palette.text, fontSize: 19, fontWeight: '800' },
+  brandCopy: { gap: spacing.lg, paddingBottom: 16 },
+  brandHeading: { color: palette.text, fontSize: 34, lineHeight: 41, fontWeight: '800', maxWidth: 390 },
+  brandDescription: { color: palette.textSoft, fontSize: 16, lineHeight: 24, maxWidth: 370 },
+  formPanel: { flex: 1, width: 'auto', maxWidth: 500, alignSelf: 'stretch', justifyContent: 'center', gap: spacing.xl, paddingVertical: spacing.xl },
+  formPanelNarrow: { width: '100%', paddingVertical: 0 },
+  formPanelWide: { paddingHorizontal: 36 },
+  headingBlock: { gap: spacing.xs },
+  title: { color: palette.text, fontSize: 28, lineHeight: 35, fontWeight: '800' },
+  subtitle: { color: palette.textSoft, fontSize: 14, lineHeight: 21 },
+  form: { gap: spacing.lg },
+  field: { gap: spacing.xs },
+  label: { color: palette.text, fontSize: 14, fontWeight: '600' },
+  input: { minHeight: 52, paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface, color: palette.text, fontSize: 16, outlineStyle: 'none', boxSizing: 'border-box' } as any,
+  passwordRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface },
+  passwordInput: { flex: 1, minWidth: 0, height: 50, paddingHorizontal: spacing.lg, color: palette.text, fontSize: 16, outlineStyle: 'none' } as any,
+  eyeButton: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
+  inputFocused: { borderColor: palette.primary, borderWidth: 2 },
+  inputError: { borderColor: palette.danger },
+  helperText: { color: palette.danger, fontSize: 13 },
+  feedbackBox: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
+  feedbackError: { backgroundColor: palette.surface, borderColor: palette.danger },
+  feedbackSuccess: { backgroundColor: palette.surface, borderColor: palette.success },
+  feedbackText: { color: palette.text, fontSize: 14, lineHeight: 20 },
+  actions: { gap: spacing.sm },
+  primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: palette.primary },
+  primaryButtonText: { color: palette.surface, fontSize: 16, fontWeight: '700' },
+  secondaryButton: { minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: palette.primary },
+  secondaryButtonText: { color: palette.primaryDark, fontSize: 15, fontWeight: '700' },
+  guestButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  guestButtonText: { color: palette.textSoft, fontSize: 14, fontWeight: '600' },
+  pressed: { opacity: 0.82 },
+  disabled: { opacity: 0.55 },
 });

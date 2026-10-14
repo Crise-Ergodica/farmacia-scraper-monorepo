@@ -17,3 +17,30 @@ A pasta `app/` atua como o contêiner principal e o diretório raiz para todo o 
 - `app/main.py` O arquivo `app/main.py` serve fundamentalmente como o principal ponto de ignição neuvrálgica de toda a nossa infraestrutura de software, orquestrando a subida efetiva do servidor de processos. A intenção inicial deste sistema contido neste único script é instanciar concretamente o objeto principal do framework FastAPI, que passará a escutar ativamente todas as conexões HTTP provindas dos celulares dos usuários espalhados pela cidade. É rigorosamente nas entranhas processuais deste arquivo que as políticas de segurança defensivas primárias, como os middlewares interceptadores globais de CORS, são meticulosamente anexadas, assegurando que o nosso web scraper não bloqueie acidentalmente as legítimas requisições geradas pelo painel do aplicativo desenvolvido utilizando a tecnologia multiplataforma do Expo. Adicionalmente, este módulo atua como um grande roteador central, encarregado de importar todas as sub-rotas isoladas que construímos no diretório de APIs e unificá-las elegantemente em um único grafo estruturado, tornando a documentação gerada automaticamente acessível e coesa.
 - `pyproject.toml` O arquivo `pyproject.toml`, devidamente acomodado na raiz da pasta do backend, representa o padrão ouro moderno e absoluto para o gerenciamento de empacotamento, controle de qualidade de código e orquestração de dependências no complexo ecossistema atual do Python. A intenção inicial deste sistema declarativo é erradicar definitivamente a instabilidade crônica causada pelos antigos, frágeis e ultrapassados métodos de controle baseados exclusivamente em arquivos de texto simples, os quais rotineiramente provocavam colisões destrutivas de versões de bibliotecas críticas durante as complicadas fases de subida para o servidor. Através da utilização nativa de ferramentas contemporâneas extremamente robustas, nós garantiremos matematicamente que a versão específica e vitalícia do `BeautifulSoup4` ou do `FastAPI` utilizada rigorosamente na máquina de desenvolvimento local será perfeitamente replicada sem quaisquer margens para falhas na infraestrutura de produção espelhada no contêiner do Docker principal.
 - `.env` O arquivo `.env`, o qual deve sempre e compulsoriamente residir na raiz protegida da pasta lógica de execução do projeto de backend, é a principal trincheira técnica invisível que blinda e viabiliza a segurança operacional avançada e as configurações flexíveis do nosso servidor focado nas coletas locais. A intenção inicial deste sistema puramente baseado em chave e valor é abraçar incontestavelmente os mais respeitáveis e testados princípios da engenharia moderna inerentes à consagrada metodologia das aplicações de doze fatores globais. Ao abstrairmos completamente do código fonte estático as senhas absolutas dos bancos de dados sensíveis e os caminhos de endereçamento variável das redes locais de orquestração, nós anulamos por completo o gravíssimo e comum risco cibernético de realizar envios permanentes de credenciais privadas corporativas e chaves para o repositório público na nuvem de armazenamento online.
+# Execução e segurança
+
+Configure `DATABASE_URL`, `JWT_SECRET` e `BACKEND_CORS_ORIGINS` no ambiente ou em
+`backend/.env` (veja `.env.example`). `JWT_SECRET` deve ser um valor aleatório longo
+e estável entre reinícios. Para ambientes já implantados, migre o segredo de forma
+planejada: trocar seu valor invalida os tokens existentes. Não use o valor de exemplo
+em produção.
+
+```powershell
+cd backend
+poetry install
+poetry run alembic upgrade head
+poetry run uvicorn app.main:app --reload
+poetry run python -m pytest -q
+poetry run ruff check app tests
+```
+
+Os módulos atualizados nesta refatoração passam no Ruff. A verificação global
+ainda aponta pendências de estilo em módulos legados do repositório, inclusive
+scrapers que foram mantidos sem alterações.
+
+As tabelas associativas de favoritos já têm chave primária composta por usuário e
+item. Esta alteração usa essas chaves existentes; não exige migration nem altera
+registros. Os endpoints `/users/me/favoritos/*` exigem JWT e retornam os dados do
+usuário autenticado. O logout JWT remove o token do cliente; tokens emitidos
+continuam válidos até expirar (uma hora) porque a estratégia JWT não possui lista
+de revogação no servidor.

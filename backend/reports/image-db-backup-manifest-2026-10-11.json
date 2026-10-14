@@ -1,0 +1,11 @@
+﻿{
+    "file":  "%LOCALAPPDATA%\\PrecoBaoBackups\\farmacia_db-pre-image-maintenance-20261011.dump",
+    "bytes":  1014723,
+    "sha256":  "DDD522A7289D9BF5B1B00A10620959C8D963BF532E9BA4EEA1C5C8872EE2FF30",
+    "format":  "PostgreSQL custom archive",
+    "verified_by":  "pg_restore --list",
+    "database":  "farmacia_db",
+    "postgres_volume":  "backend_postgres_data",
+    "alembic_revision_before":  "7a81c20f5d31",
+    "created_at_utc":  "2026-10-11T22:38:17Z"
+}

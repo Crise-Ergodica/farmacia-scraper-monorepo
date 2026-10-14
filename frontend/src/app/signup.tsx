@@ -16,7 +16,7 @@ import {
 import { z } from 'zod';
 
 import { Screen } from '../components/Screen';
-import { useAppContext } from '../context/AppContext';
+import { useSessionContext } from '../context/AppContext';
 import { palette, radius, spacing } from '../theme';
 
 const signupSchema = z
@@ -36,7 +36,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 type FocusedField = 'name' | 'email' | 'password' | 'confirmPassword' | null;
 
 export default function SignupScreen() {
-  const { registerUser, signIn } = useAppContext();
+  const { registerUser, signIn } = useSessionContext();
 
   const { width } = useWindowDimensions();
 
@@ -109,618 +109,123 @@ export default function SignupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Screen
-        contentStyle={[
-          styles.screenContent,
-          isWeb && styles.screenContentWeb,
-        ]}
-      >
-        <View style={[styles.page, isWide && styles.pageWeb]}>
-          <View style={[styles.hero, !isWide && styles.heroMobile]}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.backButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={() => router.replace('/login' as never)}
-            >
-              <Ionicons name="chevron-back" size={22} color={palette.text} />
+    <Screen hideBottomNav contentStyle={styles.screenContent}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={[styles.page, isWide && styles.pageWide]}>
+          <View style={[styles.brandPanel, isWide ? styles.brandPanelWide : styles.brandPanelNarrow]}>
+            <View style={styles.brandTop}>
+            <Pressable style={styles.backLink} onPress={() => router.replace('/login' as never)} accessibilityRole="button" accessibilityLabel="Voltar para entrar">
+              <Text style={styles.backText}>Voltar para entrar</Text>
             </Pressable>
-
-            <View style={styles.logoBox}>
-              <Text style={styles.logoText}>P</Text>
+            <View style={styles.brandRow}><View style={styles.logoBox}><Text style={styles.logoText}>P</Text></View><Text style={styles.brandName}>Preço Bão</Text></View>
             </View>
-
-            <Text style={[styles.heroTitle, !isWide && styles.heroTitleMobile]}>
-              Crie sua conta
-            </Text>
-
-            <Text style={styles.heroSubtitle}>
-              Salve seus medicamentos favoritos e tenha uma experiência mais
-              personalizada.
-            </Text>
-
-            <View style={styles.infoPanel}>
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={21}
-                  color={palette.primary}
-                />
-                <Text style={styles.infoText}>Cadastro simples e rápido</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Ionicons name="heart" size={21} color={palette.primary} />
-                <Text style={styles.infoText}>
-                  Favoritos vinculados à sua conta
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="shield-checkmark"
-                  size={21}
-                  color={palette.primary}
-                />
-                <Text style={styles.infoText}>
-                  Pronto para autenticação real do backend
-                </Text>
-              </View>
-            </View>
+            {isWide && <View style={styles.brandCopy}><Text style={styles.brandHeading}>Seus favoritos, sempre com você.</Text><Text style={styles.brandDescription}>Crie sua conta para guardar medicamentos e comparar preços quando precisar.</Text></View>}
           </View>
-
-          <View style={[styles.card, isWeb && styles.cardWeb]}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.title}>Criar conta</Text>
-              <Text style={styles.subtitle}>
-                Preencha os dados abaixo para iniciar seu cadastro.
-              </Text>
-            </View>
-
+          <View style={[styles.formPanel, isWide && styles.formPanelWide]}>
+            <View style={styles.headingBlock}><Text style={styles.title}>Criar conta</Text><Text style={styles.subtitle}>Preencha seus dados para começar.</Text></View>
             <View style={styles.form}>
-              <View>
-                <Controller
-                  control={control}
-                  name="name"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        focusedField === 'name' && styles.inputWrapperFocused,
-                        errors.name && styles.inputWrapperError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="person-outline"
-                        size={20}
-                        color={palette.textSoft}
-                      />
-
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Nome"
-                        placeholderTextColor={palette.textSoft}
-                        style={[styles.input, isWeb && styles.inputWeb]}
-                        autoCapitalize="words"
-                        onFocus={() => setFocusedField('name')}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          onBlur();
-                        }}
-                      />
-                    </View>
-                  )}
-                />
-
-                {errors.name ? (
-                  <Text style={styles.helperText}>{errors.name.message}</Text>
-                ) : null}
+              <View style={styles.field}>
+                <Text style={styles.label}>Nome</Text>
+                <Controller control={control} name="name" render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('name')}
+                    placeholder="Seu nome" placeholderTextColor={palette.muted} autoCapitalize="words" textContentType="name" accessibilityLabel="Nome"
+                    style={[styles.input, focusedField === 'name' && styles.inputFocused, errors.name && styles.inputError]} />
+                )} />
+                {errors.name && <Text style={styles.helperText}>{errors.name.message}</Text>}
               </View>
-
-              <View>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        focusedField === 'email' && styles.inputWrapperFocused,
-                        errors.email && styles.inputWrapperError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="mail-outline"
-                        size={20}
-                        color={palette.textSoft}
-                      />
-
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Email"
-                        placeholderTextColor={palette.textSoft}
-                        style={[styles.input, isWeb && styles.inputWeb]}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        onFocus={() => setFocusedField('email')}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          onBlur();
-                        }}
-                      />
-                    </View>
-                  )}
-                />
-
-                {errors.email ? (
-                  <Text style={styles.helperText}>{errors.email.message}</Text>
-                ) : null}
+              <View style={styles.field}>
+                <Text style={styles.label}>Email</Text>
+                <Controller control={control} name="email" render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('email')}
+                    placeholder="seu@email.com" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false} keyboardType="email-address"
+                    textContentType="emailAddress" accessibilityLabel="Email"
+                    style={[styles.input, focusedField === 'email' && styles.inputFocused, errors.email && styles.inputError]} />
+                )} />
+                {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
               </View>
-
-              <View>
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        focusedField === 'password' &&
-                          styles.inputWrapperFocused,
-                        errors.password && styles.inputWrapperError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="lock-closed-outline"
-                        size={20}
-                        color={palette.textSoft}
-                      />
-
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Senha"
-                        placeholderTextColor={palette.textSoft}
-                        style={[styles.input, isWeb && styles.inputWeb]}
-                        secureTextEntry={!showPassword}
-                        onFocus={() => setFocusedField('password')}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          onBlur();
-                        }}
-                      />
-
-                      <Pressable
-                        style={styles.eyeButton}
-                        onPress={() =>
-                          setShowPassword((current) => !current)
-                        }
-                      >
-                        <Ionicons
-                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={20}
-                          color={palette.textSoft}
-                        />
-                      </Pressable>
-                    </View>
-                  )}
-                />
-
-                {errors.password ? (
-                  <Text style={styles.helperText}>
-                    {errors.password.message}
-                  </Text>
-                ) : null}
+              <View style={styles.field}>
+                <Text style={styles.label}>Senha</Text>
+                <View style={[styles.passwordRow, focusedField === 'password' && styles.inputFocused, errors.password && styles.inputError]}>
+                  <Controller control={control} name="password" render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('password')}
+                      placeholder="No mínimo 8 caracteres" placeholderTextColor={palette.muted} secureTextEntry={!showPassword} textContentType="newPassword"
+                      accessibilityLabel="Senha" style={styles.passwordInput} />
+                  )} />
+                  <Pressable style={styles.eyeButton} onPress={() => setShowPassword((current) => !current)} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textSoft} />
+                  </Pressable>
+                </View>
+                {errors.password && <Text style={styles.helperText}>{errors.password.message}</Text>}
               </View>
-
-              <View>
-                <Controller
-                  control={control}
-                  name="confirmPassword"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <View
-                      style={[
-                        styles.inputWrapper,
-                        focusedField === 'confirmPassword' &&
-                          styles.inputWrapperFocused,
-                        errors.confirmPassword && styles.inputWrapperError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="lock-closed-outline"
-                        size={20}
-                        color={palette.textSoft}
-                      />
-
-                      <TextInput
-                        value={value}
-                        onChangeText={onChange}
-                        placeholder="Confirmar senha"
-                        placeholderTextColor={palette.textSoft}
-                        style={[styles.input, isWeb && styles.inputWeb]}
-                        secureTextEntry={!showConfirmPassword}
-                        onFocus={() => setFocusedField('confirmPassword')}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          onBlur();
-                        }}
-                      />
-
-                      <Pressable
-                        style={styles.eyeButton}
-                        onPress={() =>
-                          setShowConfirmPassword((current) => !current)
-                        }
-                      >
-                        <Ionicons
-                          name={
-                            showConfirmPassword
-                              ? 'eye-off-outline'
-                              : 'eye-outline'
-                          }
-                          size={20}
-                          color={palette.textSoft}
-                        />
-                      </Pressable>
-                    </View>
-                  )}
-                />
-
-                {errors.confirmPassword ? (
-                  <Text style={styles.helperText}>
-                    {errors.confirmPassword.message}
-                  </Text>
-                ) : null}
+              <View style={styles.field}>
+                <Text style={styles.label}>Confirmar senha</Text>
+                <View style={[styles.passwordRow, focusedField === 'confirmPassword' && styles.inputFocused, errors.confirmPassword && styles.inputError]}>
+                  <Controller control={control} name="confirmPassword" render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('confirmPassword')}
+                      placeholder="Repita a senha" placeholderTextColor={palette.muted} secureTextEntry={!showConfirmPassword} textContentType="newPassword"
+                      accessibilityLabel="Confirmar senha" style={styles.passwordInput} />
+                  )} />
+                  <Pressable style={styles.eyeButton} onPress={() => setShowConfirmPassword((current) => !current)} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}>
+                    <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textSoft} />
+                  </Pressable>
+                </View>
+                {errors.confirmPassword && <Text style={styles.helperText}>{errors.confirmPassword.message}</Text>}
               </View>
             </View>
-
-            {message ? (
-              <View
-                style={[
-                  styles.messageBox,
-                  messageType === 'error'
-                    ? styles.messageError
-                    : styles.messageSuccess,
-                ]}
-              >
-                <Ionicons
-                  name={
-                    messageType === 'error'
-                      ? 'alert-circle-outline'
-                      : 'checkmark-circle-outline'
-                  }
-                  size={20}
-                  color={
-                    messageType === 'error'
-                      ? palette.danger
-                      : palette.primary
-                  }
-                />
-
-                <Text style={styles.messageText}>{message}</Text>
-              </View>
-            ) : null}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                isSubmitting && styles.buttonDisabled,
-                pressed && styles.buttonPressed,
-              ]}
-              disabled={isSubmitting}
-              onPress={handleSubmit(onSubmit)}
-            >
-              <Text style={styles.buttonText}>
-                {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.loginButton,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={() => router.replace('/login' as never)}
-            >
-              <Text style={styles.loginButtonText}>Já tenho conta</Text>
-            </Pressable>
+            {message ? <View style={[styles.messageBox, messageType === 'error' ? styles.messageError : styles.messageSuccess]} accessibilityRole="alert"><Text style={styles.messageText}>{message}</Text></View> : null}
+            <View style={styles.actions}>
+              <Pressable style={({ pressed }) => [styles.primaryButton, isSubmitting && styles.disabled, pressed && styles.pressed]} disabled={isSubmitting} onPress={handleSubmit(onSubmit)} accessibilityRole="button"><Text style={styles.primaryButtonText}>{isSubmitting ? 'Cadastrando...' : 'Cadastrar'}</Text></Pressable>
+              <Pressable style={styles.loginButton} onPress={() => router.replace('/login' as never)} accessibilityRole="button"><Text style={styles.loginButtonText}>Já tenho conta</Text></Pressable>
+            </View>
           </View>
         </View>
-      </Screen>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-
-  screenContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingBottom: spacing.xl,
-  },
-
-  screenContentWeb: {
-    minHeight: '100vh' as any,
-  },
-
-  page: {
-    width: '100%',
-    gap: spacing.lg,
-  },
-
-  pageWeb: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 56,
-  },
-
-  hero: {
-    flex: 1,
-    maxWidth: 520,
-  },
-
-  heroMobile: {
-    maxWidth: '100%',
-  },
-
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-
-  logoBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    backgroundColor: palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    elevation: 5,
-  },
-
-  logoText: {
-    color: palette.surface,
-    fontSize: 38,
-    fontWeight: '900',
-  },
-
-  heroTitle: {
-    color: palette.text,
-    fontSize: 46,
-    lineHeight: 52,
-    fontWeight: '900',
-    maxWidth: 500,
-  },
-
-  heroTitleMobile: {
-    fontSize: 32,
-    lineHeight: 38,
-  },
-
-  heroSubtitle: {
-    color: palette.textSoft,
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: spacing.md,
-    maxWidth: 480,
-  },
-
-  infoPanel: {
-    marginTop: spacing.xl,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: 24,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-
-  infoText: {
-    flex: 1,
-    color: palette.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  card: {
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-    backgroundColor: palette.surface,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: spacing.lg,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    shadowOffset: {
-      width: 0,
-      height: 14,
-    },
-    elevation: 6,
-  },
-
-  cardWeb: {
-    padding: spacing.xl,
-  },
-
-  cardHeader: {
-    marginBottom: spacing.xl,
-  },
-
-  title: {
-    color: palette.text,
-    fontSize: 31,
-    fontWeight: '900',
-  },
-
-  subtitle: {
-    color: palette.textSoft,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: spacing.xs,
-  },
-
-  form: {
-    gap: spacing.md,
-  },
-
-  inputWrapper: {
-    minHeight: 56,
-    borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radius.lg,
-    backgroundColor: palette.surface,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-
-  inputWrapperFocused: {
-    borderColor: palette.primary,
-    borderWidth: 2,
-  },
-
-  inputWrapperError: {
-    borderColor: palette.danger,
-    borderWidth: 1,
-  },
-
-  helperText: {
-    color: palette.danger,
-    fontSize: 13,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-
-  input: {
-    flex: 1,
-    color: palette.text,
-    fontSize: 16,
-    paddingVertical: spacing.sm,
-  },
-
-  inputWeb: {
-    fontSize: 17,
-    outlineWidth: 0,
-    outlineColor: 'transparent',
-    outlineStyle: 'none' as any,
-  },
-
-  eyeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  messageBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.lg,
-  },
-
-  messageError: {
-    backgroundColor: '#FFF1F1',
-    borderWidth: 1,
-    borderColor: '#F0B7B7',
-  },
-
-  messageSuccess: {
-    backgroundColor: '#F1FFF4',
-    borderWidth: 1,
-    borderColor: '#B9E4C1',
-  },
-
-  messageText: {
-    flex: 1,
-    color: palette.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  button: {
-    height: 54,
-    borderRadius: radius.pill,
-    backgroundColor: palette.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.xl,
-  },
-
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-
-  buttonText: {
-    color: palette.surface,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-
-  loginButton: {
-    height: 52,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: palette.primary,
-    backgroundColor: palette.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-
-  loginButtonText: {
-    color: palette.primary,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-
-  buttonPressed: {
-    opacity: 0.86,
-    transform: [
-      {
-        scale: 0.98,
-      },
-    ],
-  },
+  flex: { flex: 1 },
+  screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
+  page: { width: '100%', maxWidth: 1060, alignSelf: 'center', gap: spacing.xl },
+  pageWide: { flexDirection: 'row', alignItems: 'stretch', gap: 0, minHeight: 660, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.xl, overflow: 'hidden' },
+  brandPanel: { width: '100%', gap: spacing.lg },
+  brandPanelNarrow: { maxWidth: 500, alignSelf: 'center' },
+  brandPanelWide: { width: '47%', padding: 44, backgroundColor: palette.surfaceBlue, justifyContent: 'space-between' },
+  brandTop: { gap: spacing.md },
+  backLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44, alignSelf: 'flex-start' },
+  backText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  logoBox: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
+  logoText: { color: palette.surface, fontSize: 24, fontWeight: '800' },
+  brandName: { color: palette.text, fontSize: 19, fontWeight: '800' },
+  brandCopy: { gap: spacing.lg, paddingBottom: 16 },
+  brandHeading: { color: palette.text, fontSize: 34, lineHeight: 41, fontWeight: '800', maxWidth: 390 },
+  brandDescription: { color: palette.textSoft, fontSize: 16, lineHeight: 24, maxWidth: 370 },
+  formPanel: { flex: 1, width: '100%', maxWidth: 500, alignSelf: 'center', justifyContent: 'center', gap: spacing.lg, paddingVertical: spacing.xl },
+  formPanelWide: { paddingHorizontal: 36 },
+  headingBlock: { gap: spacing.xs },
+  title: { color: palette.text, fontSize: 28, lineHeight: 35, fontWeight: '800' },
+  subtitle: { color: palette.textSoft, fontSize: 14, lineHeight: 21 },
+  form: { gap: spacing.md },
+  field: { gap: spacing.xs },
+  label: { color: palette.text, fontSize: 14, fontWeight: '600' },
+  input: { minHeight: 52, paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface, color: palette.text, fontSize: 16, outlineStyle: 'none' } as any,
+  passwordRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface },
+  passwordInput: { flex: 1, minWidth: 0, height: 50, paddingHorizontal: spacing.lg, color: palette.text, fontSize: 16, outlineStyle: 'none' } as any,
+  eyeButton: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
+  inputFocused: { borderColor: palette.primary, borderWidth: 2 },
+  inputError: { borderColor: palette.danger },
+  helperText: { color: palette.danger, fontSize: 13 },
+  messageBox: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
+  messageError: { backgroundColor: palette.surface, borderColor: palette.danger },
+  messageSuccess: { backgroundColor: palette.surface, borderColor: palette.success },
+  messageText: { color: palette.text, fontSize: 14, lineHeight: 20 },
+  actions: { gap: spacing.sm },
+  primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: palette.primary },
+  primaryButtonText: { color: palette.surface, fontSize: 16, fontWeight: '700' },
+  loginButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  loginButtonText: { color: palette.primaryDark, fontSize: 14, fontWeight: '700' },
+  pressed: { opacity: 0.82 },
+  disabled: { opacity: 0.55 },
 });

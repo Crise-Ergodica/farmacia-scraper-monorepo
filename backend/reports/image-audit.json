@@ -1,0 +1,4190 @@
+{
+  "catalog_total": 4109,
+  "baseline": {
+    "catalog_total": 4109,
+    "catalog_items_with_offer_image": 3638,
+    "catalog_items_without_offer_image": 471,
+    "verified_catalog_images": 21
+  },
+  "indiana_source_scan_complete": false,
+  "indiana_source_error": "HTTPStatusError",
+  "indiana_source_http_status": 400,
+  "verified": 3414,
+  "unresolved": 695,
+  "recovered_by_source": {
+    "Araujo": 913,
+    "Indiana": 2501
+  },
+  "remaining": [
+    {
+      "id": 2,
+      "name": "Glyxambi Empagliflozina 25mg + Linagliptina 5mg Boehringer 30 Comprimidos",
+      "ean": "7896026307925",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 7,
+      "name": "Tadalafila 20mg Cimed Genérico 4 Comprimidos",
+      "ean": "7896523227443",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 10,
+      "name": "Dipirona Sódica 500mg Ems Genérico 10 Comprimidos",
+      "ean": "7896004769196",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 14,
+      "name": "Fluconazol 150mg Cimed Genéricos 2 Comprimidos",
+      "ean": "7896523208770",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 24,
+      "name": "Pantoprazol 40mg Cimed Genérico 28 Comprimidos",
+      "ean": "7896523214382",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 58,
+      "name": "Ciprofibrato 100mg Cimed Genérico 30 comprimidos",
+      "ean": "7896523218946",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 60,
+      "name": "Venaflon 900mg+100mg Teuto 30 Comprimidos",
+      "ean": "7896112102908",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 68,
+      "name": "Albendazol 400mg Cimed Genéricos 3 Comprimidos",
+      "ean": "7896523215754",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 80,
+      "name": "Hidroclorotiazida 25mg Cimed 30 Comprimidos",
+      "ean": "7896523210070",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 88,
+      "name": "Citrato Sildenafila 50mg Ems Genericos 4 Comprimidos",
+      "ean": "7896004730103",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 117,
+      "name": "Aciclovir 50mg Cimed Genérico Creme 10g",
+      "ean": "7896523207629",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 164,
+      "name": "Edistride Dapagliflozina 10mg Labofarma 30 Comprimidos",
+      "ean": "5000456096638",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 177,
+      "name": "Omeprazol 20mg Cimed 56 Cápsulas",
+      "ean": "7896523227191",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 180,
+      "name": "Pantoprazol 20mg Cimed Genérico 28 Comprimidos",
+      "ean": "7896523214351",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 181,
+      "name": "Qtern Saxagliptina 5mg + Dapagliflozina 10mg QTERN 30 comprimidos",
+      "ean": "5000456082990",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 182,
+      "name": "Gliclazida 60mg EMS 60 Comprimidos",
+      "ean": "7896004762364",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 208,
+      "name": "Diclofenaco de Potássio 50mg Cimed Genérico 20 Comprimidos",
+      "ean": "7896523214108",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 213,
+      "name": "Sinvastatina 20mg Cimed Genérico 30 Comprimidos",
+      "ean": "7896523215235",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 218,
+      "name": "Nourkrin Woman Marilex Cellera 60 Comprimidos",
+      "ean": "7897129305443",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 221,
+      "name": "Forxiga 10mg Dapagliflozina Astrazeneca 30 Comprimidos",
+      "ean": "5000456095372",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 232,
+      "name": "Desloratadina 0,5mg/ml Xarope Medley Genérico 100ml",
+      "ean": "7897337716994",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 246,
+      "name": "Maleato de Enalapril 10mg Cimed 30 Comprimidos",
+      "ean": "7896523210759",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 255,
+      "name": "Fluconazol 150 mg Cimed Genéricos 1 Comprimido",
+      "ean": "7896523208763",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 273,
+      "name": "Dipirona Sódica 500mg/ml EMS 10ml",
+      "ean": "7896004715841",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 282,
+      "name": "Pantoprazol 40mg EMS Genérico 28 Comprimidos",
+      "ean": "7896004706009",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 283,
+      "name": "Atenolol 50mg Genérico EMS 30 Comprimidos",
+      "ean": "7896004705873",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 292,
+      "name": "Imosec 2mg Janssen-Cilag Farmaceutica Lt 12 Comprimidos",
+      "ean": "7891010256364",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 300,
+      "name": "Cetoconazol 20mg Cimed Genéricos 30g",
+      "ean": "7896523201573",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 301,
+      "name": "Lacto-Purga 5 mg Hypera Mip 6 Comprimidos",
+      "ean": "7896094912472",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 304,
+      "name": "Sal De Fruta Eno Laranja 2 Envelopes",
+      "ean": "7896015560034",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 319,
+      "name": "Fosfomicina Trometamol 5,631g Pharmascience 1 Envelope 8g",
+      "ean": "7898014568271",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 401,
+      "name": "Wegovy 1mg Semaglutida com 4 Doses Injetáveis",
+      "ean": "7897705203095",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 494,
+      "name": "Implanon NXT 68mg com 1 Implante+1 Aplicador",
+      "ean": "7897572004054",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 499,
+      "name": "Mesilato Doxazosina 4mg Cimed 30 Comprimidos",
+      "ean": "7896523227115",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 527,
+      "name": "Grow Ferro 100mg/ml 30ml",
+      "ean": "7908020502883",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 543,
+      "name": "Cloridrato de Ciclobenzaprina 5mg Cimed Genérico 30 Comprimidos",
+      "ean": "7896523214627",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 549,
+      "name": "Cetoconazol 200mg Cimed 30 Comprimidos",
+      "ean": "7898075313810",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 561,
+      "name": "Nimesulida 100mg Neo Química Genérico 12 Comprimidos",
+      "ean": "7898095345440",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 595,
+      "name": "Sal De Fruta Eno Abacaxi 2 Envelopes",
+      "ean": "7896015521684",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 599,
+      "name": "Paracetamol 500mg Prati Genérico 20 Comprimidos",
+      "ean": "7899547543858",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 607,
+      "name": "Omeprazol 20mg Teuto Genérico 28 Cápsulas",
+      "ean": "7896112148715",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 615,
+      "name": "Manitol Halexistar 20% 250ml 1 Frasco Halexistar",
+      "ean": "7898153652848",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 616,
+      "name": "Torsilax 50mg+125mg+300mg+30mg Neo Química 10 Comprimidos",
+      "ean": "7896714257600",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 620,
+      "name": "Dipirona Sódica 50mg EMS Genéricos Xarope 100ml",
+      "ean": "7896004715674",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 643,
+      "name": "Torsilax 50 mg/125 mg/300 mg/30 mg Neo Quimica Similares 4 Comprimidos",
+      "ean": "7896714257594",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 650,
+      "name": "Mestinon 60mg 60 Comprimidos",
+      "ean": "7898168011999",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 662,
+      "name": "Cetoconazol 20mg/g EMS 30g Creme",
+      "ean": "7896004718460",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 665,
+      "name": "Cloridrato de Terbinafina 10 mg/g Ems Genericos 20 g",
+      "ean": "7896004701035",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 673,
+      "name": "Primosiston 30 Comprimidos",
+      "ean": "7896116860408",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 676,
+      "name": "Cutisanol Gel 100g MILLER ROUX 100 g",
+      "ean": "7897406119879",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 699,
+      "name": "Sal De Fruta Eno Guaraná 2 Envelopes",
+      "ean": "7896015517014",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 701,
+      "name": "Roacutan 20mg Roche 30 cápsulas",
+      "ean": "7898244721309",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 723,
+      "name": "Antialérgico Allegra 60mg 10 Comprimidos",
+      "ean": "7891058167073",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 734,
+      "name": "Ivermectina 6mg Globo Genérico 4 Comprimidos",
+      "ean": "7899620915817",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 763,
+      "name": "Pitavastatina Cálcica 2mg Pharlab 30 Comprimidos",
+      "ean": "7898216368099",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 825,
+      "name": "Varylift 900mg+100mg União Química 30 Comprimidos",
+      "ean": "7896006298342",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 884,
+      "name": "Vitamina D3 7.000UI União Química 30 Comprimidos",
+      "ean": "7896006200901",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 885,
+      "name": "Vitamina D3 50.000UI União Química 4 Comprimidos",
+      "ean": "7896006201076",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 905,
+      "name": "Ibuprofeno 400mg Medley 10 Cápsulas",
+      "ean": "7891058002725",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 914,
+      "name": "Coristina D Pro 400 mg/4 mg/4 mg Hypera 8 Comprimidos",
+      "ean": "7891142982162",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 920,
+      "name": "Dprev Cálcio MDK 2.000UI Myralis 30 Comprimidos",
+      "ean": "7898430194092",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 922,
+      "name": "Carvedilol 12,5mg Cimed Genérico 30 Comprimidos",
+      "ean": "7896523227528",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1005,
+      "name": "Mesilato de Doxazosina 2mg Cimed 30 Comprimidos",
+      "ean": "7896523227108",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1028,
+      "name": "Dprev Todo Dia Sabor Frutas 1.000UI 10ml",
+      "ean": "7898430194696",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1041,
+      "name": "Pantoprazol 40mg Ems Genericos 42 Comprimidos",
+      "ean": "7896004749358",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1042,
+      "name": "Furoato Mometasona 1mg EMS Genéricos 20g",
+      "ean": "7896004715537",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1058,
+      "name": "Cãimbrafim Polivitamínico+Poliminerais Gallia/Forhealth Nutricao 30 Cápsulas",
+      "ean": "7908079512512",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1060,
+      "name": "Albendazol 400Mg Genérico Cimed 1 Comprimidos Mastigável",
+      "ean": "7898075316422",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1069,
+      "name": "Arpadol 400mg Apsen 60 Comprimidos",
+      "ean": "7896637033596",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1078,
+      "name": "Indapamida Genérico 1,5mg Eurofarma 30 Comprimidos",
+      "ean": "7891317127404",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1080,
+      "name": "Terolac 0,5% Solução Oftálmica 5ml",
+      "ean": "7896676441772",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1153,
+      "name": "Nimesulida 50 mg/ml Cimed Genéricos 15 ml",
+      "ean": "7896523211268",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1179,
+      "name": "Desloratadina 5mg EMS Genéricos 10 Comprimidos",
+      "ean": "7896004789828",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1190,
+      "name": "Nitrato de Miconazol Creme Dermatológico 20 mg/g Geolab 28 g",
+      "ean": "7899095202108",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1200,
+      "name": "Albendazol 400mg Prati Donaduzzi 1 Comprimido",
+      "ean": "7898148295210",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1219,
+      "name": "Paracetamol 200mg União Química Gotas 15ml",
+      "ean": "7896006298588",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1221,
+      "name": "Acetato de Dexametasona 1mg União Química Genérico Creme 10g",
+      "ean": "7896006267010",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1225,
+      "name": "Tess 21 Drágeas",
+      "ean": "7896241266212",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1227,
+      "name": "Diane 35 21 Drágeas",
+      "ean": "7896116801517",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1246,
+      "name": "Minancora Pomada 30g",
+      "ean": "7896044600091",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1247,
+      "name": "Clopixol Depot Decanoato De Zuclopentoxicol 200Mg/Ml Solução Injetável 1Ml",
+      "ean": "5702157109159",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1253,
+      "name": "Bálsamo Bengué Pomada Xtra 20g - Ems Otc",
+      "ean": "7896015552619",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1262,
+      "name": "Paracetamol 200mg EMS Gotas 15ml",
+      "ean": "7896004700038",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1265,
+      "name": "Bromazepam 6 mg Ems 30 Comprimidos",
+      "ean": "7896004713762",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1283,
+      "name": "Magnésia Bisurada Wyeth Whitehall 10 Pastilhas",
+      "ean": "7895858017415",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1285,
+      "name": "Miranova 21 Comprimidos",
+      "ean": "7896116861863",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1295,
+      "name": "Arcoxia Etoricoxib 90Mg 7 Comprimidos",
+      "ean": "7897337706032",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1303,
+      "name": "Zanidip 10mg Medley S.A 30 Comprimidos",
+      "ean": "7896637037617",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1317,
+      "name": "Engov com 6 Comprimidos",
+      "ean": "7896094912786",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1321,
+      "name": "Sal De Fruta Eno Limão 5g Glaxosmithkline Otc 2 Envelopes",
+      "ean": "7896015518486",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1330,
+      "name": "Alenia Fumarato de Formoterol 12mcg + Budesonida 400mcg 60 cápsulas + Inalador",
+      "ean": "7896181928584",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1338,
+      "name": "Neuleptil Periciazina 40mg/ml Sanofi Aventis Farmaceutica Lt 20ml",
+      "ean": "7898581711247",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1340,
+      "name": "Neozine Levomepromazina 40mg/ml Sanofi Aventis Farmaceutica Lt 20ml",
+      "ean": "7898581711223",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1341,
+      "name": "AAS Infantil 100mg Hypera 30 Comprimidos",
+      "ean": "7897595900029",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1350,
+      "name": "Aturgyl Spray Adulto 0,5mg/ml Sanofi Aventis Farmaceutica Lt 15ml",
+      "ean": "7896094931619",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1354,
+      "name": "Arpadol 400mg Apsen Farmacêutica 30 Comprimidos",
+      "ean": "7896637033589",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1380,
+      "name": "Lisador Muscular Analgésico e Relaxante Muscular 6 Comprimidos",
+      "ean": "7896094929982",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1436,
+      "name": "Butacid Fenilbutazona Cálcica 200mg Vitamedic 10 Comprimidos Revestidos",
+      "ean": "7898049794690",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1437,
+      "name": "Varylift 900mg+100mg União Química 60 Comprimidos",
+      "ean": "7896006298335",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1479,
+      "name": "Vitamina D3 5.000 UI União Química 30 Comprimidos",
+      "ean": "7896006200895",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1480,
+      "name": "Vitamina D3 50.000UI União Química 8 Comprimidos",
+      "ean": "7896006201083",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1532,
+      "name": "Cherry 2mg+0,03mg 21 comprimidos",
+      "ean": "7908134200279",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1568,
+      "name": "Salonpas Adesivos Tamanho Grande Hisamitsu 4 Unidades",
+      "ean": "7896227800867",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1577,
+      "name": "Nuvaring Anel Vag+1Sch+Apl",
+      "ean": "7897572020023",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1607,
+      "name": "Amoxicilina 500mg 21 Cápsulas Nova Química Genérico ATB",
+      "ean": "7895296449687",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1620,
+      "name": "Azox 20mg/ml Eurofarma 45ml",
+      "ean": "7891317036751",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1640,
+      "name": "Betrat 5000mcg + 100mg + 100mg Myralis 42 Comprimidos",
+      "ean": "7898430194597",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1666,
+      "name": "Cetoconazol 200mg Cimed Genéricos 10 Comprimidos",
+      "ean": "7898075313803",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1674,
+      "name": "Magnazia Abacaxi 30 Comprimidos",
+      "ean": "7898075318259",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1712,
+      "name": "Advil 400mg GSK 8 Cápsulas",
+      "ean": "7896009498442",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1713,
+      "name": "Advil 400mg Wyeth Otc 3 Cápsulas",
+      "ean": "7896009498411",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1723,
+      "name": "Bimatoprosta 0,3mg EMS Genéricos Colírio 3ml",
+      "ean": "7896004724690",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1732,
+      "name": "Prednisona 5mg Medley Genérico 20 Comprimidos",
+      "ean": "7896422517485",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1734,
+      "name": "Extrato Própolis Assiflora 30ml",
+      "ean": "7908079505453",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1760,
+      "name": "Dtn-Fol 400mcg + 10mg 90 Cápsulas",
+      "ean": "7896112456162",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1778,
+      "name": "Atacand 16mg Astrazeneca Do Brasil Ltda 30 Comprimidos",
+      "ean": "4260747723259",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1784,
+      "name": "Kaosec 2mg Pharmascience 4 Comprimidos",
+      "ean": "7898014568158",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1785,
+      "name": "Neotoss 3Mg Xarope Adulto 100ml",
+      "ean": "7896714260105",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1791,
+      "name": "Droxaine 240 mL Megalabs 1 Frasco",
+      "ean": "7891045000659",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1800,
+      "name": "Simeticona 75mg EMS Genérico Gotas 15ml",
+      "ean": "7896004705330",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1804,
+      "name": "Atenolol 25mg EMS Genérico 30 Comprimidos",
+      "ean": "7896004705781",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1817,
+      "name": "Tobracort 3mg/g + 1mg/g Pomada Oftálmica 3,5g",
+      "ean": "7898283990537",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1827,
+      "name": "Primolut Nor 10mg 30 Comprimidos",
+      "ean": "7896116860392",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1828,
+      "name": "Lacribell Solução Oftálmica 1+3 mg/ml Latinofarma 15 ml",
+      "ean": "7896676432855",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1830,
+      "name": "Hizofito 150mg Hebron - Infan-Ind Quim Farmac 30 Cápsulas",
+      "ean": "7896685301678",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1835,
+      "name": "Euthyrox 50mcg 50 Comprimidos",
+      "ean": "7891721029226",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1836,
+      "name": "Euthyrox 150mcg 50 Comprimidos",
+      "ean": "7891721029301",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1837,
+      "name": "Euthyrox 125mcg 50 Comprimidos",
+      "ean": "7891721029288",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1838,
+      "name": "Euthyrox 100mcg 50 Comprimidos",
+      "ean": "7891721029264",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1902,
+      "name": "Valerato de Betametasona 1mg PHARLAB 30g",
+      "ean": "7898216369652",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1906,
+      "name": "Cloridrato de Donepezila 10mg Medley Genérico 30 Comprimidos",
+      "ean": "7891058006075",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1941,
+      "name": "Cloridrato de Venlafaxina 75mg Globo Pharma 30 Cápsulas",
+      "ean": "7899620916715",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1942,
+      "name": "Risperidona 3mg Globo Pharma 30 Comprimidos",
+      "ean": "7899620915442",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1943,
+      "name": "Pregabalina 75mg Globo Pharma Genérico 30 Cápsulas",
+      "ean": "7899620915237",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1944,
+      "name": "Nimesulida Gotas 50mg Globo Pharma 15ml",
+      "ean": "7899620914155",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1945,
+      "name": "Nimesulida 100mg Globo Pharma Genérico 12 Comprimidos",
+      "ean": "7899620915039",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1946,
+      "name": "Ibuprofeno 600mg Globo Genérico 10 Cápsulas",
+      "ean": "7899620915756",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1947,
+      "name": "Fluconazol 150mg Globo Genérico 2 Cápsulas",
+      "ean": "7899620911956",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1948,
+      "name": "Fluconazol 150mg Globo Pharma 1 Cápsula",
+      "ean": "7899620911963",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1951,
+      "name": "Cloridrato de Fluoxetina 20mg Globo Genérico 30 Cápsulas",
+      "ean": "7898060134529",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1952,
+      "name": "Cloridrato de Ciclobenzaprina 5mg Globo Genérico 30 Comprimidos",
+      "ean": "7898060139920",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1953,
+      "name": "Cloridrato de Ciclobenzaprina 5mg Globo Genérico 15 Comprimidos",
+      "ean": "7898060139913",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1954,
+      "name": "Cloridrato de Ciclobenzaprina 10mg Globo Pharma 15 Comprimidos",
+      "ean": "7898060139944",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1955,
+      "name": "Cloridrato de Ciclobenzaprina 10mg Globo Pharma Genérico 15 Comprimidos",
+      "ean": "7898060139951",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1956,
+      "name": "Cloridrato de Ambroxol 3mg/ml Globo Pharma 120 ml",
+      "ean": "7899620912991",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1957,
+      "name": "Cloridrato de Ambroxol 6mg/ml Globo Pharma 120ml",
+      "ean": "7899620913004",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1958,
+      "name": "Cetoconazol 200mg Globo Pharma 30 Comprimidos",
+      "ean": "7899620911376",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1959,
+      "name": "Azitromicina Di-Hidratada 500mg Globo Pharma 3 Comprimidos",
+      "ean": "7898060132501",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1960,
+      "name": "Acebrofilina 5mg/ml Globo Pharma 120ml",
+      "ean": "7899620912748",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 1961,
+      "name": "Acebrofilina 50mg/5ml  Genérico Globo Xarope Adulto 120ml",
+      "ean": "7899620912731",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2040,
+      "name": "Prednisolona 40mg Althaia Genérico 10 Comprimidos",
+      "ean": "7898569765521",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2120,
+      "name": "Cabergolina 0,5mg Nova Química Genérico 2 Comprimidos",
+      "ean": "7895296211017",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2121,
+      "name": "Bromidrato de Galantamina 8mg Nova Química 28 Cápsulas",
+      "ean": "7895296231015",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2163,
+      "name": "Ezonia 3mg Eurofarma 30 Comprimidos",
+      "ean": "7891317044374",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2307,
+      "name": "Antigripal MultiGrip 400 mg MULTIGRIP 4 Cápsulas",
+      "ean": "7896472502738",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2308,
+      "name": "Claritromicina Pharlab Genérico 500mg PHARLAB 10 Comprimidos",
+      "ean": "7898216360437",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2425,
+      "name": "Irosê 20mg Althaia 100ml",
+      "ean": "7898687735918",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2426,
+      "name": "Irosê 20mg Althaia 45ml",
+      "ean": "7898687735901",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2593,
+      "name": "Amoxicilina + Clavulanato de Potássio 500/125mg Ranbaxy Genérico 18 Comprimidos",
+      "ean": "7897076923752",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2596,
+      "name": "Dipirona Monoidratada 500mg Neo Química 20ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2598,
+      "name": "Forxiga 10mg Dapagliflozina Astrazeneca 30 Comprimidos",
+      "ean": "5000456096591",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2599,
+      "name": "Inspra 25mg Viatris 30 Comprimidos",
+      "ean": "7898560666865",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2608,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2609,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2611,
+      "name": "Losartana Potássica 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2612,
+      "name": "Tadalafila 5mg Cimed Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2613,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2614,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2615,
+      "name": "Prednisona 20mg Neo Química Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2618,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2619,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2620,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2621,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico com 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2622,
+      "name": "Alopurinol 100mg Medley Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2623,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2624,
+      "name": "Espironolactona 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2625,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2626,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2631,
+      "name": "Durateston Injetável com 1 Ampola de 1ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2635,
+      "name": "Aerolin 100mcg Spray com 200 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2636,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2638,
+      "name": "Pantoprazol 40mg Medley Genérico com 28 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2639,
+      "name": "Aciclovir 200mg Pharlab Genérico com 25 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2640,
+      "name": "Azelan Gel com 30g",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2642,
+      "name": "Naratriptana 2,5mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2644,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2645,
+      "name": "Dipirona Sódica 500mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2647,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2648,
+      "name": "Utrogestan 100mg com 30 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2656,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2657,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2659,
+      "name": "Losartana Potássica 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2660,
+      "name": "Tadalafila 5mg Cimed Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2661,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2662,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2663,
+      "name": "Prednisona 20mg Neo Química Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2666,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2667,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2668,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2669,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico com 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2670,
+      "name": "Alopurinol 100mg Medley Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2671,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2672,
+      "name": "Espironolactona 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2673,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2674,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2678,
+      "name": "Durateston Injetável com 1 Ampola de 1ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2680,
+      "name": "Aerolin 100mcg Spray com 200 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2681,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2683,
+      "name": "Pantoprazol 40mg Medley Genérico com 28 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2684,
+      "name": "Aciclovir 200mg Pharlab Genérico com 25 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2685,
+      "name": "Azelan Gel com 30g",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2687,
+      "name": "Naratriptana 2,5mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2689,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2690,
+      "name": "Dipirona Sódica 500mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2692,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2693,
+      "name": "Utrogestan 100mg com 30 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2696,
+      "name": "Vacina Meningocócicas Bexsero GSK",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2697,
+      "name": "Neuleptil Periciaznina 10mg/ml Solução Oral 20ml",
+      "ean": "7898581711254",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2699,
+      "name": "Benegrip Antigripal Multi Noite + Benegrip Multi Dia 4 Comprimidos Cada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2700,
+      "name": "Kit Allegra Pediátrico 60ml Com Copo Dosador + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2701,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2702,
+      "name": "Kit Dorflex Max 16 Comprimidos + Dorflex Uno 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2703,
+      "name": "Kit Allegra Pediátrico 60ml + Allegra 60mg 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2704,
+      "name": "Kit Targifor 16 Comprimidos Efervescentes + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2705,
+      "name": "Kit Allegra Pediátrico 60ml Com Seringa + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2706,
+      "name": "Kit Novalgina Infantil Solução Oral 100ml + Allegra Pediátrico 150ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2707,
+      "name": "Kit Allegra 60mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2708,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2709,
+      "name": "Kit Dorflex Max Analgésico e Relaxante Muscular 16 Comprimidos + Dorflex 50 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2710,
+      "name": "Endorús Gotas Hebron 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2715,
+      "name": "Dipirona Monoidratada 500mg Neo Química 20ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2729,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2730,
+      "name": "Tadalafila 5mg Cimed Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2731,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2732,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2733,
+      "name": "Losartana Potássica 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2734,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2735,
+      "name": "Prednisona 20mg Neo Química Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2737,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2738,
+      "name": "Espironolactona 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2740,
+      "name": "Alopurinol 100mg Medley Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2741,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2743,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2744,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2745,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico com 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2746,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2747,
+      "name": "Durateston Injetável com 1 Ampola de 1ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2749,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2752,
+      "name": "Aerolin 100mcg Spray com 200 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2753,
+      "name": "Aciclovir 200mg Pharlab Genérico com 25 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2755,
+      "name": "Pantoprazol 40mg Medley Genérico com 28 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2756,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2757,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2761,
+      "name": "Naratriptana 2,5mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2762,
+      "name": "Azelan Gel com 30g",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2763,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,02mg Eurofarma Genérico com 24 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2766,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2775,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2776,
+      "name": "Tadalafila 5mg Cimed Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2777,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2778,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2779,
+      "name": "Losartana Potássica 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2780,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2781,
+      "name": "Prednisona 20mg Neo Química Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2783,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2784,
+      "name": "Espironolactona 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2786,
+      "name": "Alopurinol 100mg Medley Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2787,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2789,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2790,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2791,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico com 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2792,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2793,
+      "name": "Durateston Injetável com 1 Ampola de 1ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2795,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2798,
+      "name": "Aerolin 100mcg Spray com 200 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2799,
+      "name": "Aciclovir 200mg Pharlab Genérico com 25 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2801,
+      "name": "Pantoprazol 40mg Medley Genérico com 28 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2802,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2803,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2807,
+      "name": "Naratriptana 2,5mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2808,
+      "name": "Azelan Gel com 30g",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2812,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2815,
+      "name": "Dramin Capsgel 50mg Takeda 10 Cápsulas",
+      "ean": "7896094922563",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2819,
+      "name": "Vacina Meningocócicas Bexsero GSK",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2848,
+      "name": "Maleato de Dexclorfeniramina 2mg Xarope EMS Genéricos 120ml",
+      "ean": "7896004704999",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2851,
+      "name": "Benegrip Antigripal Multi Noite + Benegrip Multi Dia 4 Comprimidos Cada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2852,
+      "name": "Kit Allegra Pediátrico 60ml Com Copo Dosador + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2853,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2854,
+      "name": "Kit Dorflex Max 16 Comprimidos + Dorflex Uno 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2855,
+      "name": "Kit Allegra Pediátrico 60ml + Allegra 60mg 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2856,
+      "name": "Kit Targifor 16 Comprimidos Efervescentes + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2857,
+      "name": "Kit Allegra Pediátrico 60ml Com Seringa + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2858,
+      "name": "Kit Novalgina Infantil Solução Oral 100ml + Allegra Pediátrico 150ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2859,
+      "name": "Kit Allegra 60mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2860,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2861,
+      "name": "Kit Dorflex Max Analgésico e Relaxante Muscular 16 Comprimidos + Dorflex 50 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2866,
+      "name": "Endorús Gotas Hebron 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2876,
+      "name": "Dipirona Monoidratada 500mg Neo Química 20ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2878,
+      "name": "Vacina Meningocócicas Bexsero GSK",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2890,
+      "name": "Euthyrox 25mcg 50 Comprimidos",
+      "ean": "7891721029202",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2893,
+      "name": "Benegrip Antigripal Multi Noite + Benegrip Multi Dia 4 Comprimidos Cada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2894,
+      "name": "Kit Allegra Pediátrico 60ml Com Copo Dosador + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2895,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2896,
+      "name": "Kit Dorflex Max 16 Comprimidos + Dorflex Uno 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2897,
+      "name": "Kit Allegra Pediátrico 60ml + Allegra 60mg 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2898,
+      "name": "Kit Targifor 16 Comprimidos Efervescentes + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2899,
+      "name": "Kit Allegra Pediátrico 60ml Com Seringa + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2900,
+      "name": "Kit Novalgina Infantil Solução Oral 100ml + Allegra Pediátrico 150ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2901,
+      "name": "Kit Allegra 60mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2902,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2903,
+      "name": "Kit Dorflex Max Analgésico e Relaxante Muscular 16 Comprimidos + Dorflex 50 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2904,
+      "name": "Bromoprida 10mg União Química 20 Comprimidos",
+      "ean": "7896006222132",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 2906,
+      "name": "Endorús Gotas Hebron 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2909,
+      "name": "Dipirona Monoidratada 500mg Neo Química 20ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2920,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2921,
+      "name": "Tadalafila 5mg Cimed Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2922,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2923,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2924,
+      "name": "Losartana Potássica 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2925,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2926,
+      "name": "Prednisona 20mg Neo Química Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2928,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2929,
+      "name": "Espironolactona 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2931,
+      "name": "Alopurinol 100mg Medley Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2932,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2934,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2935,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2936,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico com 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2937,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2938,
+      "name": "Durateston Injetável com 1 Ampola de 1ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2940,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2943,
+      "name": "Aerolin 100mcg Spray com 200 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2944,
+      "name": "Aciclovir 200mg Pharlab Genérico com 25 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2946,
+      "name": "Pantoprazol 40mg Medley Genérico com 28 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2947,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2948,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2952,
+      "name": "Naratriptana 2,5mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2953,
+      "name": "Azelan Gel com 30g",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2954,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,02mg Eurofarma Genérico com 24 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2957,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2966,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2967,
+      "name": "Tadalafila 5mg Cimed Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2968,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2969,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2970,
+      "name": "Losartana Potássica 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2971,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2972,
+      "name": "Prednisona 20mg Neo Química Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2974,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2975,
+      "name": "Espironolactona 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2977,
+      "name": "Alopurinol 100mg Medley Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2978,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2980,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2981,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2982,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico com 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2983,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2984,
+      "name": "Durateston Injetável com 1 Ampola de 1ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2986,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2989,
+      "name": "Aerolin 100mcg Spray com 200 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2990,
+      "name": "Aciclovir 200mg Pharlab Genérico com 25 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2992,
+      "name": "Pantoprazol 40mg Medley Genérico com 28 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2993,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2994,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2998,
+      "name": "Naratriptana 2,5mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 2999,
+      "name": "Azelan Gel com 30g",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3000,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,02mg Eurofarma Genérico com 24 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3003,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3005,
+      "name": "Vacina Meningocócicas Bexsero GSK",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3006,
+      "name": "Benegrip Antigripal Multi Noite + Benegrip Multi Dia 4 Comprimidos Cada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3007,
+      "name": "Kit Allegra Pediátrico 60ml Com Copo Dosador + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3008,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3009,
+      "name": "Kit Dorflex Max 16 Comprimidos + Dorflex Uno 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3010,
+      "name": "Kit Allegra Pediátrico 60ml + Allegra 60mg 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3011,
+      "name": "Kit Targifor 16 Comprimidos Efervescentes + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3012,
+      "name": "Kit Allegra Pediátrico 60ml Com Seringa + Novalgina Infantil Solução Oral 100ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3013,
+      "name": "Kit Novalgina Infantil Solução Oral 100ml + Allegra Pediátrico 150ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3014,
+      "name": "Kit Allegra 60mg 10 Comprimidos + Novalgina 1g 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3015,
+      "name": "Kit Allegra 180mg 10 Comprimidos + Novalgina 1g 20 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3016,
+      "name": "Kit Dorflex Max Analgésico e Relaxante Muscular 16 Comprimidos + Dorflex 50 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3017,
+      "name": "Endorús Gotas Hebron 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3029,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3030,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3033,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3035,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3036,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3038,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3039,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3041,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3042,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3045,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3046,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3048,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3049,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3050,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3051,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3052,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3054,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3055,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3056,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3057,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3058,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3059,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3060,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3061,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3062,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3063,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3064,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3065,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3066,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3074,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3078,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3080,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3081,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3083,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3086,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3090,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3091,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3093,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3096,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3102,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3109,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3111,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3117,
+      "name": "Cetoprofeno 150mg Eurofarma Genérico 10 Comprimidos",
+      "ean": "7891317001926",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3120,
+      "name": "Lamotrigina 100mg Eurofarma 30 Comprimidos",
+      "ean": "7891317473709",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3124,
+      "name": "Oxalato de Escitalopram 20mg Cimed Genérico 30 Comprimidos",
+      "ean": "7896523200972",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3142,
+      "name": "Cefalexina 500mg União Química 10 cápsulas",
+      "ean": "7896006216544",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3152,
+      "name": "Risperidona 1mg Globo Pharma 30 Comprimidos",
+      "ean": "7899620915367",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3182,
+      "name": "Risperidona 1mg União Química 30 Comprimidos",
+      "ean": "7896006215912",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3185,
+      "name": "Risperidona Gotas 1 mg Prati 30 ml",
+      "ean": "7899547503647",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3211,
+      "name": "Cloridrato de Trazodona 50mg Globo Pharma Genérico 60 Comprimidos",
+      "ean": "7899620916548",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3212,
+      "name": "Cloridrato de Sertralina 50mg Globo Pharma 30 Comprimidos",
+      "ean": "7899620911277",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3235,
+      "name": "Vitamina D3 50.000UI União Química 4 Comprimidos",
+      "ean": "7896006262381",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3289,
+      "name": "Primogyna 2mg 28 Drágeas",
+      "ean": "7896006263142",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3298,
+      "name": "Cloridrato de Ciprofloxacino 500mg Cimed Genéricos 14 Comprimidos",
+      "ean": "7896523209647",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3299,
+      "name": "Cloridrato de Bupropiona 150 mg Eurofarma 60 Comprimidos",
+      "ean": "7891317025045",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3302,
+      "name": "Desloratadina 0,5mg/ml EMS 100ml",
+      "ean": "7896004769684",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3303,
+      "name": "Prednisona 20mg Medley Genérico 10 Comprimidos",
+      "ean": "7896422517447",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3312,
+      "name": "Clonazepam 2mg EMS 30 Comprimidos",
+      "ean": "7896004721828",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3321,
+      "name": "Pamelor Cloridrato De Nortriptilina 10mg 30 Cápsulas",
+      "ean": "7896261009660",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3331,
+      "name": "Fluconazol 150mg Ems Genericos 2 Comprimidos",
+      "ean": "7896004703343",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3337,
+      "name": "Diclofenaco Dietilamônio 10mg/g Neo Química 60g",
+      "ean": "7896714296319",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3339,
+      "name": "Carbamazepina 200mg União Química Genérico 30 Comprimidos",
+      "ean": "7896006225928",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3344,
+      "name": "Desloratadina 5mg Pharlab Genérico 30 Comprimidos",
+      "ean": "7898216367733",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3345,
+      "name": "Cloridrato de Naratriptana 2,5mg Ems Genérico 8 Comprimidos",
+      "ean": "7896004795461",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3349,
+      "name": "Suplemento Alimentar Colflex Whey sabor Chocolate Sachê de 28,5g Caixa com 10 Sachês",
+      "ean": "7896094922600",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3350,
+      "name": "Isotretinoína 20mg Althaia Genérico 30 Cápsulas",
+      "ean": "7898687738209",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3362,
+      "name": "Cloridrato de Bupropiona 150mg Ranbaxy Genérico 30 Comprimidos",
+      "ean": "7897076923431",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3368,
+      "name": "Amoxicilina + Clavulanato de Potássio 500/125mg Ranbaxy 21 Comprimidos",
+      "ean": "7897076923776",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3408,
+      "name": "Carvedilol 6,25mg Cimed Genérico 30 Comprimidos",
+      "ean": "7896523227511",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3412,
+      "name": "Diazepam 10mg União Química 30 Comprimidos",
+      "ean": "7896006205081",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3417,
+      "name": "Juneve 70mg 28 Cápsulas",
+      "ean": "7898924769713",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3427,
+      "name": "Aceclofenaco 100mg Cimed Genérico 12 Comprimidos",
+      "ean": "7896523227092",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3435,
+      "name": "Risperidona 3 mg União Química Genérico 30 Comprimidos",
+      "ean": "7896006215974",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3439,
+      "name": "Dipirona Sódica 500 mg Germed Pharma 30 Comprimidos",
+      "ean": "7896004756622",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3453,
+      "name": "Olmesartana + Hidroclorotiazida 40 mg + 25 mg Neo Química 30 comprimidos",
+      "ean": "7896714249001",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3461,
+      "name": "Drospirenona+Etinilestradiol 3 mg+0,02 mg Legrand Genérico 28 Comprimidos",
+      "ean": "7894916148108",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3473,
+      "name": "Risperidona 2mg União Química 30 Comprimidos",
+      "ean": "7896006215929",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3485,
+      "name": "Cloridrato De Sertralina 25Mg 30 Comprimidos Eurofarma Genérico",
+      "ean": "7891317456559",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3488,
+      "name": "Atak Clav Amoxicilina 875Mg + Clavulanato De Potássio 125Mg 14 Comprimidos",
+      "ean": "7899640804665",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3490,
+      "name": "Atak Clav Amoxicilina 400Mg/5Ml + Clavulanato De Potássio 57Mg/5Ml Pó Para Suspensão Oral 70Ml + 1 Seringa Dosadora",
+      "ean": "7899640800117",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3517,
+      "name": "Mirugell Lubrificante Oftálmico 15 mL Latinofarma 1 Frasco",
+      "ean": "7896676435221",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3533,
+      "name": "Prednisona 5mg Neo Química Genérico 20 Comprimidos",
+      "ean": "7896714212081",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3537,
+      "name": "Apidra Solostar Insulina Glulisina 100 UI/mL 3 mL Sanofi Aventis Farmacêutica Ltda 1 Caneta descartável",
+      "ean": "7891058002985",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3542,
+      "name": "Losartana Potássica + Hidroclorotiazida 50 + 12,5mg Genérico Eurofarma 30 Comprimidos",
+      "ean": "7891317445287",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3543,
+      "name": "Nistatina 100.000Ui Teuto 50ml",
+      "ean": "7896112126430",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3544,
+      "name": "CEFALEXINA 250MG/5ML UNIÃO QUÍMICA 100ML",
+      "ean": "7896006212300",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3550,
+      "name": "Cloridrato de Ciprofloxacino 500mg Sandoz Genérico 14 Comprimidos",
+      "ean": "7897595602404",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3554,
+      "name": "Tandriflan 50mg/125mg/300mg/30mg União Química 30 Comprimidos",
+      "ean": "7896006234517",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3572,
+      "name": "Gabapentina 300mg EMS Genérico 30 Cápsulas",
+      "ean": "7896004713250",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3577,
+      "name": "Andolba 43g",
+      "ean": "7891317013967",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3585,
+      "name": "Alginac 1 + 50 + 50 + 50mg 15 Comprimidos",
+      "ean": "7500435260527",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3596,
+      "name": "Redoxon Vitamina C Infantil 200mg/ml Gotas 20ml",
+      "ean": "7896226500454",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3599,
+      "name": "Hexomedine 1 mg/ml + 0,5 mg/ml Sanofi Aventis Farmacêutica Lt 50 ml",
+      "ean": "7896094928053",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3602,
+      "name": "Amplictil Clorpromazina 100mg 20 Comprimidos",
+      "ean": "7898581711209",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3614,
+      "name": "Risperidona 2mg Globo Pharma 30 Comprimidos",
+      "ean": "7899620915404",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3644,
+      "name": "Divalproato de Sódio 500mg Ranbaxy Genérico 60 Comprimidos",
+      "ean": "7897076923295",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3645,
+      "name": "Ibuprofeno 600mg Vitamedic Genérico 10 cápsulas",
+      "ean": "7898700412376",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3663,
+      "name": "Olmesartana Medoxomila+Hidroclorotiazida 40+25mg GERMED 30 Comprimidos",
+      "ean": "7896004750521",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3703,
+      "name": "Levetiracetam 250 mg Eurofarma 30 Comprimidos",
+      "ean": "7891317029272",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3719,
+      "name": "Diclofenaco Potássico 50mg Geolab Genérico 20 Comprimidos",
+      "ean": "7899095239630",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3752,
+      "name": "Gengi Baby Gel Bucal 10g Biolab 1 Tubo",
+      "ean": "7896112408864",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3757,
+      "name": "Bimatoprosta 0,3mg/ml Solução Oftálmica Geolab 3ml",
+      "ean": "7899095249639",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3771,
+      "name": "Omeprazol 20mg Globo Pharma 56 Cápsulas",
+      "ean": "7898060134154",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3792,
+      "name": "Nitazoxanida 20mg/ml Eurofarma 100ml",
+      "ean": "7891317036744",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3793,
+      "name": "Nitazoxanida 20mg/mL Eurofarma 45mL",
+      "ean": "7891317036737",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3831,
+      "name": "Sinvastatina 40mg Cimed Genérico 30 Comprimidos",
+      "ean": "7896523215273",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3845,
+      "name": "Nimesulida 20mg Neo Química Gel 40g",
+      "ean": "7896714229829",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3854,
+      "name": "Grow D 10ml Cifarma 10ml",
+      "ean": "7908020501435",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3886,
+      "name": "Sulfametoxazol 800mg + Trimetoprima 160mg Prati Donaduzzi Genérico 10 Comprimidos",
+      "ean": "7898148301096",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3891,
+      "name": "Diclofenaco de Sódio 100mg EMS Genérico 10 Comprimidos",
+      "ean": "7896004706665",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3899,
+      "name": "Concerta 54mg Cellera 30 Comprimidos",
+      "ean": "7896212420124",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3902,
+      "name": "Triaxin Ceftriaxona Dissódica 500mg Pó para Solução Injetável 1 ampola + ampola de diluente de 2ml",
+      "ean": "7899640804290",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3906,
+      "name": "Cloridrato de Fexofenadina 120mg Ranbaxy 10 Comprimidos",
+      "ean": "7897076910950",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3910,
+      "name": "Triaxin Ceftriaxona 1g Pó para Solução Injetável + 1 ampola de 3,5ml",
+      "ean": "7899640804283",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3930,
+      "name": "Diprospan 5,0 + 2,0mg/ml MANTECORP Ampola 1ml",
+      "ean": "7891142984777",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3931,
+      "name": "Pamelor Cloridrato De Nortriptilina 25mg 30 Cápsulas",
+      "ean": "7896261009677",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3933,
+      "name": "Xalatan Solução Oftalmológica 2,5ml",
+      "ean": "7891268107609",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3943,
+      "name": "Neo Fedipina 20mg Neo Química Similares 30 Comprimidos",
+      "ean": "7896714293288",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3966,
+      "name": "Acetilcisteína 200mg EMS Genéricos 16 Envelopes",
+      "ean": "7896004708706",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3979,
+      "name": "Diprosone 0,64mg Solução 30ml",
+      "ean": "7891142142238",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3982,
+      "name": "Aldactone 50mg Pfizer 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 3988,
+      "name": "Ecofilm 5mg Latinofarma Indústrias Farmacê 5ml",
+      "ean": "7896676433050",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3996,
+      "name": "Mylicon 75mg JANSSEN CILAG Solução 15 mL",
+      "ean": "7891010256371",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3997,
+      "name": "Motilium 10mg JANSSEN CILAG 30 Comprimidos",
+      "ean": "7891010256388",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 3998,
+      "name": "Euthyrox 75mcg 50 Comprimidos",
+      "ean": "7891721029240",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4010,
+      "name": "Elotin Solução Otológica 5ml ELOFAR 1 Frasco",
+      "ean": "7898109240136",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4012,
+      "name": "Venalot 15mg/90mg Takeda Pharma Ltda 60 Drágeas",
+      "ean": "7896094932579",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4025,
+      "name": "Neozine Levomepromazina 25mg Aché-Biosintética 20 Comprimidos",
+      "ean": "7898581711230",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4026,
+      "name": "Neozine Levomepromazina 100mg Aché-Biosintética 20 Comprimidos",
+      "ean": "7898581711216",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4027,
+      "name": "Amplictil 25mg Aché-Biosintética 20 Comprimidos",
+      "ean": "7898581711193",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4028,
+      "name": "Amplictil Clorpromazina 40mg/ml 20ml",
+      "ean": "7898581711186",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4030,
+      "name": "Sulpan Bromazepam 1mg + Sulpirida 25mg 20 Cápsulas",
+      "ean": "7897465825216",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4057,
+      "name": "Maleato de Fluvoxamina 50mg Althaia Genérico 30 Comprimidos",
+      "ean": "7898687738261",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4058,
+      "name": "Tosilato de Edoxabana 60mg Althaia Genérico 30 Comprimidos",
+      "ean": "7898687738094",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4067,
+      "name": "Decongex Gripe Aché 5 Cápsulas",
+      "ean": "7896658052699",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4075,
+      "name": "Ácido Acetilsalicílico 100mg Eurofarma Genérico 60 Comprimidos",
+      "ean": "7891317026387",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4087,
+      "name": "Amoxicilina + Clavulanato de Potássio 500/125mg Ranbaxy Genérico 12 Comprimidos",
+      "ean": "7897076923745",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4101,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4102,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4106,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4110,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4111,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4113,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4114,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4116,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4117,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4120,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4121,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4123,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4124,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4125,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4126,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4127,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4129,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4130,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4131,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4132,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4133,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4134,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4135,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4136,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4137,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4138,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4139,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4140,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4141,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4149,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4150,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4153,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4155,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4156,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4158,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4159,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4161,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4162,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4165,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4166,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4168,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4169,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4170,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4171,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4172,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4174,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4175,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4176,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4177,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4178,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4179,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4180,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4181,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4182,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4183,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4184,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4185,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4186,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4188,
+      "name": "Andolba 43g",
+      "ean": "7891317036812",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4189,
+      "name": "Aldactone 50mg Pfizer 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4190,
+      "name": "Cutisanol Pó 150g",
+      "ean": "7897406119886",
+      "reason": "No exact EAN photo"
+    },
+    {
+      "id": 4199,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4200,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4203,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4205,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4206,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4208,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4209,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4211,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4212,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4215,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4216,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4218,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4219,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4220,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4221,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4222,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4225,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4226,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4227,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4228,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4229,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4231,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4232,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4233,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4235,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4236,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4237,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4238,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4239,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4247,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4248,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4251,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4253,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4254,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4256,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4257,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4259,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4260,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4263,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4264,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4266,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4267,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4268,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4269,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4270,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4272,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4273,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4274,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4275,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4276,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4277,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4278,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4279,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4280,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4281,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4282,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4283,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4284,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4286,
+      "name": "Aldactone 50mg Pfizer 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4298,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4299,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4302,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4305,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4306,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4308,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4309,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4311,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4312,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4315,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4316,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4318,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4319,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4320,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4321,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4322,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4324,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4325,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4326,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4327,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4328,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4329,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4330,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4331,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4332,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4333,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4334,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4335,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4336,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4344,
+      "name": "Tadalafila 20mg EMS Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4345,
+      "name": "Tadalafila 5mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4348,
+      "name": "Glifage XR 500mg com 30 Comprimidos de Liberação Prolongada",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4350,
+      "name": "Simeticona 75mg/ml Cimed Genérico Gotas com 15ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4351,
+      "name": "Drospirenona 3mg + Etinilestradiol 0,03mg EMS Genérico com 21 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4353,
+      "name": "Sildenafila 50mg Neo Química Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4354,
+      "name": "Quetiapina 25mg Geolab Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4356,
+      "name": "Aradois 50mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4357,
+      "name": "Nimesulida 100mg EMS Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4360,
+      "name": "Rosuvastatina 20mg Althaia Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4361,
+      "name": "Ondansetrona 4mg Biolab Genérico com 10 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4363,
+      "name": "Rosuvastatina 10mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4364,
+      "name": "Loperamida 2mg Globo Genérico com 12 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4365,
+      "name": "Atorvastatina 40mg EMS Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4366,
+      "name": "Tadalafila 20mg Medley Genérico com 4 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4367,
+      "name": "Fluconazol 150mg Medley Genérico com 1 Cápsula",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4369,
+      "name": "Alopurinol 100mg Prati Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4370,
+      "name": "Dipirona Sódica 500mg/ml EMS Genérico Gotas 10ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4371,
+      "name": "Avodart 0,5mg com 90 Cápsulas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4372,
+      "name": "Neosoro Adulto Solução Nasal Gotas 30ml",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4373,
+      "name": "Glyxambi 25mg + 5mg com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4374,
+      "name": "Amoxicilina 875mg + Clavulanato de Potássio 125mg Ranbaxy Genérico Comprimido com 14 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4375,
+      "name": "Pantoprazol 40mg Biosintética Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4376,
+      "name": "Bupropiona 150mg EMS Genérico com 60 Comprimidos Revestido de Liberação Prolongada 12 Horas",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4377,
+      "name": "Bilastina 20mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4378,
+      "name": "Pantoprazol 20mg EMS Genérico com 28 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4379,
+      "name": "Avamys 27,5mcg Spray Nasal com 120 Doses",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4380,
+      "name": "Sertralina 50mg EMS Genérico com 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4381,
+      "name": "Sertralina 50mg Geolab Genérico com 30 Comprimidos Revestidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    },
+    {
+      "id": 4383,
+      "name": "Aldactone 50mg Pfizer 30 Comprimidos",
+      "ean": null,
+      "reason": "Indiana public search did not cover the complete catalog."
+    }
+  ]
+}

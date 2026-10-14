@@ -1,9 +1,10 @@
-import os
 import json
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import usuarios, catalogo, historico
+from app.api.routes import catalogo, historico, usuarios
 
 
 def _get_cors_origins() -> list[str]:
@@ -32,6 +33,8 @@ app: FastAPI = FastAPI(title="Preço Bão API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_get_cors_origins(),
+    # Expo may choose any free port when the usual Metro port is occupied.
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

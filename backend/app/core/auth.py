@@ -1,23 +1,35 @@
+import logging
+import os
 import uuid
 from typing import Any, Dict, Optional, Type
+
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
-from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy
+from fastapi_users.authentication import (
+    AuthenticationBackend,
+    BearerTransport,
+    JWTStrategy,
+)
 from fastapi_users.db import BaseUserDatabase
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.usuario import Usuario
 
-SECRET = "SECRET_KEY_MOCK"  # TODO: Inject via environment variable
+SECRET = os.environ.get("JWT_SECRET")
+if not SECRET:
+    raise RuntimeError("JWT_SECRET deve ser configurado no ambiente.")
+logger = logging.getLogger(__name__)
+
 
 class SQLAlchemyUserDatabaseSync(BaseUserDatabase[Usuario, uuid.UUID]):
     """Custom synchronous database adapter for FastAPI Users.
-    
+
     Interfaces with a synchronous SQLAlchemy Session while exposing
     the asynchronous architecture required by the user manager.
     """
+
     def __init__(self, session: Session, user_model: Type[Usuario]):
         self.session = session
         self.user_model = user_model
@@ -28,10 +40,12 @@ class SQLAlchemyUserDatabaseSync(BaseUserDatabase[Usuario, uuid.UUID]):
     async def get_by_email(self, email: str) -> Optional[Usuario]:
         # Using getattr satisfies Pylance type checking for instrumented attributes
         email_attr = getattr(self.user_model, "email")
-        stmt = select(self.user_model).where(email_attr.ilike(email))
+        stmt = select(self.user_model).where(func.lower(email_attr) == email.lower())
         return self.session.execute(stmt).scalar_one_or_none()
 
-    async def get_by_oauth_account(self, oauth: str, account_id: str) -> Optional[Usuario]:
+    async def get_by_oauth_account(
+        self, oauth: str, account_id: str
+    ) -> Optional[Usuario]:
         return None
 
     async def create(self, create_dict: Dict[str, Any]) -> Usuario:
@@ -53,29 +67,39 @@ class SQLAlchemyUserDatabaseSync(BaseUserDatabase[Usuario, uuid.UUID]):
         self.session.delete(user)
         self.session.commit()
 
+
 def get_user_db(session: Session = Depends(get_db)):
     yield SQLAlchemyUserDatabaseSync(session, Usuario)
+
 
 class UserManager(UUIDIDMixin, BaseUserManager[Usuario, uuid.UUID]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
 
     async def on_after_register(self, user: Usuario, request: Optional[Request] = None):
-        print(f"User {user.id} has registered.")
+        logger.info("Usuário registrado: %s", user.id)
 
-    async def on_after_forgot_password(self, user: Usuario, token: str, request: Optional[Request] = None):
-        print(f"User {user.id} has forgot their password. Reset token: {token}")
+    async def on_after_forgot_password(
+        self, user: Usuario, token: str, request: Optional[Request] = None
+    ):
+        logger.info("Recuperação de senha solicitada: %s", user.id)
 
-    async def on_after_request_verify(self, user: Usuario, token: str, request: Optional[Request] = None):
-        print(f"Verification requested for user {user.id}. Verification token: {token}")
+    async def on_after_request_verify(
+        self, user: Usuario, token: str, request: Optional[Request] = None
+    ):
+        logger.info("Verificação solicitada: %s", user.id)
+
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabaseSync = Depends(get_user_db)):
     yield UserManager(user_db)
 
+
 bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
+
 
 def get_jwt_strategy() -> JWTStrategy:
     return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+
 
 auth_backend = AuthenticationBackend(
     name="jwt",

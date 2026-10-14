@@ -1,32 +1,60 @@
 """
 Modelo de Usuário e tabelas associativas para favoritos.
 """
-from sqlalchemy import Column, ForeignKey, String, Table, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from typing import TYPE_CHECKING
+
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from fastapi_users_db_sqlalchemy.generics import GUID
-import uuid
+from sqlalchemy import Column, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
+
+if TYPE_CHECKING:
+    from .catalogo import CatalogoBase
+    from .farmacia import Farmacia
 
 usuario_medicamento_favorito = Table(
     "usuario_medicamento_favorito",
     Base.metadata,
-    Column("usuario_id", GUID, ForeignKey("usuario.id", ondelete="CASCADE"), primary_key=True),
-    Column("medicamento_id", Integer, ForeignKey("catalogo_base.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "usuario_id",
+        GUID,
+        ForeignKey("usuario.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "medicamento_id",
+        Integer,
+        ForeignKey("catalogo_base.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 usuario_farmacia_favorita = Table(
     "usuario_farmacia_favorita",
     Base.metadata,
-    Column("usuario_id", GUID, ForeignKey("usuario.id", ondelete="CASCADE"), primary_key=True),
-    Column("farmacia_id", Integer, ForeignKey("farmacias.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "usuario_id",
+        GUID,
+        ForeignKey("usuario.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "farmacia_id",
+        Integer,
+        ForeignKey("farmacias.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
+
 
 class Usuario(SQLAlchemyBaseUserTableUUID, Base):
     """
     Modelo de Usuário para autenticação e gestão de favoritos.
     """
+
     __tablename__ = "usuario"
 
     nome: Mapped[str] = mapped_column(String(100), nullable=False)
