@@ -5,7 +5,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -17,7 +16,8 @@ import { Screen } from '../../../components/Screen';
 import { SearchBar } from '../../../components/SearchBar';
 import { useCatalogContext, useFavoritesContext, useSessionContext } from '../../../context/AppContext';
 import { getLaboratoryDisplayName } from '../../../services/catalog';
-import { palette, radius, spacing } from '../../../theme';
+import { radius, spacing } from '../../../theme';
+import { createThemedStyles, useAppTheme } from '../../../context/ThemeContext';
 import { Medicamento, Oferta } from '../../../types/api';
 
 type OfertaComExtras = Oferta & {
@@ -90,6 +90,8 @@ export function getMedicineDetails(medicine?: Medicamento, laboratoryName?: stri
 }
 
 export default function MedicineDetailScreen() {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
 
@@ -350,7 +352,7 @@ export default function MedicineDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   layout: { marginTop: spacing.md, gap: spacing.lg },
   layoutDesktop: { flexDirection: 'row', alignItems: 'flex-start' },
   mainColumn: {
@@ -425,7 +427,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  siteButtonText: { color: palette.surface, fontSize: 15, fontWeight: '700' },
+  siteButtonText: { color: palette.onPrimary, fontSize: 15, fontWeight: '700' },
   historyButton: {
     minHeight: 52,
     paddingHorizontal: spacing.md,
@@ -476,7 +478,7 @@ const styles = StyleSheet.create({
   offerInfo: { flex: 1, minWidth: 0 },
   offerNameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs, marginBottom: 6 },
   offerName: { flexShrink: 1, fontSize: 14, color: palette.text, fontWeight: '600' },
-  bestPriceBadge: { overflow: 'hidden', borderRadius: radius.sm, backgroundColor: palette.primary, paddingHorizontal: 7, paddingVertical: 3, color: palette.surface, fontSize: 10, fontWeight: '700' },
+  bestPriceBadge: { overflow: 'hidden', borderRadius: radius.sm, backgroundColor: palette.primary, paddingHorizontal: 7, paddingVertical: 3, color: palette.onPrimary, fontSize: 10, fontWeight: '700' },
   offerPrice: { fontSize: 20, fontWeight: '700', color: palette.text },
   offerUpdated: { marginTop: 3, color: palette.textSoft, fontSize: 11 },
   offerSiteButton: {
@@ -488,8 +490,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  offerSiteButtonText: { color: palette.surface, fontSize: 13, fontWeight: '700' },
+  offerSiteButtonText: { color: palette.onPrimary, fontSize: 13, fontWeight: '700' },
   notFoundBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: spacing.md },
   notFoundTitle: { fontSize: 24, color: palette.text, fontWeight: '700' },
   notFoundText: { fontSize: 15, color: palette.textSoft, textAlign: 'center' },
-});
+}));

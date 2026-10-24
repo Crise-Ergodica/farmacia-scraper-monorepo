@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleProp,
-  StyleSheet,
   Text,
   View,
   ViewStyle,
@@ -16,7 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionContext } from '../context/AppContext';
-import { palette, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { createThemedStyles, useAppTheme } from '../context/ThemeContext';
 
 type ScreenProps = {
   children: ReactNode;
@@ -34,6 +34,8 @@ const navigation = [
 ] as const;
 
 export function Screen({ children, hideBottomNav = false, scroll = true, contentStyle, wideContent = false }: ScreenProps) {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -149,7 +151,7 @@ export function Screen({ children, hideBottomNav = false, scroll = true, content
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   root: { flex: 1, backgroundColor: palette.background },
   flex: { flex: 1 },
   desktopHeader: { width: '100%', backgroundColor: palette.surface, borderBottomWidth: 1, borderBottomColor: palette.border },
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
   headerInnerWide: { maxWidth: '100%', paddingHorizontal: 24 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 11, minWidth: 220 },
   brandMark: { width: 38, height: 38, borderRadius: 11, backgroundColor: palette.primary, justifyContent: 'center', alignItems: 'center' },
-  brandLetter: { color: palette.surface, fontSize: 23, fontWeight: '900' },
+  brandLetter: { color: palette.onPrimary, fontSize: 23, fontWeight: '900' },
   brandName: { color: palette.text, fontSize: 17, fontWeight: '900', letterSpacing: -0.3 },
   brandCaption: { color: palette.textSoft, fontSize: 9, fontWeight: '700', letterSpacing: 0.8, marginTop: 1 },
   desktopNavigation: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
@@ -170,7 +172,7 @@ const styles = StyleSheet.create({
   accountButton: { maxWidth: 175, flexDirection: 'row', alignItems: 'center', gap: 7, padding: 8 },
   accountName: { color: palette.text, fontSize: 14, fontWeight: '600', maxWidth: 135 },
   signInButton: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: radius.sm, backgroundColor: palette.primary },
-  signInText: { color: palette.surface, fontWeight: '700', fontSize: 14 },
+  signInText: { color: palette.onPrimary, fontWeight: '700', fontSize: 14 },
   moreButton: { width: 38, height: 38, borderRadius: radius.sm, backgroundColor: palette.surfaceAlt, justifyContent: 'center', alignItems: 'center' },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.xl },
   contentDesktop: { maxWidth: 1320, paddingHorizontal: 32, paddingTop: 30, paddingBottom: 48 },
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
   mobileNavTextActive: { color: palette.primaryDark, fontWeight: '800' },
   pressed: { opacity: 0.72 },
   modalOverlay: { flex: 1, flexDirection: 'row' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.32)' },
+  modalBackdrop: { flex: 1, backgroundColor: palette.overlay },
   sidebar: { width: 310, maxWidth: '88%', backgroundColor: palette.surface, paddingTop: 24, paddingHorizontal: 18, paddingBottom: 20 },
   sidebarDesktop: { width: 340 },
   sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 28 },
@@ -198,4 +200,4 @@ const styles = StyleSheet.create({
   sidebarItemText: { flex: 1, color: palette.text, fontSize: 13, fontWeight: '700' },
   logoutItem: { marginTop: 8, borderTopWidth: 1, borderColor: palette.border, borderRadius: 0 },
   logoutText: { color: palette.danger },
-});
+}));

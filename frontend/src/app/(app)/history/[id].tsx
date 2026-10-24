@@ -7,7 +7,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -33,7 +32,8 @@ import {
   toggleHistoryPharmacy,
 } from '../../../services/historySeries';
 
-import { palette, radius, spacing } from '../../../theme';
+import { radius, spacing } from '../../../theme';
+import { createThemedStyles, useAppTheme } from '../../../context/ThemeContext';
 
 const PHARMACY_COLORS = [
   '#1688F6',
@@ -102,6 +102,8 @@ const HISTORY_PERIODS = [
 ] as const;
 
 export default function HistoryScreen() {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const router = useRouter();
 
   const handleBack = () => {
@@ -507,7 +509,7 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -523,7 +525,7 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     padding: spacing.lg,
     gap: spacing.lg,
-    shadowColor: '#0F172A',
+    shadowColor: palette.shadow,
     shadowOpacity: 0,
     shadowRadius: 0,
     shadowOffset: {
@@ -645,7 +647,7 @@ const styles = StyleSheet.create({
   },
   periodChipSelected: { backgroundColor: palette.primary, borderColor: palette.primary },
   periodChipText: { color: palette.textSoft, fontWeight: '600' },
-  periodChipTextSelected: { color: '#FFFFFF' },
+  periodChipTextSelected: { color: palette.onPrimary },
 
   summaryCard: {
     backgroundColor: palette.surface,
@@ -653,7 +655,7 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     borderRadius: radius.xl,
     padding: spacing.lg,
-    shadowColor: '#0F172A',
+    shadowColor: palette.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 14,
     shadowOffset: {
@@ -698,11 +700,11 @@ const styles = StyleSheet.create({
   },
 
   stockAvailable: {
-    backgroundColor: '#EAF8EF',
+    backgroundColor: palette.successSoft,
   },
 
   stockUnavailable: {
-    backgroundColor: '#FFF1F1',
+    backgroundColor: palette.dangerSoft,
   },
 
   stockBadgeText: {
@@ -749,10 +751,10 @@ const styles = StyleSheet.create({
   messageBox: {
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
-    backgroundColor: '#FFF8E8',
+    backgroundColor: palette.warningSoft,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#F5D48A',
+    borderColor: palette.warningBorder,
     padding: spacing.md,
     flexDirection: 'row',
     gap: spacing.sm,
@@ -819,4 +821,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxWidth: 420,
   },
-});
+}));

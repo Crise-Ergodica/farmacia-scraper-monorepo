@@ -1,14 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
 import { useCatalogContext, useFavoritesContext, useSessionContext } from '../../context/AppContext';
-import { palette, radius } from '../../theme';
+import { radius } from '../../theme';
+import { createThemedStyles, useAppTheme } from '../../context/ThemeContext';
 
 export default function FavoritesScreen() {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const router = useRouter();
   const { favoriteMedicines, favoritesLoading, favoritesError, refreshFavorites } = useFavoritesContext();
   const { markAsViewed } = useCatalogContext();
@@ -53,7 +56,7 @@ export default function FavoritesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: palette.border },
   headingCopy: { flex: 1 },
   eyebrow: { color: palette.primaryDark, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
   stateTitle: { color: palette.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   stateText: { maxWidth: 440, color: palette.textSoft, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   primaryButton: { minHeight: 42, marginTop: 7, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: radius.sm, backgroundColor: palette.primary },
-  primaryButtonText: { color: palette.surface, fontSize: 13, fontWeight: '800' },
+  primaryButtonText: { color: palette.onPrimary, fontSize: 13, fontWeight: '800' },
   secondaryButton: { marginTop: 7, minHeight: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1, borderColor: palette.primary },
   secondaryButtonText: { color: palette.primaryDark, fontWeight: '800', fontSize: 13 },
-});
+}));

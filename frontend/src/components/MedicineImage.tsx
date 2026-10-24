@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Image, ImageStyle, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Image, ImageStyle, StyleProp, Text, View, ViewStyle } from 'react-native';
 
 import { resolveMedicineImages } from '../services/catalog';
-import { palette } from '../theme';
+
+import { createThemedStyles, useAppTheme } from '../context/ThemeContext';
 import { Medicamento } from '../types/api';
 
 type MedicineImageProps = {
@@ -14,6 +15,8 @@ type MedicineImageProps = {
 };
 
 export function MedicineImage({ medicine, style, imageStyle, label = 'Imagem indispon\u00edvel' }: MedicineImageProps) {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const imageUrls = resolveMedicineImages(medicine);
   const imageKey = imageUrls.join('|');
   const [failedIndex, setFailedIndex] = useState(0);
@@ -41,9 +44,9 @@ export function MedicineImage({ medicine, style, imageStyle, label = 'Imagem ind
   );
 }
 
-const styles = StyleSheet.create({
-  container: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+const useStyles = createThemedStyles((palette) => ({
+  container: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: palette.imageSurface },
   image: { width: '100%', height: '100%' },
-  placeholder: { flex: 1, width: '100%', minHeight: 0, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: palette.surfaceAlt },
+  placeholder: { flex: 1, width: '100%', minHeight: 0, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: palette.imageSurface },
   placeholderText: { color: palette.muted, fontSize: 11, lineHeight: 15, textAlign: 'center' },
-});
+}));

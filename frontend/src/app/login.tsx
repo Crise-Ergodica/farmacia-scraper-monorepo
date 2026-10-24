@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   useWindowDimensions,
@@ -17,7 +16,8 @@ import { z } from 'zod';
 
 import { Screen } from '../components/Screen';
 import { useSessionContext } from '../context/AppContext';
-import { palette, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { createThemedStyles, useAppTheme } from '../context/ThemeContext';
 
 const loginSchema = z.object({
   email: z.string().email('Digite um email válido'),
@@ -127,6 +127,8 @@ function getReadableMessage(value: unknown, fallback: string) {
 }
 
 export default function LoginScreen() {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const { continueAsGuest, signIn } = useSessionContext();
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
@@ -240,7 +242,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   flex: { flex: 1 },
   webKeyboardContainer: { width: '100%' },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
   brandPanelWide: { width: '47%', padding: 44, backgroundColor: palette.surfaceBlue, justifyContent: 'space-between' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   logoBox: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
-  logoText: { color: palette.surface, fontSize: 24, fontWeight: '800' },
+  logoText: { color: palette.onPrimary, fontSize: 24, fontWeight: '800' },
   brandName: { color: palette.text, fontSize: 19, fontWeight: '800' },
   brandCopy: { gap: spacing.lg, paddingBottom: 16 },
   brandHeading: { color: palette.text, fontSize: 34, lineHeight: 41, fontWeight: '800', maxWidth: 390 },
@@ -279,11 +281,11 @@ const styles = StyleSheet.create({
   feedbackText: { color: palette.text, fontSize: 14, lineHeight: 20 },
   actions: { gap: spacing.sm },
   primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: palette.primary },
-  primaryButtonText: { color: palette.surface, fontSize: 16, fontWeight: '700' },
+  primaryButtonText: { color: palette.onPrimary, fontSize: 16, fontWeight: '700' },
   secondaryButton: { minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: palette.primary },
   secondaryButtonText: { color: palette.primaryDark, fontSize: 15, fontWeight: '700' },
   guestButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   guestButtonText: { color: palette.textSoft, fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.55 },
-});
+}));

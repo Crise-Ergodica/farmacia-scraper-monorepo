@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 
-import { palette, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { createThemedStyles } from '../context/ThemeContext';
 import { getTooltipPosition } from '../services/historyChartGeometry';
 
 export type HistoryChartPoint = {
@@ -88,6 +89,7 @@ function getLineSegmentStyle(
 }
 
 export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
+  const styles = useStyles();
   const isWeb = Platform.OS === 'web';
 
   const [chartWidth, setChartWidth] = useState(0);
@@ -497,7 +499,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   card: {
     backgroundColor: palette.surface,
     borderRadius: radius.xl,
@@ -505,7 +507,7 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     padding: spacing.lg,
     marginTop: spacing.sm,
-    shadowColor: '#0F172A',
+    shadowColor: palette.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 18,
     shadowOffset: {
@@ -606,9 +608,9 @@ const styles = StyleSheet.create({
   chartOuter: {
     overflow: 'hidden',
     borderRadius: radius.lg,
-    backgroundColor: '#F8FBFF',
+    backgroundColor: palette.chartBackground,
     borderWidth: 1,
-    borderColor: '#E7EEF8',
+    borderColor: palette.border,
   },
 
   chartArea: {
@@ -637,7 +639,7 @@ const styles = StyleSheet.create({
   gridLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2EAF5',
+    backgroundColor: palette.chartGrid,
   },
 
   lineSegment: {
@@ -651,7 +653,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 3,
     borderColor: palette.surface,
-    shadowColor: '#0F172A',
+    shadowColor: palette.shadow,
     shadowOpacity: 0.14,
     shadowRadius: 8,
     shadowOffset: {
@@ -702,7 +704,7 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     borderRadius: radius.md,
     padding: spacing.sm,
-    shadowColor: '#0F172A',
+    shadowColor: palette.shadow,
     shadowOpacity: 0.12,
     shadowRadius: 14,
     shadowOffset: {
@@ -751,4 +753,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
-});
+}));

@@ -10,7 +10,19 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F8FC",
+          "dark": {
+            "image": "./assets/splash.png",
+            "backgroundColor": "#101722"
+          }
+        }
+      ]
     ],
     "splash": {
       "image": "./assets/splash.png",

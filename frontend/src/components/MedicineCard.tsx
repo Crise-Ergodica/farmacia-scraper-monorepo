@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { GestureResponderEvent, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { GestureResponderEvent, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { useFavoritesContext, useSessionContext } from '../context/AppContext';
 import { getLaboratoryDisplayName } from '../services/catalog';
 import { MedicineImage } from './MedicineImage';
-import { palette } from '../theme';
+
+import { createThemedStyles, useAppTheme } from '../context/ThemeContext';
 import { Medicamento } from '../types/api';
 
 type MedicineCardProps = { medicine: Medicamento; onPress: () => void; compact?: boolean; wide?: boolean; columns?: 2 | 3 | 4 };
@@ -27,6 +28,8 @@ function getPresentation(name: string) {
 }
 
 export function MedicineCard({ medicine, onPress, compact = false, wide = false, columns }: MedicineCardProps) {
+  const styles = useStyles();
+  const { palette } = useAppTheme();
   const { favoriteIds, toggleFavorite } = useFavoritesContext();
   const { sessionMode } = useSessionContext();
   const { width } = useWindowDimensions();
@@ -115,11 +118,11 @@ export function MedicineCard({ medicine, onPress, compact = false, wide = false,
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((palette) => ({
   card: { backgroundColor: palette.surface, borderRadius: 14, borderWidth: 1, borderColor: palette.border, overflow: 'hidden', alignSelf: 'flex-start', minHeight: 356, position: 'relative', ...Platform.select({ web: { cursor: 'pointer', userSelect: 'none', transitionProperty: 'border-color, box-shadow, transform', transitionDuration: '180ms' } as any }) },
   cardCompactList: { minHeight: 138, flexDirection: 'row', alignSelf: 'stretch', alignItems: 'stretch' },
   cardPressed: { opacity: 0.92 },
-  cardHighlighted: { borderColor: '#1688F6', shadowColor: '#1688F6', shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, transform: [{ translateY: -2 }] },
+  cardHighlighted: { borderColor: palette.primary, shadowColor: palette.primary, shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, transform: [{ translateY: -2 }] },
   imagePanel: { height: 148, backgroundColor: palette.surface, borderBottomWidth: 1, borderBottomColor: palette.border, alignItems: 'center', justifyContent: 'center', position: 'relative', padding: 10 },
   imagePanelCompactList: { width: 92, height: 'auto', minHeight: 138, flexShrink: 0, borderBottomWidth: 0, borderRightWidth: 1, borderRightColor: palette.border, padding: 8 },
   favoriteButton: { position: 'absolute', top: 8, right: 8, width: 38, height: 38, borderRadius: 12, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
@@ -147,4 +150,4 @@ const styles = StyleSheet.create({
   cardFooterCompactList: { minHeight: 44, marginTop: 7, paddingTop: 6 },
   compareLabel: { color: palette.primaryDark, fontSize: 14, fontWeight: '700' },
   compareIcon: { width: 27, height: 27, borderRadius: 8, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
-});
+}));
