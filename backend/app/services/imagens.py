@@ -400,10 +400,16 @@ def validate_image_association(
                 and not product_host.endswith(".drogariaspacheco.com.br")
             )
         ):
-            return False, source, "Imagem da Pacheco exige vínculo confirmado com o domínio oficial."
+            return (
+                False,
+                source,
+                "Imagem da Pacheco exige vínculo confirmado com o domínio oficial.",
+            )
         match_kind = (
             "ean"
-            if image_eans and ean and any(gtin_matches(ean, image_ean) for image_ean in image_eans)
+            if image_eans
+            and ean
+            and any(gtin_matches(ean, image_ean) for image_ean in image_eans)
             else "sku"
         )
         return True, match_kind, None

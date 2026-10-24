@@ -20,7 +20,6 @@ import {
 
 import { OfferRow } from '../../../components/OfferRow';
 import { Screen } from '../../../components/Screen';
-import { SearchBar } from '../../../components/SearchBar';
 import { useCatalogContext, useSessionContext } from '../../../context/AppContext';
 
 import {
@@ -28,6 +27,11 @@ import {
   Oferta,
 } from '../../../types/api';
 import { api } from '../../../services/api';
+import {
+  getHistoryPharmacyOptions,
+  getVisibleHistorySeries,
+  toggleHistoryPharmacy,
+} from '../../../services/historySeries';
 
 import { palette, radius, spacing } from '../../../theme';
 
@@ -79,8 +83,8 @@ function getPharmacyName(offer?: Oferta) {
   );
 }
 
-function getColorByIndex(index: number) {
-  return PHARMACY_COLORS[index % PHARMACY_COLORS.length];
+function getPharmacyColor(pharmacyId: number) {
+  return PHARMACY_COLORS[(pharmacyId - 1) % PHARMACY_COLORS.length];
 }
 
 function getLowestOffer(offers: Oferta[]) {
@@ -101,22 +105,26 @@ export default function HistoryScreen() {
   const router = useRouter();
 
   const handleBack = () => {
-  if (router.canGoBack()) {
-    router.back();
-    return;
-  }
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
 
-  router.replace('/home');
-};
+    if (medicineId !== null) {
+      router.replace(`/medicine/${medicineId}`);
+      return;
+    }
+
+    router.replace('/home');
+  };
 
   const params = useLocalSearchParams<{
     id?: string | string[];
   }>();
 
-  const { getMedicineById, loadMedicineById } = useCatalogContext();
+  const { loadMedicineById } = useCatalogContext();
   const { isLoading } = useSessionContext();
 
-  const [search, setSearch] = useState('Preço Bão');
   const [series, setSeries] = useState<HistoryChartSeries[]>([]);
   const [selectedPharmacies, setSelectedPharmacies] = useState<number[] | null>(null);
   const [historyStats, setHistoryStats] = useState<{ key: string; label: string; minimum: number; maximum: number; average: number; variation: number | null }[]>([]);
@@ -140,15 +148,21 @@ export default function HistoryScreen() {
     return Number.isFinite(parsedId) ? parsedId : null;
   }, [params.id]);
 
-  const cachedMedicine = useMemo(() => {
-    if (medicineId === null) {
-      return undefined;
-    }
+  const medicine = loadedMedicine?.id === medicineId ? loadedMedicine : undefined;
+  const backButton = (
+    <View style={styles.backRow}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Voltar"
+        onPress={handleBack}
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back" size={19} color={palette.primaryDark} />
+      </Pressable>
+    </View>
+  );
 
-    return getMedicineById(medicineId);
-  }, [getMedicineById, medicineId]);
-
-  const medicine = cachedMedicine || loadedMedicine;
+  useEffect(() => setSelectedPharmacies(null), [medicineId]);
 
   useEffect(() => {
     let active = true;
@@ -160,7 +174,7 @@ export default function HistoryScreen() {
     setLoadedMedicine(undefined);
     setHistoryMessage('');
     setMedicineLoading(true);
-    loadMedicineById(medicineId).then((item) => {
+    loadMedicineById(medicineId, true).then((item) => {
       if (active) setLoadedMedicine(item);
     }).catch(() => {
       if (active) setHistoryMessage('Não foi possível carregar o medicamento.');
@@ -179,11 +193,23 @@ export default function HistoryScreen() {
   }, [medicine]);
 
   const lowestOffer = useMemo(() => getLowestOffer(currentOffers), [currentOffers]);
-  const visibleSeries = useMemo(() => selectedPharmacies === null ? series : series.filter((item) => selectedPharmacies.includes(Number(item.key))), [selectedPharmacies, series]);
+  const pharmacyOptions = useMemo(
+    () => getHistoryPharmacyOptions(currentOffers, series, getPharmacyName, PHARMACY_COLORS),
+    [currentOffers, series],
+  );
+  const visibleSeries = useMemo(
+    () => getVisibleHistorySeries(series, selectedPharmacies),
+    [selectedPharmacies, series],
+  );
+  const selectedMissingHistory = selectedPharmacies !== null && selectedPharmacies.length === 1
+    ? pharmacyOptions.find((item) => Number(item.key) === selectedPharmacies[0] && !item.hasHistory)
+    : undefined;
   const chartEmptyMessage = historyMessage
     ? 'Não foi possível consultar o histórico agora. Tente novamente mais tarde.'
-    : selectedPharmacies !== null && series.length > 0 && visibleSeries.length === 0
-    ? 'Selecione ao menos uma farmácia para visualizar as observações.'
+    : selectedMissingHistory && period === 'all'
+    ? `${selectedMissingHistory.label} ainda não possui observações de preço.`
+    : selectedPharmacies !== null && visibleSeries.length === 0 && period !== 'all'
+    ? 'Esta farmácia não possui observações neste período. Selecione Tudo para conferir outras datas.'
     : series.length === 0 && totalHistoryObservations > 0 && period !== 'all'
       ? `Não há observações neste período. Existem ${totalHistoryObservations} observações em outras datas; selecione Tudo para consultá-las.`
       : 'O acompanhamento ainda não possui observações reais de preço. Uma coleta bem-sucedida registrará o primeiro ponto.';
@@ -207,10 +233,10 @@ export default function HistoryScreen() {
       try {
         const response = await api.get(`/api/v1/medicines/${medicineId}/history?periodo=${period}`);
         const data = response.data as { pharmacies?: { farmacia_id: number; pharmacy_name?: string; history: { data_registro: string; preco: number }[] }[]; statistics?: Record<string, { menor_preco: number; maior_preco: number; preco_medio: number; variacao_percentual: number | null }>; total_observacoes?: number };
-        const normalized = (data.pharmacies || []).map((item, index) => ({
+        const normalized = (data.pharmacies || []).map((item) => ({
           key: String(item.farmacia_id),
           label: item.pharmacy_name || `Farm\u00e1cia ${item.farmacia_id}`,
-          color: getColorByIndex(index),
+          color: getPharmacyColor(item.farmacia_id),
           history: item.history.map((point) => ({
             timestamp: point.data_registro,
             label: formatDateLabel(point.data_registro),
@@ -220,7 +246,6 @@ export default function HistoryScreen() {
         if (active) {
           setSeries(normalized);
           setTotalHistoryObservations(Number(data.total_observacoes ?? normalized.reduce((count, item) => count + item.history.length, 0)));
-          setSelectedPharmacies(null);
           setHistoryStats(normalized.flatMap((item) => {
             const stat = data.statistics?.[item.key];
             return stat ? [{ key: item.key, label: item.label, minimum: Number(stat.menor_preco), maximum: Number(stat.maior_preco), average: Number(stat.preco_medio), variation: stat.variacao_percentual === null ? null : Number(stat.variacao_percentual) }] : [];
@@ -256,19 +281,7 @@ export default function HistoryScreen() {
   if (!medicine) {
     return (
       <Screen>
-        <SearchBar
-          value={search}
-          onChangeText={setSearch}
-          onSubmit={() =>
-            router.push({
-              pathname: '/search',
-              params: {
-                q: search,
-              },
-            })
-          }
-          onBack={handleBack}
-        />
+        {backButton}
 
         <View style={styles.notFoundBox}>
           <View style={styles.notFoundIcon}>
@@ -278,7 +291,7 @@ export default function HistoryScreen() {
           <Text style={styles.notFoundTitle}>Histórico não encontrado</Text>
 
           <Text style={styles.notFoundText}>
-            Não foi possível localizar esse medicamento no catálogo carregado.
+            {historyMessage || 'Não foi possível localizar esse medicamento no catálogo carregado.'}
           </Text>
         </View>
       </Screen>
@@ -287,19 +300,7 @@ export default function HistoryScreen() {
 
   return (
     <Screen>
-      <SearchBar
-        value={search}
-        onChangeText={setSearch}
-        onSubmit={() =>
-          router.push({
-            pathname: '/search',
-            params: {
-              q: search,
-            },
-          })
-        }
-        onBack={handleBack}
-      />
+      {backButton}
 
       <View style={[styles.heroCard, isDesktop && styles.heroCardDesktop]}>
         <View style={styles.heroTextBox}>
@@ -348,7 +349,7 @@ export default function HistoryScreen() {
                   style={[
                     styles.summaryDot,
                     {
-                      backgroundColor: getColorByIndex(index),
+                      backgroundColor: getPharmacyColor(offer.farmacia_id),
                     },
                   ]}
                 />
@@ -410,7 +411,7 @@ export default function HistoryScreen() {
         ))}
       </View>
 
-      {!!series.length && (
+      {!!pharmacyOptions.length && (
         <View style={styles.periodFilters} accessibilityLabel="Filtrar farmácias">
           <Pressable
             accessibilityRole="button"
@@ -420,17 +421,23 @@ export default function HistoryScreen() {
           >
             <Text style={[styles.periodChipText, selectedPharmacies === null && styles.periodChipTextSelected]}>Todas</Text>
           </Pressable>
-          {series.map((item) => {
+          {pharmacyOptions.map((item) => {
             const id = Number(item.key);
             const selected = selectedPharmacies === null || selectedPharmacies.includes(id);
             return (
-              <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setSelectedPharmacies((current) => current === null ? series.filter((candidate) => Number(candidate.key) !== id).map((candidate) => Number(candidate.key)) : current.includes(id) ? current.filter((value) => value !== id) : [...current, id])} style={[styles.periodChip, selected && { borderColor: item.color }]}>
+              <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setSelectedPharmacies((current) => toggleHistoryPharmacy(current, id, pharmacyOptions))} style={[styles.periodChip, selected && { borderColor: item.color }]}>
                 <Text style={[styles.periodChipText, selected && { color: item.color }]}>{item.label}</Text>
               </Pressable>
             );
           })}
         </View>
       )}
+
+      {period === 'all' && pharmacyOptions.some((item) => !item.hasHistory) && !historyMessage && !isLoadingHistory ? (
+        <Text style={styles.loadingHistoryText}>
+          Sem histórico ainda: {pharmacyOptions.filter((item) => !item.hasHistory).map((item) => item.label).join(', ')}.
+        </Text>
+      ) : null}
 
       {historyMessage ? (
         <View style={styles.messageBox}>
@@ -450,9 +457,9 @@ export default function HistoryScreen() {
         <HistoryChart series={visibleSeries} emptyMessage={chartEmptyMessage} />
       )}
 
-      {!!historyStats.length && (
+      {!!historyStats.length && visibleSeries.length > 0 && (
         <View style={styles.summaryGrid}>
-          {historyStats.map((stat) => (
+          {historyStats.filter((stat) => selectedPharmacies === null || selectedPharmacies.includes(Number(stat.key))).map((stat) => (
             <View key={stat.key} style={[styles.summaryCard, { width: summaryCardWidth }]}>
               <Text numberOfLines={1} style={styles.summaryPharmacy}>{stat.label}</Text>
               <Text style={styles.summaryPrice}>Mín. {formatPrice(stat.minimum)}</Text>
@@ -483,7 +490,7 @@ export default function HistoryScreen() {
                 medicineName={medicine.nome}
                 pharmacy={getPharmacyName(offer)}
                 price={offer.preco}
-                color={getColorByIndex(index)}
+                color={getPharmacyColor(offer.farmacia_id)}
                 onPress={() => {
                   if (offer.url_origem?.startsWith('https://')) {
                     void Linking.openURL(offer.url_origem).catch(() => {
@@ -509,7 +516,7 @@ const styles = StyleSheet.create({
   },
 
   heroCard: {
-    marginTop: spacing.lg,
+    marginTop: 0,
     backgroundColor: palette.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -531,6 +538,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.xl,
+  },
+
+  backRow: {
+    marginBottom: spacing.sm,
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.surface,
   },
 
   heroTextBox: {

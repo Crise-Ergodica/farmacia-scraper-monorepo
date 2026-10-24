@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { palette, radius, spacing } from '../theme';
+import { getTooltipPosition } from '../services/historyChartGeometry';
 
 export type HistoryChartPoint = {
   timestamp: string;
@@ -42,8 +43,9 @@ type ActivePoint = {
 
 const CHART_HEIGHT = 250;
 const AXIS_LEFT_WIDTH = 68;
-const AXIS_BOTTOM_HEIGHT = 34;
+const AXIS_BOTTOM_HEIGHT = 48;
 const DOT_SIZE = 12;
+const POINT_TARGET_SIZE = 32;
 const LINE_HEIGHT = 3;
 
 function formatPrice(value: number) {
@@ -89,6 +91,8 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
   const isWeb = Platform.OS === 'web';
 
   const [chartWidth, setChartWidth] = useState(0);
+  const [chartAreaSize, setChartAreaSize] = useState({ width: 0, height: CHART_HEIGHT });
+  const [tooltipSize, setTooltipSize] = useState({ width: 180, height: 92 });
   const [activePoint, setActivePoint] = useState<ActivePoint | null>(null);
   const [tooltipPoint, setTooltipPoint] = useState<ActivePoint | null>(null);
 
@@ -118,8 +122,14 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
 
   const safeMaxValue = minValue === maxValue ? maxValue + 1 : maxValue;
 
-  const plotWidth = Math.max(chartWidth - AXIS_LEFT_WIDTH - spacing.sm, 1);
-  const plotHeight = CHART_HEIGHT - AXIS_BOTTOM_HEIGHT;
+  const pointRadius = POINT_TARGET_SIZE / 2;
+  const plotLeft = AXIS_LEFT_WIDTH + pointRadius + 2;
+  const plotWidth = Math.max(
+    chartWidth - plotLeft - spacing.md - pointRadius,
+    1,
+  );
+  const plotTop = pointRadius;
+  const plotHeight = CHART_HEIGHT - AXIS_BOTTOM_HEIGHT - plotTop - pointRadius;
 
   const yTicks = useMemo(() => {
     const ticks = [];
@@ -131,21 +141,21 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
       ticks.push({
         key: String(index),
         value,
-        y: plotHeight * percent,
+        y: plotTop + plotHeight * percent,
       });
     }
 
     return ticks;
-  }, [safeMaxValue, safeMinValue, plotHeight]);
+  }, [plotHeight, plotTop, safeMaxValue, safeMinValue]);
 
   const minTime = timestamps.length ? new Date(timestamps[0]).getTime() : 0;
   const maxTime = timestamps.length ? new Date(timestamps[timestamps.length - 1]).getTime() : minTime;
   const getX = useCallback((timestamp: string) => {
     if (timestamps.length <= 1 || minTime === maxTime) {
-      return AXIS_LEFT_WIDTH + plotWidth / 2;
+      return plotLeft + plotWidth / 2;
     }
-    return AXIS_LEFT_WIDTH + (plotWidth * (new Date(timestamp).getTime() - minTime)) / (maxTime - minTime);
-  }, [timestamps.length, minTime, maxTime, plotWidth]);
+    return plotLeft + (plotWidth * (new Date(timestamp).getTime() - minTime)) / (maxTime - minTime);
+  }, [timestamps.length, minTime, maxTime, plotLeft, plotWidth]);
 
   const getY = useCallback((value: number) => {
     const range = safeMaxValue - safeMinValue;
@@ -156,8 +166,8 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
 
     const percent = (value - safeMinValue) / range;
 
-    return plotHeight - percent * plotHeight;
-  }, [plotHeight, safeMaxValue, safeMinValue]);
+    return plotTop + plotHeight - percent * plotHeight;
+  }, [plotHeight, plotTop, safeMaxValue, safeMinValue]);
 
   const normalizedSeries = useMemo(
     () =>
@@ -194,6 +204,9 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
     normalizedSeries.flatMap((item) => item.points).find(Boolean) || null;
 
   const visiblePoint = isWeb ? tooltipPoint : activePoint || firstPoint;
+  const tooltipPosition = visiblePoint
+    ? getTooltipPosition(visiblePoint, chartAreaSize, tooltipSize)
+    : { left: 0, top: 0 };
 
   useEffect(() => {
     if (!isWeb) {
@@ -264,7 +277,9 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
     <View
       testID="history-chart"
       style={styles.card}
-      onLayout={(event) => setChartWidth(event.nativeEvent.layout.width)}
+      onLayout={(event) =>
+        setChartWidth(Math.max(0, event.nativeEvent.layout.width - spacing.lg * 2 - 4))
+      }
     >
       <View style={styles.headerRow}>
         <View>
@@ -294,7 +309,15 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
 
       <View style={styles.chartOuter}>
         {chartWidth > 0 ? (
-          <View style={styles.chartArea}>
+          <View
+            testID="history-chart-area"
+            style={styles.chartArea}
+            onLayout={(event) => {
+              const { width, height } = event.nativeEvent.layout;
+              setChartWidth(width);
+              setChartAreaSize({ width, height });
+            }}
+          >
             {yTicks.map((tick) => (
               <View
                 key={tick.key}
@@ -314,7 +337,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
             ))}
 
             {normalizedSeries.map((item) => (
-              <View key={item.key} style={StyleSheet.absoluteFill}>
+              <View key={item.key} pointerEvents="box-none" style={StyleSheet.absoluteFill}>
                 {item.points.map((point, index) => {
                   const nextPoint = item.points[index + 1];
 
@@ -325,6 +348,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
                   return (
                     <View
                       key={`${point.key}-${nextPoint.key}`}
+                      pointerEvents="none"
                       style={[
                         styles.lineSegment,
                         getLineSegmentStyle(
@@ -353,6 +377,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
                       accessibilityLabel={`${point.pharmacy}, ${point.label}: ${formatPrice(point.value)}`}
                       accessibilityHint="Exibe este valor no gráfico de preços"
                       accessibilityState={{ selected: isActive }}
+                      hitSlop={6}
                       onPress={() => {
                         setActivePoint(point);
                         if (isWeb) showTooltip(point);
@@ -370,15 +395,16 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
                         }
                       }}
                       style={[
-                        styles.point,
+                        styles.pointTarget,
                         {
-                          left: point.x - DOT_SIZE / 2,
-                          top: point.y - DOT_SIZE / 2,
-                          backgroundColor: point.color,
+                          left: point.x - POINT_TARGET_SIZE / 2,
+                          top: point.y - POINT_TARGET_SIZE / 2,
                         },
                         isActive && styles.pointActive,
                       ]}
-                    />
+                    >
+                      <View style={[styles.point, { backgroundColor: point.color }]} />
+                    </Pressable>
                   );
                 })}
               </View>
@@ -389,14 +415,19 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
               return (
               <Text
                 key={timestamp}
+                testID="history-x-axis-label"
                 numberOfLines={1}
                 style={[
                   styles.xAxisLabel,
                   {
-                    left: getX(timestamp) - 24,
-                    top: plotHeight + 10,
+                    left: Math.min(
+                      Math.max(getX(timestamp) - 24, AXIS_LEFT_WIDTH),
+                      Math.max(chartWidth - 48, AXIS_LEFT_WIDTH),
+                    ),
+                    top: plotTop + plotHeight + pointRadius + 4,
                   },
                 ]}
+                pointerEvents="none"
               >
                 {label}
               </Text>
@@ -405,15 +436,13 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
 
             {visiblePoint ? (
               <Animated.View
+                testID="history-tooltip"
                 pointerEvents="none"
                 style={[
                   styles.tooltip,
                   {
-                    left: Math.min(
-                      Math.max(visiblePoint.x - 80, AXIS_LEFT_WIDTH),
-                      Math.max(chartWidth - 170, AXIS_LEFT_WIDTH)
-                    ),
-                    top: Math.max(visiblePoint.y - 82, 8),
+                    left: tooltipPosition.left,
+                    top: tooltipPosition.top,
                   },
                   isWeb && {
                     opacity: tooltipOpacity,
@@ -424,6 +453,14 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
                     ],
                   },
                 ]}
+                onLayout={(event) => {
+                  const { width, height } = event.nativeEvent.layout;
+                  setTooltipSize((current) =>
+                    current.width === width && current.height === height
+                      ? current
+                      : { width, height },
+                  );
+                }}
               >
                 <View style={styles.tooltipHeader}>
                   <View
@@ -609,7 +646,6 @@ const styles = StyleSheet.create({
   },
 
   point: {
-    position: 'absolute',
     width: DOT_SIZE,
     height: DOT_SIZE,
     borderRadius: radius.pill,
@@ -624,6 +660,19 @@ const styles = StyleSheet.create({
     },
     elevation: 3,
     cursor: 'pointer' as any,
+  },
+
+  pointTarget: {
+    position: 'absolute',
+    width: POINT_TARGET_SIZE,
+    height: POINT_TARGET_SIZE,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    cursor: 'pointer' as any,
+    zIndex: 2,
   },
 
   pointActive: {
@@ -641,11 +690,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: palette.textSoft,
     fontWeight: '700',
+    zIndex: 1,
   },
 
   tooltip: {
     position: 'absolute',
-    width: 160,
+    width: 180,
+    zIndex: 10,
     backgroundColor: palette.surface,
     borderWidth: 1,
     borderColor: palette.border,

@@ -12,12 +12,8 @@ from app.models import CatalogoBase, HistoricoPreco, OfertaFarmacia
 from app.models.farmacia import Farmacia
 from app.schemas import CatalogoFiltrosOut, CatalogoPageOut
 from app.schemas.farmacia import FarmaciaOut
-from app.services.imagens import (
-    catalog_image_matches_record,
-    embedded_eans,
-    image_delivery_rejection_reason,
-    offer_image_delivery_rejection_reason,
-)
+from app.services.catalog_response import with_registry_images
+from app.services.image_registry import resolve_catalog_images
 
 router = APIRouter(prefix="/catalogo", tags=["Catálogo de Produtos"])
 
@@ -53,7 +49,7 @@ def listar_mais_baratos(
         .correlate(CatalogoBase)
         .scalar_subquery()
     )
-    return (
+    products = (
         db.execute(
             select(CatalogoBase)
             .where(menor_preco.is_not(None))
@@ -64,6 +60,7 @@ def listar_mais_baratos(
         .scalars()
         .all()
     )
+    return [with_registry_images(product) for product in products]
 
 
 @router.get(
@@ -77,7 +74,7 @@ def obter_medicamento(medicamento_id: int, db: Session = Depends(get_db)):
     ).scalar_one_or_none()
     if medicamento is None:
         raise HTTPException(status_code=404, detail="Medicamento não encontrado.")
-    return medicamento
+    return with_registry_images(medicamento)
 
 
 @router.get("/medicamentos/{medicamento_id}/imagem", include_in_schema=False)
@@ -89,31 +86,13 @@ def redirecionar_imagem_catalogo(medicamento_id: int, db: Session = Depends(get_
             selectinload(CatalogoBase.ofertas).selectinload(OfertaFarmacia.farmacia)
         )
     ).scalar_one_or_none()
-    if medicamento is None or not medicamento.imagem_url:
+    if medicamento is None:
         raise HTTPException(status_code=404, detail="Imagem nao encontrada.")
-    if image_delivery_rejection_reason(medicamento.imagem_url):
-        raise HTTPException(status_code=410, detail="URL da imagem nao e segura.")
-
-    image_eans = embedded_eans(medicamento.imagem_url)
-    ean_match = bool(
-        medicamento.codigo_barras and medicamento.codigo_barras in image_eans
-    )
-    sku_match = catalog_image_matches_record(medicamento) or any(
-        offer.sku_interno == medicamento.imagem_sku_origem
-        and not offer_image_delivery_rejection_reason(
-            medicamento.imagem_url,
-            offer.url_origem,
-            offer.farmacia.nome_fantasia if offer.farmacia else None,
-        )
-        for offer in medicamento.ofertas
-    )
-    if not sku_match and not ean_match:
-        raise HTTPException(
-            status_code=404,
-            detail="Nao ha correspondencia de SKU ou EAN para esta imagem.",
-        )
+    image_urls = resolve_catalog_images(medicamento.id, medicamento.ofertas)
+    if not image_urls:
+        raise HTTPException(status_code=404, detail="Imagem nao encontrada.")
     return RedirectResponse(
-        medicamento.imagem_url,
+        image_urls[0],
         status_code=302,
         headers={"Cache-Control": "public, max-age=3600"},
     )
@@ -252,7 +231,12 @@ def listar_catalogo_completo(
 
     resultados = db.execute(stmt).scalars().all()
 
-    return CatalogoPageOut(total=total, limit=limit, offset=offset, items=resultados)
+    return CatalogoPageOut(
+        total=total,
+        limit=limit,
+        offset=offset,
+        items=[with_registry_images(product) for product in resultados],
+    )
 
 
 @router.get(path="/filtros/opcoes", response_model=CatalogoFiltrosOut)

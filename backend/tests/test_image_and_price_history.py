@@ -4,11 +4,14 @@ from hashlib import sha256
 
 import httpx
 import pytest
-from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.api.routes.catalogo import ler_historico, redirecionar_imagem_catalogo
+from app.api.routes.catalogo import (
+    ler_historico,
+    obter_medicamento,
+    redirecionar_imagem_catalogo,
+)
 from app.api.routes.historico import get_medicine_history
 from app.models.base import Base
 from app.models.catalogo import CatalogoBase
@@ -17,6 +20,8 @@ from app.models.oferta_farmacia import OfertaFarmacia
 from app.schemas.catalogo import CatalogoOut
 from app.schemas.oferta import OfertaOut
 from app.services import imagens
+from app.services.catalog_response import with_registry_images
+from app.services.image_registry import upsert_image_reference
 from app.services.imagens import (
     image_delivery_rejection_reason,
     image_rejection_reason,
@@ -37,6 +42,27 @@ def db():
     with Session(engine) as session:
         yield session
     engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def isolated_image_registry(monkeypatch, tmp_path):
+    monkeypatch.setenv("IMAGE_REFERENCE_STORE_PATH", str(tmp_path / "images.json"))
+
+
+def _register_external_image(
+    product, url, *, offer=None, pharmacy_id=1, pharmacy="Test"
+):
+    assert upsert_image_reference(
+        image_url=url,
+        pharmacy_id=pharmacy_id,
+        pharmacy=pharmacy,
+        sku="test-sku",
+        ean=product.codigo_barras,
+        product_id="test-product",
+        product_url="https://shop.example.test/item/p",
+        catalog_id=product.id,
+        offer_id=offer.id if offer is not None else None,
+    )
 
 
 def test_image_association_rejects_other_ean_and_generic_templates():
@@ -151,18 +177,20 @@ def test_catalog_image_endpoint_requires_same_catalog_sku_or_matching_ean(db):
     )
     db.add_all([pharmacy, product])
     db.flush()
-    db.add(
-        OfertaFarmacia(
-            sku_interno="IND-77",
-            preco=Decimal("10.00"),
-            quantidade_estoque=1,
-            disponivel=True,
-            url_origem="https://www.farmaciaindiana.com.br/produto/p",
-            farmacia_id=pharmacy.id,
-            catalogo_id=product.id,
-        )
+    offer = OfertaFarmacia(
+        sku_interno="IND-77",
+        preco=Decimal("10.00"),
+        quantidade_estoque=1,
+        disponivel=True,
+        url_origem="https://www.farmaciaindiana.com.br/produto/p",
+        farmacia_id=pharmacy.id,
+        catalogo_id=product.id,
     )
+    db.add(offer)
     db.flush()
+    _register_external_image(
+        product, product.imagem_url, offer=offer, pharmacy="Indiana"
+    )
 
     response = redirecionar_imagem_catalogo(product.id, db)
     assert response.status_code == 302
@@ -170,9 +198,43 @@ def test_catalog_image_endpoint_requires_same_catalog_sku_or_matching_ean(db):
 
     product.imagem_sku_origem = "IND-OTHER"
     db.flush()
-    with pytest.raises(HTTPException) as exc_info:
-        redirecionar_imagem_catalogo(product.id, db)
-    assert getattr(exc_info.value, "status_code", None) == 404
+    response = redirecionar_imagem_catalogo(product.id, db)
+    assert response.status_code == 302  # PostgreSQL image metadata is not consulted.
+
+
+def test_catalog_response_uses_external_registry_and_hides_legacy_offer_url(db):
+    pharmacy = Farmacia(
+        cnpj="22345678901234",
+        razao_social="Farmacia teste",
+        nome_fantasia="Indiana",
+        endereco_completo="Local",
+    )
+    product = CatalogoBase(
+        name_search="Produto de teste",
+        imagem_url="https://legacy.example.test/old.jpg",
+    )
+    db.add_all([pharmacy, product])
+    db.flush()
+    offer = OfertaFarmacia(
+        sku_interno="IND-88",
+        preco=Decimal("12.00"),
+        quantidade_estoque=1,
+        disponivel=True,
+        url_origem="https://www.farmaciaindiana.com.br/produto/p",
+        imagem_url="https://legacy.example.test/old-offer.jpg",
+        farmacia_id=pharmacy.id,
+        catalogo_id=product.id,
+    )
+    db.add(offer)
+    db.flush()
+    external_url = "https://cdn.example.test/registry.jpg"
+    _register_external_image(product, external_url, offer=offer, pharmacy="Indiana")
+
+    result = with_registry_images(product)
+
+    assert result.imagem_urls == [external_url]
+    assert result.imagem_url == external_url
+    assert result.ofertas[0].imagem_url is None
 
 
 def test_catalog_generic_image_can_match_recorded_araujo_sku_without_offer(db):
@@ -191,15 +253,18 @@ def test_catalog_generic_image_can_match_recorded_araujo_sku_without_offer(db):
     db.add(product)
     db.flush()
 
+    _register_external_image(product, product.imagem_url, pharmacy="Araujo")
     response = redirecionar_imagem_catalogo(product.id, db)
     assert response.status_code == 302
     assert response.headers["location"] == product.imagem_url
 
     product.imagem_url = product.imagem_url.replace("/7290/", "/7291/")
     db.flush()
-    with pytest.raises(HTTPException) as exc_info:
-        redirecionar_imagem_catalogo(product.id, db)
-    assert exc_info.value.status_code == 404
+    response = redirecionar_imagem_catalogo(product.id, db)
+    assert response.headers["location"] == (
+        "https://i3-imagens-prd.araujo.com.br/webp/7290/"
+        "128666_7896026306751_1.webp?sw=200&sh=200"
+    )
 
 
 def test_catalog_image_can_match_recorded_indiana_sku_without_ean_or_offer(db):
@@ -217,6 +282,7 @@ def test_catalog_image_can_match_recorded_indiana_sku_without_ean_or_offer(db):
     db.add(product)
     db.flush()
 
+    _register_external_image(product, product.imagem_url, pharmacy="Indiana")
     response = redirecionar_imagem_catalogo(product.id, db)
     assert response.status_code == 302
     assert response.headers["location"] == product.imagem_url
@@ -256,6 +322,7 @@ def test_catalog_image_accepts_recorded_product_ean_or_generic_sku_lineage(
     )
     db.add(product)
     db.flush()
+    _register_external_image(product, url, pharmacy="Indiana")
 
     response = redirecionar_imagem_catalogo(product.id, db)
 
@@ -356,6 +423,7 @@ def test_trusted_external_product_image_uses_exact_recorded_ean(
     )
     db.add(product)
     db.flush()
+    _register_external_image(product, image_url, pharmacy=source)
 
     response = redirecionar_imagem_catalogo(product.id, db)
 
@@ -658,13 +726,13 @@ def test_history_keeps_initial_pharmacy_observations_and_unavailable_offers(db):
         nome_fantasia="Indiana",
         endereco_completo="Local 1",
     )
-    araujo = Farmacia(
+    pacheco = Farmacia(
         cnpj="22222222222222",
-        razao_social="Araujo Ltda",
-        nome_fantasia="Araujo",
+        razao_social="Drogarias Pacheco Ltda",
+        nome_fantasia="Pacheco",
         endereco_completo="Local 2",
     )
-    db.add_all([product, indiana, araujo])
+    db.add_all([product, indiana, pacheco])
     db.flush()
     first_at = datetime(2026, 9, 1, 12, 0)
     offers = [
@@ -678,18 +746,18 @@ def test_history_keeps_initial_pharmacy_observations_and_unavailable_offers(db):
             catalogo_id=product.id,
         ),
         OfertaFarmacia(
-            sku_interno="ARJ-1",
+            sku_interno="PCH-1",
             preco=Decimal("12.00"),
             quantidade_estoque=0,
             disponivel=False,
-            url_origem="https://araujo.example/item",
-            farmacia_id=araujo.id,
+            url_origem="https://pacheco.example/item",
+            farmacia_id=pacheco.id,
             catalogo_id=product.id,
         ),
     ]
     db.add_all(offers)
     db.flush()
-    for offer, pharmacy, price in zip(offers, [indiana, araujo], ["10.00", "12.00"]):
+    for offer, pharmacy, price in zip(offers, [indiana, pacheco], ["10.00", "12.00"]):
         event = registrar_observacao_preco(
             offer,
             preco=Decimal(price),
@@ -705,14 +773,65 @@ def test_history_keeps_initial_pharmacy_observations_and_unavailable_offers(db):
 
     response = get_medicine_history(product.id, "all", None, db)
     assert response.total_observacoes == 2
-    assert {item.pharmacy_name for item in response.pharmacies} == {"Indiana", "Araujo"}
+    assert {item.pharmacy_name for item in response.pharmacies} == {
+        "Indiana",
+        "Pacheco",
+    }
     assert all(len(item.history) == 1 for item in response.pharmacies)
     assert all(
-        item.history[0].data_registro.tzinfo is not None
-        for item in response.pharmacies
+        item.history[0].data_registro.tzinfo is not None for item in response.pharmacies
     )
-    assert response.statistics[araujo.id].primeiro_preco == Decimal("12.00")
+    assert response.statistics[pacheco.id].primeiro_preco == Decimal("12.00")
 
     legacy_events = ler_historico(product.id, db)
     assert len(legacy_events) == 2
     assert all(event.medicamento_id == product.id for event in legacy_events)
+
+
+def test_medicine_detail_returns_current_offers_from_indiana_and_pacheco(db):
+    product = CatalogoBase(name_search="Medicamento em Indiana e Pacheco")
+    indiana = Farmacia(
+        cnpj="33333333333333",
+        razao_social="Indiana Ltda",
+        nome_fantasia="Indiana",
+        endereco_completo="Local 1",
+    )
+    pacheco = Farmacia(
+        cnpj="44444444444444",
+        razao_social="Drogarias Pacheco Ltda",
+        nome_fantasia="Pacheco",
+        endereco_completo="Local 2",
+    )
+    db.add_all([product, indiana, pacheco])
+    db.flush()
+    db.add_all(
+        [
+            OfertaFarmacia(
+                sku_interno="IND-TEST-1",
+                preco=Decimal("20.28"),
+                quantidade_estoque=1,
+                disponivel=True,
+                url_origem="https://indiana.example/medicine",
+                farmacia_id=indiana.id,
+                catalogo_id=product.id,
+            ),
+            OfertaFarmacia(
+                sku_interno="PCH-TEST-1",
+                preco=Decimal("14.99"),
+                quantidade_estoque=1,
+                disponivel=True,
+                url_origem="https://pacheco.example/medicine",
+                farmacia_id=pacheco.id,
+                catalogo_id=product.id,
+            ),
+        ]
+    )
+    db.commit()
+
+    detail = obter_medicamento(product.id, db)
+
+    offers_by_pharmacy = {offer.farmacia_nome: offer.preco for offer in detail.ofertas}
+    assert offers_by_pharmacy == {
+        "Indiana": Decimal("20.28"),
+        "Pacheco": Decimal("14.99"),
+    }

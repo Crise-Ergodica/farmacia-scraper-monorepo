@@ -49,6 +49,8 @@ class ProdutoExtraidoSchema(BaseModel):
         allow_inf_nan=False,
         description="Preço positivo confirmado na coleta",
     )
+    disponivel: bool = Field(default=True)
+    quantidade_estoque: int = Field(default=1, ge=0)
     link: str = Field(..., max_length=500, description="URL de origem do produto")
     imagem_url: str | None = Field(
         default=None, max_length=500, description="URL da imagem do produto"

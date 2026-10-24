@@ -46,6 +46,7 @@ class CatalogoOut(CatalogoBaseSchema):
     criado_em: datetime
     atualizado_em: datetime | None = None
     imagem_url: str | None = None
+    imagem_urls: list[str] = Field(default_factory=list)
     imagem_fonte: str | None = None
     imagem_status: str | None = None
     imagem_motivo_rejeicao: str | None = None

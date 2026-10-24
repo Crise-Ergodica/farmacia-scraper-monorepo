@@ -370,6 +370,12 @@ def main() -> int:
         default=float(os.getenv("IMAGE_MONITOR_HOST_INTERVAL", "0.5")),
     )
     args = parser.parse_args()
+    parser.exit(
+        2,
+        "Este comando foi desativado: as imagens agora usam o registro externo "
+        "backend/data/image_references/references.json e n??o devem ser gravadas "
+        "no PostgreSQL.\n",
+    )
     if args.limit < 1 or args.concurrency < 1 or args.host_interval < 0:
         parser.error(
             "limit/concurrency precisam ser positivos; intervalo deve ser >= 0"

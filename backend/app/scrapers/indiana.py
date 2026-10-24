@@ -26,7 +26,8 @@ from app.models.farmacia import Farmacia
 from app.models.oferta_farmacia import OfertaFarmacia
 from app.schemas.oferta import ProdutoExtraidoSchema
 from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
-from app.services.imagens import register_image_candidate, select_vtex_item_image
+from app.services.image_registry import upsert_image_reference
+from app.services.imagens import select_vtex_item_image
 from app.services.preco_observacoes import registrar_observacao_preco
 
 
@@ -210,6 +211,7 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
 
         observed_at = datetime.now(timezone.utc)
         history_changes = []
+        image_changes = []
         for prod in produtos:
             try:
                 prod_validado = ProdutoExtraidoSchema.model_validate(prod)
@@ -284,16 +286,6 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                 db.commit()  # Necessário para gerar o ID que será usado na oferta
                 db.refresh(catalogo_item)
 
-            register_image_candidate(
-                catalogo_item,
-                image_url=prod_validado.imagem_url,
-                pharmacy_name="Indiana",
-                sku=sku_interno,
-                ean=ean_validado,
-                product_url=prod_validado.link,
-                identity_confirmed=True,
-            )
-
             # Se não houver oferta, cria uma nova
             if not oferta_existente:
                 nova_oferta = OfertaFarmacia(
@@ -302,7 +294,6 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                     quantidade_estoque=1,
                     disponivel=True,
                     url_origem=prod_validado.link,
-                    imagem_url=prod_validado.imagem_url,
                     farmacia_id=farmacia.id,
                     catalogo_id=catalogo_item.id,
                 )
@@ -317,9 +308,6 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                 if oferta_existente.url_origem != prod_validado.link:
                     oferta_existente.url_origem = prod_validado.link
 
-                if prod_validado.imagem_url:
-                    oferta_existente.imagem_url = prod_validado.imagem_url
-
             oferta_existente.sku_interno = sku_interno
             oferta_existente.disponivel = True
             oferta_existente.quantidade_estoque = 1
@@ -332,6 +320,7 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
                     prod_validado.preco,
                 )
             )
+            image_changes.append((prod_validado, oferta_existente, catalogo_item.id))
 
         db.flush()
         for offer, previous_price, catalogo_id, farmacia_id, price in history_changes:
@@ -347,6 +336,21 @@ def salvar_no_banco(produtos: List[Dict[str, Any]]) -> None:
             if history_event:
                 db.add(history_event)
         db.commit()
+        for product, offer, catalog_id in image_changes:
+            try:
+                upsert_image_reference(
+                    image_url=product.imagem_url,
+                    pharmacy_id=farmacia.id,
+                    pharmacy="Indiana",
+                    sku=product.sku_interno,
+                    ean=product.ean,
+                    product_id=str(product.id),
+                    product_url=product.link,
+                    catalog_id=catalog_id,
+                    offer_id=offer.id,
+                )
+            except Exception as image_error:
+                print(f"[IMAGE REGISTRY] Save failed: {product.link}: {image_error}")
 
     except SQLAlchemyError as e:
         db.rollback()

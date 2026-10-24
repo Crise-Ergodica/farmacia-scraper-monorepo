@@ -1,7 +1,9 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { HistoryChart } from '../components/HistoryChart';
+import { spacing } from '../theme';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
@@ -80,6 +82,43 @@ it('keeps constant observations and multiple pharmacies as separate series', asy
   expect(getAllByText('Indiana').length).toBeGreaterThan(0);
   expect(getAllByText('Araujo').length).toBeGreaterThan(0);
   expect(getAllByTestId('history-point')).toHaveLength(4);
+});
+
+it('keeps the minimum and maximum price markers inside the chart bounds', async () => {
+  const extremes = [
+    { ...series[0], history: [series[0].history[0]] },
+    {
+      ...series[0],
+      key: '2',
+      label: 'Pacheco',
+      color: '#34A853',
+      history: [{
+        timestamp: '2026-06-11T12:00:00Z',
+        label: '11/06/2026',
+        value: 12,
+      }],
+    },
+  ];
+  const { getByTestId, getAllByTestId } = await render(<HistoryChart series={extremes} />);
+
+  await fireEvent(getByTestId('history-chart'), 'layout', {
+    nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 250 } },
+  });
+
+  const markerStyles = getAllByTestId('history-point').map((point) =>
+    StyleSheet.flatten(point.props.style),
+  );
+  expect(Math.min(...markerStyles.map((style) => style.top))).toBeGreaterThanOrEqual(0);
+  expect(Math.max(...markerStyles.map((style) => style.top + style.height))).toBeLessThanOrEqual(216);
+  expect(Math.max(...markerStyles.map((style) => style.left + style.width))).toBeLessThanOrEqual(
+    360 - spacing.lg * 2 - 4,
+  );
+  const axisLabelStyles = getAllByTestId('history-x-axis-label').map((label) =>
+    StyleSheet.flatten(label.props.style),
+  );
+  expect(Math.max(...axisLabelStyles.map((style) => style.left + style.width))).toBeLessThanOrEqual(
+    360 - spacing.lg * 2 - 4,
+  );
 });
 
 it('shows an explicit empty state when there are no observations', async () => {

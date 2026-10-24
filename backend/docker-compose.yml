@@ -6,6 +6,9 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: ${DATABASE_URL_DOCKER:?Configure DATABASE_URL_DOCKER in backend/.env}
+      IMAGE_REFERENCE_STORE_PATH: /app/data/image_references/references.json
+    volumes:
+      - ./data/image_references:/app/data/image_references
     env_file:
       - .env
     depends_on:
@@ -38,6 +41,49 @@ services:
           python scripts/manter_imagens_catalogo.py recover-pending
           sleep "$${IMAGE_MAINTENANCE_INTERVAL_SECONDS:-86400}"
         done
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  pacheco-scheduler:
+    build: .
+    container_name: farmacia_pacheco_scheduler
+    command: ["python", "-m", "app.scrapers.pacheco_scheduler"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL_DOCKER:?Configure DATABASE_URL_DOCKER in backend/.env}
+      IMAGE_REFERENCE_STORE_PATH: /app/data/image_references/references.json
+      PACHECO_STATE_DIR: /app/data/pacheco
+      PACHECO_SCHEDULER_ENABLED: ${PACHECO_SCHEDULER_ENABLED:-false}
+      PACHECO_INTERVAL_HOURS: ${PACHECO_INTERVAL_HOURS:-24}
+      PACHECO_FAILURE_RETRY_MINUTES: ${PACHECO_FAILURE_RETRY_MINUTES:-60}
+      PACHECO_REQUEST_DELAY_SECONDS: ${PACHECO_REQUEST_DELAY_SECONDS:-1}
+    env_file:
+      - .env
+    volumes:
+      - ./data/image_references:/app/data/image_references
+      - ./data/pacheco:/app/data/pacheco
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  offer-refresh:
+    build: .
+    container_name: farmacia_offer_refresh
+    command: ["python", "-m", "app.scrapers.offer_refresh_scheduler"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL_DOCKER:?Configure DATABASE_URL_DOCKER in backend/.env}
+      OFFER_REFRESH_STATE_DIR: /app/data/offer_refresh
+      OFFER_REFRESH_ENABLED: ${OFFER_REFRESH_ENABLED:-false}
+      OFFER_REFRESH_INTERVAL_MINUTES: ${OFFER_REFRESH_INTERVAL_MINUTES:-30}
+      OFFER_REFRESH_INDIANA_BATCH: ${OFFER_REFRESH_INDIANA_BATCH:-200}
+      OFFER_REFRESH_ARAUJO_BATCH: ${OFFER_REFRESH_ARAUJO_BATCH:-20}
+      OFFER_REFRESH_REQUEST_DELAY_SECONDS: ${OFFER_REFRESH_REQUEST_DELAY_SECONDS:-1}
+    env_file:
+      - .env
+    volumes:
+      - ./data/offer_refresh:/app/data/offer_refresh
     depends_on:
       db:
         condition: service_healthy

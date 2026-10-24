@@ -1,3 +1,9 @@
 ﻿# Resumable external catalog scan cache (large, generated locally)
 .image_audit_state.json
 .image_audit_state.*.tmp
+
+# Persistent image URL registry (generated runtime data)
+data/image_references/*.json
+data/image_references/*.lock
+data/image_references/.*.tmp
+data/offer_refresh/
