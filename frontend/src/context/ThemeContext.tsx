@@ -4,7 +4,8 @@ import { Platform, StyleSheet, useColorScheme } from 'react-native';
 
 import { AppPalette, darkPalette, getShadow, lightPalette, ResolvedTheme, ThemePreference } from '../theme';
 
-export const THEME_STORAGE_KEY = 'preco-bao:appearance';
+export const THEME_STORAGE_KEY = 'preco-bao-appearance';
+const LEGACY_WEB_THEME_STORAGE_KEY = 'preco-bao:appearance';
 
 type ThemeContextValue = {
   preference: ThemePreference;
@@ -44,7 +45,15 @@ export function resolveThemePreference(
 function initialWebPreference(): ThemePreference {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return 'system';
   try {
-    return parseThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY));
+    const savedPreference = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedPreference) return parseThemePreference(savedPreference);
+
+    const legacyPreference = window.localStorage.getItem(LEGACY_WEB_THEME_STORAGE_KEY);
+    if (legacyPreference) {
+      window.localStorage.setItem(THEME_STORAGE_KEY, legacyPreference);
+      window.localStorage.removeItem(LEGACY_WEB_THEME_STORAGE_KEY);
+    }
+    return parseThemePreference(legacyPreference);
   } catch {
     return 'system';
   }
@@ -66,7 +75,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     SecureStore.getItemAsync(THEME_STORAGE_KEY)
       .then((stored) => { if (active) setPreferenceState(parseThemePreference(stored)); })
-      .catch(() => undefined)
+      .catch((error) => console.error('Failed to load saved appearance preference', error))
       .finally(() => { if (active) setIsReady(true); });
     return () => { active = false; };
   }, []);
@@ -91,11 +100,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       try {
         window.localStorage.setItem(THEME_STORAGE_KEY, next);
+        window.localStorage.removeItem(LEGACY_WEB_THEME_STORAGE_KEY);
       } catch {
         // The in-memory choice still applies when browser storage is unavailable.
       }
     } else {
-      void SecureStore.setItemAsync(THEME_STORAGE_KEY, next).catch(() => undefined);
+      void SecureStore.setItemAsync(THEME_STORAGE_KEY, next).catch((error) => {
+        console.error('Failed to save appearance preference', error);
+      });
     }
   }, []);
 

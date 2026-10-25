@@ -1,14 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   Text,
   TextInput,
+  ScrollView,
+  StatusBar,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -140,6 +143,43 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState<'email' | 'password' | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const keyboardTopRef = useRef<number | null>(null);
+  const scrollOffsetRef = useRef(0);
+  const focusedInputRef = useRef<TextInput | null>(null);
+  const formScrollRef = useRef<ScrollView>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (event) => {
+      keyboardTopRef.current = event.endCoordinates.screenY;
+      setKeyboardVisible(true);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTopRef.current = null;
+      setKeyboardVisible(false);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  const keepInputVisible = (getInput: () => TextInput | null) => {
+    if (Platform.OS === 'web') return;
+    const attemptScroll = () => {
+      const input = getInput();
+      focusedInputRef.current = input;
+      const keyboardTop = keyboardTopRef.current;
+      if (!input || keyboardTop === null) return;
+      input.measureInWindow((_x, y, _width, height) => {
+        const overlap = y + height + (StatusBar.currentHeight ?? 0) + spacing.md - keyboardTop;
+        if (overlap > 0) {
+          formScrollRef.current?.scrollTo({ y: scrollOffsetRef.current + overlap, animated: true });
+        }
+      });
+    };
+    setTimeout(attemptScroll, 120);
+    setTimeout(attemptScroll, 280);
+  };
 
   const handleLogin = async (data: LoginFormValues) => {
     setFeedback(null);
@@ -168,8 +208,9 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen hideBottomNav scroll contentStyle={styles.screenContent}>
-      <KeyboardAvoidingView style={isWeb ? styles.webKeyboardContainer : styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <Screen hideBottomNav scroll={false} contentStyle={styles.flex}>
+      <KeyboardAvoidingView style={isWeb ? styles.webKeyboardContainer : styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}>
+        <ScrollView ref={formScrollRef} style={styles.flex} contentContainerStyle={[styles.screenContent, keyboardVisible && styles.screenContentKeyboard]} keyboardShouldPersistTaps="handled" keyboardDismissMode="none" showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(event) => { scrollOffsetRef.current = event.nativeEvent.contentOffset.y; }}>
         <View
           style={[
             styles.page,
@@ -196,10 +237,10 @@ export default function LoginScreen() {
             <View style={styles.form}>
               <View style={styles.field}>
                 <Text style={styles.label}>Email</Text>
-                <Controller control={control} name="email" render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => setFocused('email')}
+                <Controller control={control} name="email" render={({ field: { onChange, onBlur, value, ref } }) => (
+                  <TextInput ref={(node) => { ref(node); emailInputRef.current = node; }} value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => { setFocused('email'); keepInputVisible(() => emailInputRef.current); }}
                     placeholder="seu@email.com" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false}
-                    keyboardType="email-address" textContentType="emailAddress" accessibilityLabel="Email"
+                    keyboardType="email-address" textContentType="emailAddress" accessibilityLabel="Email" returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => passwordInputRef.current?.focus()}
                     style={[styles.input, focused === 'email' && styles.inputFocused, errors.email && styles.inputError]} />
                 )} />
                 {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
@@ -207,10 +248,10 @@ export default function LoginScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Senha</Text>
                 <View style={[styles.passwordRow, focused === 'password' && styles.inputFocused, errors.password && styles.inputError]}>
-                  <Controller control={control} name="password" render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => setFocused('password')}
+                  <Controller control={control} name="password" render={({ field: { onChange, onBlur, value, ref } }) => (
+                    <TextInput ref={(node) => { ref(node); passwordInputRef.current = node; }} value={value} onChangeText={onChange} onBlur={() => { setFocused(null); onBlur(); }} onFocus={() => { setFocused('password'); keepInputVisible(() => passwordInputRef.current); }}
                       placeholder="Digite sua senha" placeholderTextColor={palette.muted} secureTextEntry={!showPassword} textContentType="password"
-                      accessibilityLabel="Senha" style={styles.passwordInput} />
+                      accessibilityLabel="Senha" returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} style={styles.passwordInput} />
                   )} />
                   <Pressable onPress={() => setShowPassword((current) => !current)} style={styles.eyeButton} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textSoft} />
@@ -237,6 +278,7 @@ export default function LoginScreen() {
             </View>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -244,8 +286,9 @@ export default function LoginScreen() {
 
 const useStyles = createThemedStyles((palette) => ({
   flex: { flex: 1 },
-  webKeyboardContainer: { width: '100%' },
+  webKeyboardContainer: { flex: 1, width: '100%' },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
+  screenContentKeyboard: { justifyContent: 'flex-start', paddingTop: spacing.md, paddingBottom: 80 },
   page: { width: '100%', maxWidth: 1060, alignSelf: 'center', gap: spacing.xl },
   pageNarrow: { maxWidth: 520, paddingHorizontal: spacing.lg, boxSizing: 'border-box' } as any,
   pageWide: { flexDirection: 'row', alignItems: 'stretch', gap: 0, minHeight: 570, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.xl, overflow: 'hidden' },

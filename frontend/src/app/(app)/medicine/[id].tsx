@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -16,6 +16,7 @@ import { Screen } from '../../../components/Screen';
 import { SearchBar } from '../../../components/SearchBar';
 import { useCatalogContext, useFavoritesContext, useSessionContext } from '../../../context/AppContext';
 import { getLaboratoryDisplayName } from '../../../services/catalog';
+import { finishMedicineOpenTrace, markMedicineOpenTrace } from '../../../services/medicineOpenPerformance';
 import { radius, spacing } from '../../../theme';
 import { createThemedStyles, useAppTheme } from '../../../context/ThemeContext';
 import { Medicamento, Oferta } from '../../../types/api';
@@ -95,7 +96,7 @@ export default function MedicineDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
 
-  const { loadMedicineById, markAsViewed } = useCatalogContext();
+  const { getMedicineById, loadMedicineById, markAsViewed } = useCatalogContext();
   const { favoriteIds, toggleFavorite } = useFavoritesContext();
   const { sessionMode } = useSessionContext();
 
@@ -114,16 +115,18 @@ export default function MedicineDetailScreen() {
     return Number.isFinite(parsedId) ? parsedId : null;
   }, [params.id]);
 
-  const medicine = loadedMedicine?.id === medicineId ? loadedMedicine : undefined;
+  const cachedMedicine = medicineId === null ? undefined : getMedicineById(medicineId);
+  const medicine = loadedMedicine?.id === medicineId ? loadedMedicine : cachedMedicine;
+  const hasMedicine = Boolean(medicine);
 
   useEffect(() => {
     let active = true;
+    if (medicineId !== null) markMedicineOpenTrace(medicineId, 'detail-mounted');
     if (medicineId === null) {
       setLoadedMedicine(undefined);
       setLoadingMedicine(false);
       return;
     }
-    setLoadedMedicine(undefined);
     setMedicineLoadError(false);
     setLoadingMedicine(true);
     loadMedicineById(medicineId, true).then((item) => {
@@ -132,6 +135,19 @@ export default function MedicineDetailScreen() {
       .finally(() => { if (active) setLoadingMedicine(false); });
     return () => { active = false; };
   }, [loadMedicineById, medicineId]);
+
+  useEffect(() => {
+    if (medicineId === null) return;
+    markMedicineOpenTrace(medicineId, hasMedicine ? 'content-committed' : 'loading-shell-committed');
+  }, [hasMedicine, medicine?.id, medicineId]);
+
+  useEffect(() => {
+    if (medicineId === null || !medicine) return;
+    markMedicineOpenTrace(medicineId, loadedMedicine?.id === medicineId ? 'content-usable' : 'cached-content-usable');
+    if (!loadingMedicine && (loadedMedicine?.id === medicineId || medicineLoadError)) {
+      finishMedicineOpenTrace(medicineId, 'content-ready');
+    }
+  }, [loadedMedicine, loadingMedicine, medicine, medicineId, medicineLoadError]);
 
   useEffect(() => {
     if (medicineId !== null) {
@@ -189,10 +205,6 @@ export default function MedicineDetailScreen() {
     }
   };
 
-  if (!medicine && loadingMedicine) {
-    return <Screen><View style={styles.notFoundBox}><Text style={styles.notFoundText}>Carregando medicamento...</Text></View></Screen>;
-  }
-
   if (!medicine) {
     return (
       <Screen>
@@ -203,13 +215,22 @@ export default function MedicineDetailScreen() {
           onBack={() => router.back()}
         />
 
-        <View style={styles.notFoundBox}>
-          <Ionicons name="alert-circle-outline" size={42} color={palette.primary} />
-          <Text style={styles.notFoundTitle}>Medicamento não encontrado</Text>
-          <Text style={styles.notFoundText}>
-            {medicineLoadError ? 'Não foi possível carregar este medicamento. Verifique a conexão e tente novamente.' : 'Esse medicamento não foi encontrado no catálogo.'}
-          </Text>
-        </View>
+        {loadingMedicine ? (
+          <View style={styles.loadingDetail} accessibilityRole="progressbar" accessibilityLabel="Carregando detalhes do medicamento">
+            <View style={styles.loadingImage} />
+            <View style={styles.loadingLine} />
+            <View style={styles.loadingLineShort} />
+            <Text style={styles.notFoundText}>Carregando detalhes do medicamento...</Text>
+          </View>
+        ) : (
+          <View style={styles.notFoundBox}>
+            <Ionicons name="alert-circle-outline" size={42} color={palette.primary} />
+            <Text style={styles.notFoundTitle}>Medicamento não encontrado</Text>
+            <Text style={styles.notFoundText}>
+              {medicineLoadError ? 'Não foi possível carregar este medicamento. Verifique a conexão e tente novamente.' : 'Esse medicamento não foi encontrado no catálogo.'}
+            </Text>
+          </View>
+        )}
       </Screen>
     );
   }
@@ -226,7 +247,7 @@ export default function MedicineDetailScreen() {
       <View style={[styles.layout, isDesktop && styles.layoutDesktop]}>
         <View style={[styles.mainColumn, isDesktop && styles.mainColumnDesktop]}>
           <View style={[styles.productOverview, isDesktop && styles.productOverviewDesktop]}>
-            <MedicineImage medicine={medicine} style={[styles.imageCard, isTablet && styles.imageCardTablet, isDesktop && styles.imageCardDesktop]} />
+            <MedicineImage medicine={medicine} style={[styles.imageCard, isTablet && styles.imageCardTablet, isDesktop && styles.imageCardDesktop]} onLoad={() => markMedicineOpenTrace(medicine.id, 'image-loaded')} />
 
             <View style={[styles.detailsColumn, isDesktop && styles.detailsColumnDesktop]}>
               <View style={[styles.headerRow, isDesktop && styles.headerRowDesktop]}>
@@ -240,6 +261,8 @@ export default function MedicineDetailScreen() {
                       ? `Menor pre\u00e7o em ${getPharmacyName(lowest as OfertaComExtras)}`
                       : 'Nenhuma oferta dispon\u00edvel'}
                   </Text>
+                  {loadingMedicine ? <Text style={styles.refreshStatus}>Atualizando ofertas...</Text> : null}
+                  {medicineLoadError ? <Text style={styles.refreshStatus}>Exibindo dados anteriores; não foi possível atualizar as ofertas.</Text> : null}
                 </View>
 
                 <Pressable
@@ -461,6 +484,11 @@ const useStyles = createThemedStyles((palette) => ({
   offersTitle: { fontSize: 20, fontWeight: '700', color: palette.text, marginBottom: 4 },
   offersSubtitle: { fontSize: 13, color: palette.textSoft },
   emptyOffers: { color: palette.textSoft, fontSize: 14, lineHeight: 21, padding: spacing.md },
+  loadingDetail: { gap: spacing.md, padding: spacing.lg, backgroundColor: palette.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: palette.border },
+  loadingImage: { width: '100%', aspectRatio: 1.7, borderRadius: radius.md, backgroundColor: palette.surfaceAlt },
+  loadingLine: { width: '78%', height: 20, borderRadius: radius.sm, backgroundColor: palette.surfaceAlt },
+  loadingLineShort: { width: '48%', height: 14, borderRadius: radius.sm, backgroundColor: palette.surfaceAlt },
+  refreshStatus: { marginTop: 5, color: palette.textSoft, fontSize: 12, lineHeight: 17 },
   offersList: { gap: spacing.sm },
   offerRow: {
     flexDirection: 'row',

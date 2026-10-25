@@ -84,6 +84,27 @@ it('keeps constant observations and multiple pharmacies as separate series', asy
   expect(getAllByTestId('history-point')).toHaveLength(4);
 });
 
+it('cycles tooltip selection through points that share the same date and price without moving them', async () => {
+  const coincident = [
+    { ...series[0], label: 'Indiana', history: [{ timestamp: '2026-10-24T17:06:00Z', label: '24/10/2026 14:06', value: 7.05 }] },
+    { ...series[0], key: '4', label: 'Pacheco', color: '#8B3FEA', history: [{ timestamp: '2026-10-24T17:06:00Z', label: '24/10/2026 14:06', value: 7.05 }] },
+  ];
+  const { getByTestId, getAllByTestId, getAllByText } = await render(<HistoryChart series={coincident} />);
+
+  await fireEvent(getByTestId('history-chart'), 'layout', {
+    nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 280 } },
+  });
+  const points = getAllByTestId('history-point');
+  expect(points).toHaveLength(2);
+  const pointStyles = points.map((point) => StyleSheet.flatten(point.props.style));
+  expect([pointStyles[0].left, pointStyles[0].top]).toEqual([pointStyles[1].left, pointStyles[1].top]);
+
+  await fireEvent.press(points[1]);
+  expect(getAllByText('Pacheco').length).toBeGreaterThan(1);
+  await fireEvent.press(getAllByTestId('history-point')[1]);
+  expect(getAllByText('Indiana').length).toBeGreaterThan(1);
+});
+
 it('keeps the minimum and maximum price markers inside the chart bounds', async () => {
   const extremes = [
     { ...series[0], history: [series[0].history[0]] },
@@ -109,7 +130,7 @@ it('keeps the minimum and maximum price markers inside the chart bounds', async 
     StyleSheet.flatten(point.props.style),
   );
   expect(Math.min(...markerStyles.map((style) => style.top))).toBeGreaterThanOrEqual(0);
-  expect(Math.max(...markerStyles.map((style) => style.top + style.height))).toBeLessThanOrEqual(216);
+  expect(Math.max(...markerStyles.map((style) => style.top + style.height))).toBeLessThanOrEqual(280 - 8);
   expect(Math.max(...markerStyles.map((style) => style.left + style.width))).toBeLessThanOrEqual(
     360 - spacing.lg * 2 - 4,
   );

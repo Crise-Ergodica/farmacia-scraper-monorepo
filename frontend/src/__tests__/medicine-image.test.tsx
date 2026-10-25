@@ -28,6 +28,25 @@ it('tries API-resolved image references in order, then shows the fallback', asyn
   expect(screen.getByText('Imagem indisponível')).toBeTruthy();
 });
 
+it('shows a neutral loading placeholder until a remote image loads', async () => {
+  const medicine = {
+    id: 11,
+    nome: 'Produto com imagem remota',
+    codigo_barras: '',
+    principio_ativo: '',
+    laboratorio: '',
+    exige_receita: false,
+    categorias: [],
+    imagem_urls: ['https://images.example.test/produto.jpg'],
+    ofertas: [],
+  } as Medicamento;
+  const screen = await render(<MedicineImage medicine={medicine} />);
+
+  expect(screen.getByText('Carregando imagem…')).toBeTruthy();
+  await fireEvent(screen.getByTestId('medicine-image'), 'load');
+  expect(screen.queryByText('Carregando imagem…')).toBeNull();
+});
+
 it('resets the fallback cursor when the persisted image reference changes', async () => {
   const medicine = {
     id: 10,

@@ -1,10 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
+import { markMedicineOpenTrace, startMedicineOpenTrace } from '../../services/medicineOpenPerformance';
 import { useCatalogContext, useFavoritesContext, useSessionContext } from '../../context/AppContext';
 import { radius } from '../../theme';
 import { createThemedStyles, useAppTheme } from '../../context/ThemeContext';
@@ -12,6 +13,7 @@ import { createThemedStyles, useAppTheme } from '../../context/ThemeContext';
 export default function FavoritesScreen() {
   const styles = useStyles();
   const { palette } = useAppTheme();
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const { favoriteMedicines, favoritesLoading, favoritesError, refreshFavorites } = useFavoritesContext();
   const { markAsViewed } = useCatalogContext();
@@ -48,8 +50,8 @@ export default function FavoritesScreen() {
           <Pressable style={styles.primaryButton} onPress={() => router.push('/home' as never)} accessibilityRole="button"><Ionicons name="search-outline" size={17} color={palette.surface} /><Text style={styles.primaryButtonText}>Buscar medicamentos</Text></Pressable>
         </View>
       ) : (
-        <View style={[styles.grid, favoriteMedicines.length === 1 && styles.singleFavorite]}>
-          {favoriteMedicines.map((medicine) => <MedicineCard key={medicine.id} medicine={medicine} compact wide={favoriteMedicines.length === 1} onPress={() => { markAsViewed(medicine.id); router.push(`/medicine/${medicine.id}` as never); }} />)}
+        <View testID="favorites-grid" style={[styles.grid, width <= 480 && styles.gridMobileList, favoriteMedicines.length === 1 && styles.singleFavorite]}>
+          {favoriteMedicines.map((medicine) => <MedicineCard key={medicine.id} medicine={medicine} compact wide={favoriteMedicines.length === 1} onPress={() => { startMedicineOpenTrace(medicine.id, 'favorites'); markAsViewed(medicine.id); markMedicineOpenTrace(medicine.id, 'navigation-start'); router.push(`/medicine/${medicine.id}` as never); }} />)}
         </View>
       )}
     </Screen>
@@ -66,6 +68,7 @@ const useStyles = createThemedStyles((palette) => ({
   counterValue: { color: palette.primaryDark, fontSize: 19, fontWeight: '900' },
   counterLabel: { marginTop: 1, color: palette.textSoft, fontSize: 10, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 16 },
+  gridMobileList: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', justifyContent: 'flex-start', rowGap: 10 },
   singleFavorite: { width: '100%', maxWidth: 820, justifyContent: 'flex-start' },
   stateCard: { width: '100%', maxWidth: 600, minHeight: 230, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', padding: 28, borderRadius: radius.md, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, gap: 10 },
   stateIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surfaceBlue },

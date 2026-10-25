@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
@@ -7,6 +7,7 @@ import { CatalogFiltersSidebar } from '../../components/CatalogFiltersSidebar';
 import { MedicineCard } from '../../components/MedicineCard';
 import { OfferRow } from '../../components/OfferRow';
 import { Screen } from '../../components/Screen';
+import { markMedicineOpenTrace, startMedicineOpenTrace } from '../../services/medicineOpenPerformance';
 import { SearchBar } from '../../components/SearchBar';
 import { useCatalogContext } from '../../context/AppContext';
 import { CatalogSort, getLaboratoryDisplayName } from '../../services/catalog';
@@ -95,7 +96,9 @@ export default function SearchScreen() {
   const showCheapestSuggestions = !query && selectedFilters.length === 0 && selectedPharmacyId === null;
 
   const openDetail = (id: number) => {
+    startMedicineOpenTrace(id, 'search');
     markAsViewed(id);
+    markMedicineOpenTrace(id, 'navigation-start');
     router.push(`/medicine/${id}`);
   };
 

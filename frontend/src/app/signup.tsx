@@ -1,14 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   Text,
   TextInput,
+  ScrollView,
+  StatusBar,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -63,8 +66,50 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<FocusedField>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const keyboardTopRef = useRef<number | null>(null);
+  const scrollOffsetRef = useRef(0);
+  const focusedInputRef = useRef<TextInput | null>(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'error' | 'success'>('error');
+  const formScrollRef = useRef<ScrollView>(null);
+  const nameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (event) => {
+      keyboardTopRef.current = event.endCoordinates.screenY;
+      if (__DEV__) console.info(`[keyboard-layout] keyboard screenY=${event.endCoordinates.screenY} height=${event.endCoordinates.height}`);
+      setKeyboardVisible(true);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTopRef.current = null;
+      setKeyboardVisible(false);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  const keepInputVisible = (getInput: () => TextInput | null) => {
+    if (Platform.OS === 'web') return;
+    const attemptScroll = () => {
+      const input = getInput();
+      focusedInputRef.current = input;
+      const keyboardTop = keyboardTopRef.current;
+      if (__DEV__) console.info(`[keyboard-layout] focus target=${Boolean(input)} keyboard=${keyboardTop !== null}`);
+      if (!input || keyboardTop === null) return;
+      input.measureInWindow((_x, y, _width, height) => {
+        const overlap = y + height + (StatusBar.currentHeight ?? 0) + spacing.md - keyboardTop;
+        if (__DEV__) console.info(`[keyboard-layout] inputBottom=${y + height} keyboardTop=${keyboardTop} overlap=${overlap}`);
+        if (overlap > 0) {
+          formScrollRef.current?.scrollTo({ y: scrollOffsetRef.current + overlap, animated: true });
+        }
+      });
+    };
+    setTimeout(attemptScroll, 120);
+    setTimeout(attemptScroll, 280);
+  };
 
   const onSubmit = async (data: SignupFormValues) => {
     setMessage('');
@@ -111,8 +156,9 @@ export default function SignupScreen() {
   };
 
   return (
-    <Screen hideBottomNav contentStyle={styles.screenContent}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <Screen hideBottomNav scroll={false} contentStyle={styles.flex}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}>
+        <ScrollView ref={formScrollRef} style={styles.flex} contentContainerStyle={[styles.screenContent, keyboardVisible && styles.screenContentKeyboard]} keyboardShouldPersistTaps="handled" keyboardDismissMode="none" showsVerticalScrollIndicator={false} scrollEventThrottle={16} onScroll={(event) => { scrollOffsetRef.current = event.nativeEvent.contentOffset.y; }}>
         <View style={[styles.page, isWide && styles.pageWide]}>
           <View style={[styles.brandPanel, isWide ? styles.brandPanelWide : styles.brandPanelNarrow]}>
             <View style={styles.brandTop}>
@@ -128,19 +174,20 @@ export default function SignupScreen() {
             <View style={styles.form}>
               <View style={styles.field}>
                 <Text style={styles.label}>Nome</Text>
-                <Controller control={control} name="name" render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('name')}
+                <Controller control={control} name="name" render={({ field: { onChange, onBlur, value, ref } }) => (
+                  <TextInput ref={(node) => { ref(node); nameInputRef.current = node; }} value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => { setFocusedField('name'); keepInputVisible(() => nameInputRef.current); }}
                     placeholder="Seu nome" placeholderTextColor={palette.muted} autoCapitalize="words" textContentType="name" accessibilityLabel="Nome"
+                    returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => emailInputRef.current?.focus()}
                     style={[styles.input, focusedField === 'name' && styles.inputFocused, errors.name && styles.inputError]} />
                 )} />
                 {errors.name && <Text style={styles.helperText}>{errors.name.message}</Text>}
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Email</Text>
-                <Controller control={control} name="email" render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('email')}
+                <Controller control={control} name="email" render={({ field: { onChange, onBlur, value, ref } }) => (
+                  <TextInput ref={(node) => { ref(node); emailInputRef.current = node; }} value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => { setFocusedField('email'); keepInputVisible(() => emailInputRef.current); }}
                     placeholder="seu@email.com" placeholderTextColor={palette.muted} autoCapitalize="none" autoCorrect={false} keyboardType="email-address"
-                    textContentType="emailAddress" accessibilityLabel="Email"
+                    textContentType="emailAddress" accessibilityLabel="Email" returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => passwordInputRef.current?.focus()}
                     style={[styles.input, focusedField === 'email' && styles.inputFocused, errors.email && styles.inputError]} />
                 )} />
                 {errors.email && <Text style={styles.helperText}>{errors.email.message}</Text>}
@@ -148,10 +195,10 @@ export default function SignupScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Senha</Text>
                 <View style={[styles.passwordRow, focusedField === 'password' && styles.inputFocused, errors.password && styles.inputError]}>
-                  <Controller control={control} name="password" render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('password')}
+                  <Controller control={control} name="password" render={({ field: { onChange, onBlur, value, ref } }) => (
+                    <TextInput ref={(node) => { ref(node); passwordInputRef.current = node; }} value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => { setFocusedField('password'); keepInputVisible(() => passwordInputRef.current); }}
                       placeholder="No mínimo 8 caracteres" placeholderTextColor={palette.muted} secureTextEntry={!showPassword} textContentType="newPassword"
-                      accessibilityLabel="Senha" style={styles.passwordInput} />
+                      accessibilityLabel="Senha" returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => confirmPasswordInputRef.current?.focus()} style={styles.passwordInput} />
                   )} />
                   <Pressable style={styles.eyeButton} onPress={() => setShowPassword((current) => !current)} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textSoft} />
@@ -162,10 +209,10 @@ export default function SignupScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Confirmar senha</Text>
                 <View style={[styles.passwordRow, focusedField === 'confirmPassword' && styles.inputFocused, errors.confirmPassword && styles.inputError]}>
-                  <Controller control={control} name="confirmPassword" render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => setFocusedField('confirmPassword')}
+                  <Controller control={control} name="confirmPassword" render={({ field: { onChange, onBlur, value, ref } }) => (
+                    <TextInput ref={(node) => { ref(node); confirmPasswordInputRef.current = node; }} value={value} onChangeText={onChange} onBlur={() => { setFocusedField(null); onBlur(); }} onFocus={() => { setFocusedField('confirmPassword'); keepInputVisible(() => confirmPasswordInputRef.current); }}
                       placeholder="Repita a senha" placeholderTextColor={palette.muted} secureTextEntry={!showConfirmPassword} textContentType="newPassword"
-                      accessibilityLabel="Confirmar senha" style={styles.passwordInput} />
+                      accessibilityLabel="Confirmar senha" returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} style={styles.passwordInput} />
                   )} />
                   <Pressable style={styles.eyeButton} onPress={() => setShowConfirmPassword((current) => !current)} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}>
                     <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={palette.textSoft} />
@@ -181,6 +228,7 @@ export default function SignupScreen() {
             </View>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -189,6 +237,7 @@ export default function SignupScreen() {
 const useStyles = createThemedStyles((palette) => ({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
+  screenContentKeyboard: { justifyContent: 'flex-start', paddingTop: spacing.md, paddingBottom: 80 },
   page: { width: '100%', maxWidth: 1060, alignSelf: 'center', gap: spacing.xl },
   pageWide: { flexDirection: 'row', alignItems: 'stretch', gap: 0, minHeight: 660, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.xl, overflow: 'hidden' },
   brandPanel: { width: '100%', gap: spacing.lg },

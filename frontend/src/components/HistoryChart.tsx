@@ -6,12 +6,18 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
 import { radius, spacing } from '../theme';
 import { createThemedStyles } from '../context/ThemeContext';
-import { getTooltipPosition } from '../services/historyChartGeometry';
+import {
+  getHistoryAxisTicks,
+  getNextGroupedPoint,
+  getPointSelectionGroup,
+  getTooltipPosition,
+} from '../services/historyChartGeometry';
 
 export type HistoryChartPoint = {
   timestamp: string;
@@ -42,11 +48,12 @@ type ActivePoint = {
   y: number;
 };
 
-const CHART_HEIGHT = 250;
+const BASE_CHART_HEIGHT = 280;
+const MAX_CHART_HEIGHT = 320;
 const AXIS_LEFT_WIDTH = 68;
 const AXIS_BOTTOM_HEIGHT = 48;
 const DOT_SIZE = 12;
-const POINT_TARGET_SIZE = 32;
+const POINT_TARGET_SIZE = 44;
 const LINE_HEIGHT = 3;
 
 function formatPrice(value: number) {
@@ -91,9 +98,14 @@ function getLineSegmentStyle(
 export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
   const styles = useStyles();
   const isWeb = Platform.OS === 'web';
+  const { fontScale } = useWindowDimensions();
+  const chartHeight = Math.min(
+    MAX_CHART_HEIGHT,
+    Math.max(BASE_CHART_HEIGHT, Math.ceil(BASE_CHART_HEIGHT * fontScale)),
+  );
 
   const [chartWidth, setChartWidth] = useState(0);
-  const [chartAreaSize, setChartAreaSize] = useState({ width: 0, height: CHART_HEIGHT });
+  const [chartAreaSize, setChartAreaSize] = useState({ width: 0, height: chartHeight });
   const [tooltipSize, setTooltipSize] = useState({ width: 180, height: 92 });
   const [activePoint, setActivePoint] = useState<ActivePoint | null>(null);
   const [tooltipPoint, setTooltipPoint] = useState<ActivePoint | null>(null);
@@ -131,7 +143,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
     1,
   );
   const plotTop = pointRadius;
-  const plotHeight = CHART_HEIGHT - AXIS_BOTTOM_HEIGHT - plotTop - pointRadius;
+  const plotHeight = chartHeight - AXIS_BOTTOM_HEIGHT - plotTop - pointRadius;
 
   const yTicks = useMemo(() => {
     const ticks = [];
@@ -204,6 +216,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
 
   const firstPoint =
     normalizedSeries.flatMap((item) => item.points).find(Boolean) || null;
+  const chartPoints = normalizedSeries.flatMap((item) => item.points);
 
   const visiblePoint = isWeb ? tooltipPoint : activePoint || firstPoint;
   const tooltipPosition = visiblePoint
@@ -264,6 +277,28 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
     });
   };
 
+  const selectPoint = (point: ActivePoint) => {
+    const group = getPointSelectionGroup(point, chartPoints, POINT_TARGET_SIZE / 2);
+    const selected = group.length > 1
+      ? getNextGroupedPoint(visiblePoint?.key, group) ?? point
+      : point;
+    setActivePoint(selected);
+    if (isWeb) showTooltip(selected);
+  };
+
+  const axisTicks = getHistoryAxisTicks(
+    timestamps.map((timestamp) => ({
+      timestamp,
+      label: new Date(timestamp).toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: '2-digit',
+      }),
+      x: getX(timestamp),
+    })),
+    chartWidth,
+    plotLeft,
+    64 * Math.max(1, fontScale),
+  );
+
   if (!series.length || !timestamps.length) {
     return (
       <View testID="history-chart-empty" style={styles.emptyCard}>
@@ -313,7 +348,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
         {chartWidth > 0 ? (
           <View
             testID="history-chart-area"
-            style={styles.chartArea}
+            style={[styles.chartArea, { height: chartHeight }]}
             onLayout={(event) => {
               const { width, height } = event.nativeEvent.layout;
               setChartWidth(width);
@@ -380,10 +415,7 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
                       accessibilityHint="Exibe este valor no gráfico de preços"
                       accessibilityState={{ selected: isActive }}
                       hitSlop={6}
-                      onPress={() => {
-                        setActivePoint(point);
-                        if (isWeb) showTooltip(point);
-                      }}
+                      onPress={() => selectPoint(point)}
                       onHoverIn={() => {
                         if (isWeb) {
                           setActivePoint(point);
@@ -412,26 +444,23 @@ export function HistoryChart({ series, emptyMessage }: HistoryChartProps) {
               </View>
             ))}
 
-            {timestamps.filter((_, index) => index === 0 || index === timestamps.length - 1 || index === Math.floor(timestamps.length / 2)).map((timestamp) => {
-              const label = new Date(timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+            {axisTicks.map((tick) => {
               return (
               <Text
-                key={timestamp}
+                key={`${tick.timestamp}-${tick.label}`}
                 testID="history-x-axis-label"
                 numberOfLines={1}
                 style={[
                   styles.xAxisLabel,
                   {
-                    left: Math.min(
-                      Math.max(getX(timestamp) - 24, AXIS_LEFT_WIDTH),
-                      Math.max(chartWidth - 48, AXIS_LEFT_WIDTH),
-                    ),
+                    left: tick.left,
+                    width: tick.width,
                     top: plotTop + plotHeight + pointRadius + 4,
                   },
                 ]}
                 pointerEvents="none"
               >
-                {label}
+                {tick.label}
               </Text>
               );
             })}
@@ -614,7 +643,7 @@ const useStyles = createThemedStyles((palette) => ({
   },
 
   chartArea: {
-    height: CHART_HEIGHT,
+    height: BASE_CHART_HEIGHT,
     position: 'relative',
   },
 
@@ -687,7 +716,6 @@ const useStyles = createThemedStyles((palette) => ({
 
   xAxisLabel: {
     position: 'absolute',
-    width: 48,
     textAlign: 'center',
     fontSize: 10,
     color: palette.textSoft,

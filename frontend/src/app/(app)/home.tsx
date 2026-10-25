@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
@@ -7,6 +7,7 @@ import { FilterChip } from '../../components/FilterChip';
 import { CatalogFiltersSidebar } from '../../components/CatalogFiltersSidebar';
 import { MedicineCard } from '../../components/MedicineCard';
 import { Screen } from '../../components/Screen';
+import { markMedicineOpenTrace, startMedicineOpenTrace } from '../../services/medicineOpenPerformance';
 import { SearchBar } from '../../components/SearchBar';
 import { useCatalogContext } from '../../context/AppContext';
 import { api } from '../../services/api';
@@ -94,7 +95,9 @@ export default function HomeScreen() {
     : pharmacies.find((item) => item.id === selectedPharmacyId)?.nome_fantasia || 'Medicamentos', [pharmacies, selectedPharmacyId]);
 
   const openDetail = (id: number) => {
+    startMedicineOpenTrace(id, 'home');
     markAsViewed(id);
+    markMedicineOpenTrace(id, 'navigation-start');
     router.push(`/medicine/${id}`);
   };
 
@@ -249,7 +252,7 @@ const useStyles = createThemedStyles((palette) => ({
   resultCount: { color: palette.textSoft, fontSize: 13, marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md },
   gridWeb: { justifyContent: 'space-between', columnGap: spacing.md, rowGap: spacing.lg },
-  gridMobileList: { width: '100%', flexDirection: 'column', justifyContent: 'flex-start', rowGap: spacing.sm },
+  gridMobileList: { width: '100%', flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', justifyContent: 'flex-start', rowGap: spacing.sm },
   messageBox: { padding: spacing.lg, backgroundColor: palette.surface, borderRadius: radius.md, gap: spacing.sm },
   message: { color: palette.textSoft, fontSize: 14, lineHeight: 20 },
   retry: { color: palette.primaryDark, fontSize: 14, fontWeight: '700' },

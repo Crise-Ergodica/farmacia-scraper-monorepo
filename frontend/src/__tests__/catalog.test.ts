@@ -162,3 +162,61 @@ it('refreshes an existing detail so changed pharmacy prices are not held by the 
   await act(async () => { await result.current.loadMedicineById(18, true); });
   expect(result.current.getMedicineById(18)?.ofertas[0].preco).toBe(8.63);
 });
+
+it('joins concurrent forced detail refreshes for the same medicine ID', async () => {
+  let resolveDetail!: (value: { data: typeof item }) => void;
+  (api.get as jest.Mock).mockImplementation((url: string) => {
+    if (url.startsWith('/catalogo/filtros')) return Promise.resolve({ data: {} });
+    if (url.startsWith('/catalogo/mais-baratos')) return Promise.resolve({ data: [] });
+    if (url === '/catalogo/medicamentos/18') return new Promise((resolve) => { resolveDetail = resolve; });
+    return Promise.resolve({ data: {} });
+  });
+
+  const { result } = await renderHook(() => useCatalogState());
+  let first!: Promise<Medicamento>;
+  let second!: Promise<Medicamento>;
+  await act(async () => {
+    first = result.current.loadMedicineById(18, true);
+    second = result.current.loadMedicineById(18, true);
+  });
+
+  expect((api.get as jest.Mock).mock.calls.filter(([url]) => url === '/catalogo/medicamentos/18')).toHaveLength(1);
+
+  await act(async () => {
+    resolveDetail({ data: item });
+    await Promise.all([first, second]);
+  });
+  expect(result.current.getMedicineById(18)?.nome).toBe('Paracetamol');
+});
+
+it('does not let a slower previous catalog request overwrite the medicine cache', async () => {
+  let resolveOlder!: (value: { data: { total: number; limit: number; offset: number; items: typeof item[] } }) => void;
+  let resolveNewer!: (value: { data: { total: number; limit: number; offset: number; items: typeof item[] } }) => void;
+  const older = new Promise<{ data: { total: number; limit: number; offset: number; items: typeof item[] } }>((resolve) => { resolveOlder = resolve; });
+  const newer = new Promise<{ data: { total: number; limit: number; offset: number; items: typeof item[] } }>((resolve) => { resolveNewer = resolve; });
+  (api.get as jest.Mock).mockImplementation((url: string) => {
+    if (url.startsWith('/catalogo?')) return url.includes('termo_busca=older') ? older : newer;
+    if (url.startsWith('/catalogo/filtros')) return Promise.resolve({ data: {} });
+    if (url.startsWith('/catalogo/mais-baratos')) return Promise.resolve({ data: [] });
+    return Promise.resolve({ data: {} });
+  });
+
+  const { result } = await renderHook(() => useCatalogState());
+  let olderRequest!: Promise<unknown>;
+  let newerRequest!: Promise<unknown>;
+  await act(async () => {
+    olderRequest = result.current.loadCatalogPage({ query: 'older' });
+    newerRequest = result.current.loadCatalogPage({ query: 'newer' });
+  });
+
+  await act(async () => {
+    resolveNewer({ data: { total: 1, limit: 20, offset: 0, items: [{ ...item, name_search: 'Newest result' }] } });
+    await newerRequest;
+  });
+  await act(async () => {
+    resolveOlder({ data: { total: 1, limit: 20, offset: 0, items: [{ ...item, name_search: 'Older result' }] } });
+    await olderRequest;
+  });
+
+  await waitFor(() => expect(result.current.getMedicineById(18)?.nome).toBe('Newest result'));
+});

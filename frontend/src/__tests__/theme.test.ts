@@ -9,7 +9,7 @@ describe('appearance preferences', () => {
   it('defaults new and invalid installations to the system preference', () => {
     expect(parseThemePreference(null)).toBe('system');
     expect(parseThemePreference('legacy-value')).toBe('system');
-    expect(THEME_STORAGE_KEY).toBe('preco-bao:appearance');
+    expect(THEME_STORAGE_KEY).toBe('preco-bao-appearance');
   });
 
   it('follows both system appearances when automatic mode is selected', () => {
