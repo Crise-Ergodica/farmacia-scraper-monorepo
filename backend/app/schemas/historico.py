@@ -25,6 +25,15 @@ class PricePointSchema(BaseModel):
     oferta_id: Optional[int] = None
     origem: Optional[str] = None
     disponivel: Optional[bool] = None
+    contexto_chave: str = "global"
+    canal_venda: Optional[str] = None
+    contexto_local: Optional[str] = None
+    cep: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    loja_id: Optional[str] = None
+    loja_nome: Optional[str] = None
+    fonte_observado_em: Optional[datetime] = None
 
     @field_validator("data_registro")
     @classmethod
@@ -43,6 +52,15 @@ class PharmacyHistorySchema(BaseModel):
 
     farmacia_id: int
     pharmacy_name: Optional[str] = None
+    contexto_chave: str = "global"
+    serie_id: str | None = None
+    contexto_local: str | None = None
+    canal_venda: str | None = None
+    cep: str | None = None
+    cidade: str | None = None
+    uf: str | None = None
+    loja_id: str | None = None
+    loja_nome: str | None = None
     history: list[PricePointSchema]
 
 
@@ -76,4 +94,4 @@ class MedicineHistoryResponse(BaseModel):
     pharmacies: list[PharmacyHistorySchema]
     periodo: str = "all"
     total_observacoes: int = 0
-    statistics: dict[int, PharmacyHistoryStatistics] = Field(default_factory=dict)
+    statistics: dict[int | str, PharmacyHistoryStatistics] = Field(default_factory=dict)

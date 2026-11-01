@@ -67,6 +67,17 @@ class OfertaBaseSchema(BaseModel):
     disponivel: bool = Field(default=True)
     url_origem: str
     imagem_url: str | None = None
+    contexto_chave: str = "global"
+    canal_venda: str | None = None
+    contexto_local: str | None = None
+    cep: str | None = None
+    cidade: str | None = None
+    uf: str | None = None
+    loja_id: str | None = None
+    loja_nome: str | None = None
+    vendedor: str | None = None
+    confiabilidade: str | None = None
+    fonte_observado_em: datetime | None = None
 
 
 class OfertaOut(OfertaBaseSchema):
@@ -81,6 +92,7 @@ class OfertaOut(OfertaBaseSchema):
     catalogo_id: int
     criado_em: datetime
     atualizado_em: datetime | None = None
+    observado_em: datetime | None = None
 
     @computed_field(return_type=bool)
     @property

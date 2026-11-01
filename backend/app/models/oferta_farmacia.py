@@ -6,7 +6,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -48,14 +56,34 @@ class OfertaFarmacia(Base):
     """
 
     __tablename__ = "ofertas_farmacia"
+    __table_args__ = (
+        UniqueConstraint(
+            "url_origem", "contexto_chave", name="uq_ofertas_farmacia_url_contexto"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     sku_interno: Mapped[str] = mapped_column(String(50), index=True)
     preco: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     quantidade_estoque: Mapped[int] = mapped_column(Integer, default=0)
     disponivel: Mapped[bool] = mapped_column(Boolean, default=True)
-    url_origem: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    url_origem: Mapped[str] = mapped_column(String(500), index=True)
     imagem_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    contexto_chave: Mapped[str] = mapped_column(
+        String(120), nullable=False, default="global", server_default="global"
+    )
+    canal_venda: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    contexto_local: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    cep: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    cidade: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    uf: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    loja_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    loja_nome: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    vendedor: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    confiabilidade: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    fonte_observado_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

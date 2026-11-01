@@ -132,7 +132,7 @@ function getReadableMessage(value: unknown, fallback: string) {
 export default function LoginScreen() {
   const styles = useStyles();
   const { palette } = useAppTheme();
-  const { continueAsGuest, signIn } = useSessionContext();
+  const { continueAsGuest, signIn, sessionRestoreError, retrySessionRestore, isLoading: isRestoringSession } = useSessionContext();
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isWide = isWeb && width >= 900;
@@ -207,6 +207,10 @@ export default function LoginScreen() {
     }
   };
 
+  const onRestoreSessionPress = async () => {
+    if (await retrySessionRestore()) router.replace('/(app)/home' as never);
+  };
+
   return (
     <Screen hideBottomNav scroll={false} contentStyle={styles.flex}>
       <KeyboardAvoidingView style={isWeb ? styles.webKeyboardContainer : styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}>
@@ -264,6 +268,9 @@ export default function LoginScreen() {
             {feedback && <View style={[styles.feedbackBox, feedback.type === 'error' ? styles.feedbackError : styles.feedbackSuccess]} accessibilityRole="alert">
               <Text style={styles.feedbackText}>{feedback.text}</Text>
             </View>}
+            {sessionRestoreError && <View style={[styles.feedbackBox, styles.feedbackError]} accessibilityRole="alert">
+              <Text style={styles.feedbackText}>{sessionRestoreError}</Text>
+            </View>}
 
             <View style={styles.actions}>
               <Pressable style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed, isSubmitting && styles.disabled]} onPress={handleSubmit(handleLogin)} disabled={isSubmitting} accessibilityRole="button">
@@ -275,6 +282,9 @@ export default function LoginScreen() {
               <Pressable style={styles.guestButton} onPress={onGuestPress} accessibilityRole="button">
                 <Text style={styles.guestButtonText}>Continuar como convidado</Text>
               </Pressable>
+              {sessionRestoreError && <Pressable style={styles.guestButton} onPress={onRestoreSessionPress} disabled={isRestoringSession} accessibilityRole="button">
+                <Text style={styles.guestButtonText}>{isRestoringSession ? 'Verificando sessÃ£o...' : 'Tentar restaurar sessÃ£o salva'}</Text>
+              </Pressable>}
             </View>
           </View>
         </View>
@@ -287,10 +297,10 @@ export default function LoginScreen() {
 const useStyles = createThemedStyles((palette) => ({
   flex: { flex: 1 },
   webKeyboardContainer: { flex: 1, width: '100%' },
-  screenContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: spacing.xl },
+  screenContent: { width: '100%', flexGrow: 1, alignItems: 'stretch', justifyContent: 'center', paddingVertical: spacing.xl, boxSizing: 'border-box' } as any,
   screenContentKeyboard: { justifyContent: 'flex-start', paddingTop: spacing.md, paddingBottom: 80 },
-  page: { width: '100%', maxWidth: 1060, alignSelf: 'center', gap: spacing.xl },
-  pageNarrow: { maxWidth: 520, paddingHorizontal: spacing.lg, boxSizing: 'border-box' } as any,
+  page: { width: '100%', minWidth: 0, maxWidth: 1060, alignSelf: 'center', gap: spacing.xl, boxSizing: 'border-box' } as any,
+  pageNarrow: { width: '100%', maxWidth: 520, paddingHorizontal: spacing.lg, boxSizing: 'border-box' } as any,
   pageWide: { flexDirection: 'row', alignItems: 'stretch', gap: 0, minHeight: 570, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: radius.xl, overflow: 'hidden' },
   brandPanel: { width: '100%' },
   brandPanelNarrow: { maxWidth: 500, alignSelf: 'center' },
@@ -302,17 +312,17 @@ const useStyles = createThemedStyles((palette) => ({
   brandCopy: { gap: spacing.lg, paddingBottom: 16 },
   brandHeading: { color: palette.text, fontSize: 34, lineHeight: 41, fontWeight: '800', maxWidth: 390 },
   brandDescription: { color: palette.textSoft, fontSize: 16, lineHeight: 24, maxWidth: 370 },
-  formPanel: { flex: 1, width: 'auto', maxWidth: 500, alignSelf: 'stretch', justifyContent: 'center', gap: spacing.xl, paddingVertical: spacing.xl },
+  formPanel: { flex: 1, width: '100%', maxWidth: 500, minWidth: 0, alignSelf: 'stretch', justifyContent: 'center', gap: spacing.xl, paddingVertical: spacing.xl },
   formPanelNarrow: { width: '100%', paddingVertical: 0 },
   formPanelWide: { paddingHorizontal: 36 },
   headingBlock: { gap: spacing.xs },
   title: { color: palette.text, fontSize: 28, lineHeight: 35, fontWeight: '800' },
   subtitle: { color: palette.textSoft, fontSize: 14, lineHeight: 21 },
-  form: { gap: spacing.lg },
-  field: { gap: spacing.xs },
+  form: { width: '100%', minWidth: 0, gap: spacing.lg },
+  field: { width: '100%', minWidth: 0, gap: spacing.xs },
   label: { color: palette.text, fontSize: 14, fontWeight: '600' },
-  input: { minHeight: 52, paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface, color: palette.text, fontSize: 16, outlineStyle: 'none', boxSizing: 'border-box' } as any,
-  passwordRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface },
+  input: { width: '100%', minWidth: 0, minHeight: 52, paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface, color: palette.text, fontSize: 16, outlineStyle: 'none', boxSizing: 'border-box' } as any,
+  passwordRow: { width: '100%', minWidth: 0, minHeight: 52, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: palette.border, borderRadius: radius.md, backgroundColor: palette.surface },
   passwordInput: { flex: 1, minWidth: 0, height: 50, paddingHorizontal: spacing.lg, color: palette.text, fontSize: 16, outlineStyle: 'none' } as any,
   eyeButton: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
   inputFocused: { borderColor: palette.primary, borderWidth: 2 },
@@ -322,10 +332,10 @@ const useStyles = createThemedStyles((palette) => ({
   feedbackError: { backgroundColor: palette.surface, borderColor: palette.danger },
   feedbackSuccess: { backgroundColor: palette.surface, borderColor: palette.success },
   feedbackText: { color: palette.text, fontSize: 14, lineHeight: 20 },
-  actions: { gap: spacing.sm },
-  primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: palette.primary },
+  actions: { width: '100%', minWidth: 0, gap: spacing.sm },
+  primaryButton: { width: '100%', minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: palette.primary },
   primaryButtonText: { color: palette.onPrimary, fontSize: 16, fontWeight: '700' },
-  secondaryButton: { minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: palette.primary },
+  secondaryButton: { width: '100%', minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: palette.primary },
   secondaryButtonText: { color: palette.primaryDark, fontSize: 15, fontWeight: '700' },
   guestButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   guestButtonText: { color: palette.textSoft, fontSize: 14, fontWeight: '600' },

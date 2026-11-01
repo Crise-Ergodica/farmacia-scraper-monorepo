@@ -30,7 +30,7 @@ export const darkPalette: AppPalette = {
   danger: '#FF8A8A', success: '#74D68B', warning: '#FFC46B',
   dangerSoft: '#4A252B', successSoft: '#183D2A', warningSoft: '#49371F',
   warningBorder: '#795B2C', overlay: 'rgba(2, 7, 15, 0.76)',
-  imageSurface: '#F8FAFC', chartBackground: '#152131', chartGrid: '#34445A',
+  imageSurface: '#253246', chartBackground: '#152131', chartGrid: '#34445A',
   shadow: '#02060C', onPrimary: '#F8FBFF', favorite: '#FF8A8A',
 };
 

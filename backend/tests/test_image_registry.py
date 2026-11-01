@@ -9,6 +9,7 @@ from app.services.image_registry import (
     upsert_image_reference,
     upsert_image_references,
 )
+from app.services.imagens import is_generic_image_url
 
 
 def test_registry_persists_generic_image_and_updates_without_erasing(
@@ -98,6 +99,59 @@ def test_catalog_images_follow_the_filtered_pharmacy(monkeypatch, tmp_path):
     pacheco = SimpleNamespace(id=20, farmacia_id=4)
     assert resolve_catalog_images(15, [indiana]) == ["https://cdn.example/indiana.jpg"]
     assert resolve_catalog_images(15, [pacheco]) == ["https://cdn.example/pacheco.jpg"]
+
+
+def test_registry_resolver_rejects_generic_art_and_ean_mismatch(monkeypatch, tmp_path):
+    monkeypatch.setenv("IMAGE_REFERENCE_STORE_PATH", str(tmp_path / "refs.json"))
+    common = dict(
+        pharmacy_id=1,
+        pharmacy="Indiana",
+        product_id=None,
+        product_url="https://www.farmaciaindiana.com.br/product/p",
+        catalog_id=22,
+    )
+    upsert_image_reference(
+        image_url="https://farmaciaindiana.vteximg.com.br/arquivos/MEDICAMENTOS-CAIXA-AZUL---OTC.jpg",
+        sku="IND-1",
+        ean="7896026307925",
+        offer_id=101,
+        **common,
+    )
+    upsert_image_reference(
+        image_url="https://farmaciaindiana.vteximg.com.br/arquivos/7896026306751.jpg",
+        sku="IND-2",
+        ean="7896026307925",
+        offer_id=102,
+        **common,
+    )
+    upsert_image_reference(
+        image_url="https://farmaciaindiana.vteximg.com.br/arquivos/7896026307925.jpg",
+        sku="IND-3",
+        ean="7896026307925",
+        offer_id=103,
+        **common,
+    )
+
+    offers = [SimpleNamespace(id=101), SimpleNamespace(id=102), SimpleNamespace(id=103)]
+    assert resolve_catalog_images(22, offers, catalog_ean="7896026307925") == [
+        "https://farmaciaindiana.vteximg.com.br/arquivos/7896026307925.jpg"
+    ]
+
+
+def test_known_pharmacy_placeholders_are_recognized_as_generic_art():
+    urls = [
+        "https://farmaciaindiana.vteximg.com.br/arquivos/7896026306751.jpg",
+        "https://farmaciaindiana.vteximg.com.br/arquivos/MEDICAMENTOS-CAIXA-AZUL---OTC.jpg",
+        "https://i3-imagens-prd.araujo.com.br/webp/7290/128666_7896026306751_1.webp",
+        "https://drogariaspacheco.vteximg.com.br/arquivos/de-referencia-tarja-vermelha-em-comprimido-pacheco.jpg",
+        "https://i3-imagens-prd.araujo.com.br/webp/105933/239898_7896382709135_1.webp",
+        "https://drogariaspacheco.vteximg.com.br/arquivos/ids/2611762/887455-2.jpg?v=639281055232600000",
+        "https://drogariaspacheco.vteximg.com.br/arquivos/ids/2611791/887528-DPA.png?v=639281095739670000",
+    ]
+    assert all(is_generic_image_url(url) for url in urls)
+    assert not is_generic_image_url(
+        "https://i3-imagens-prd.araujo.com.br/webp/105933/pack-7891234567895.webp"
+    )
 
 
 def test_url_normalization_is_https_only_and_accepts_relative_urls():

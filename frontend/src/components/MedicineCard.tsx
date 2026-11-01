@@ -45,6 +45,12 @@ export function MedicineCard({ medicine, onPress, compact = false, wide = false,
   const laboratory = getLaboratoryDisplayName(medicine.laboratorio);
   const presentation = getPresentation(medicine.nome);
   const pharmacy = usefulText(lowestOffer?.farmacia_nome || lowestOffer?.farmacia?.nome_fantasia || lowestOffer?.farmacia?.razao_social);
+  const offerContext = lowestOffer?.cep
+    ? `Entrega para ${lowestOffer.cidade || 'localidade'}${lowestOffer.uf ? `/${lowestOffer.uf}` : ''} · ${lowestOffer.cep}`
+    : lowestOffer?.contexto_local === 'online_sem_localizacao_confirmada' ? 'Online' :
+      lowestOffer?.contexto_local === 'retirada_loja_confirmada'
+        ? `Retirada · ${lowestOffer.loja_nome || lowestOffer.loja_id || 'unidade confirmada'}`
+        : undefined;
   const cardWidth = wide || isCompactList ? '100%' : columns === 2 ? '48.5%' : columns === 3 ? '32%' : columns === 4 ? '23.5%' : !compact ? '100%' : width >= 1120 ? '32%' : width >= 680 ? '48.5%' : '100%';
 
   const handleFavoritePress = (event: GestureResponderEvent) => {
@@ -102,7 +108,7 @@ export function MedicineCard({ medicine, onPress, compact = false, wide = false,
         <View testID="medicine-card-price-section" style={[styles.priceSection, (isCompactList || wide) && styles.priceSectionCompactList, isNarrowCompactList && styles.priceSectionCompactListStacked]}>
           <View style={styles.priceHeading}>
             <Text style={styles.priceCaption}>MENOR PREÇO</Text>
-            {!!pharmacy && <Text numberOfLines={1} style={styles.pharmacy}>{pharmacy}</Text>}
+          {!!pharmacy && <Text numberOfLines={1} style={styles.pharmacy}>{offerContext ? `${pharmacy} · ${offerContext}` : pharmacy}</Text>}
           </View>
           <View testID="medicine-card-price-column" style={[(isCompactList || wide) && styles.priceColumnCompactList, isNarrowCompactList && styles.priceColumnCompactListStacked]}>
             <Text testID="medicine-card-price" numberOfLines={1} ellipsizeMode="tail" style={[styles.price, (isCompactList || wide) && styles.priceCompactList]}>{lowestOffer ? formatPrice(Number(lowestOffer.preco)) : 'Consulte ofertas'}</Text>

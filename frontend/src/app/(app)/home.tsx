@@ -50,12 +50,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let active = true;
+    setPharmaciesLoading(true);
+    setPharmaciesError(false);
     api.get<Pharmacy[]>('/catalogo/farmacias')
       .then(({ data }) => { if (active) setPharmacies(data); })
       .catch(() => { if (active) setPharmaciesError(true); })
       .finally(() => { if (active) setPharmaciesLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [reload]);
 
   useEffect(() => { setPage(1); }, [debouncedSearch, selectedPharmacyId, selectedFilters, sortBy]);
 
@@ -126,7 +128,12 @@ export default function HomeScreen() {
           <Text style={styles.sectionLabel}>Farmácias</Text>
         </View>
         {pharmaciesLoading ? <ActivityIndicator color={palette.primary} /> : pharmaciesError ? (
-          <Text style={styles.message}>Não foi possível carregar as farmácias.</Text>
+          <View style={styles.pharmaciesError}>
+            <Text style={styles.message}>Não foi possível carregar as farmácias.</Text>
+            <Pressable onPress={() => setReload((current) => current + 1)} accessibilityRole="button">
+              <Text style={styles.retry}>Tentar novamente</Text>
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.pharmacyFilters}>
             <FilterChip label="Todas" active={selectedPharmacyId === null} onPress={() => setSelectedPharmacyId(null)} />
@@ -255,6 +262,7 @@ const useStyles = createThemedStyles((palette) => ({
   gridMobileList: { width: '100%', flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', justifyContent: 'flex-start', rowGap: spacing.sm },
   messageBox: { padding: spacing.lg, backgroundColor: palette.surface, borderRadius: radius.md, gap: spacing.sm },
   message: { color: palette.textSoft, fontSize: 14, lineHeight: 20 },
+  pharmaciesError: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   retry: { color: palette.primaryDark, fontSize: 14, fontWeight: '700' },
   loading: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   pagination: { marginTop: spacing.xl, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: palette.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md },

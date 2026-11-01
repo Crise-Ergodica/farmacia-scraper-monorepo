@@ -9,10 +9,22 @@ export interface Oferta {
   disponivel: boolean;
   url_origem: string;
   imagem_url?: string;
+  contexto_chave?: string;
+  canal_venda?: string | null;
+  contexto_local?: string | null;
+  cep?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  loja_id?: string | null;
+  loja_nome?: string | null;
+  vendedor?: string | null;
+  confiabilidade?: string | null;
+  fonte_observado_em?: string | null;
   imagem_rejeitada?: boolean;
   imagem_generica?: boolean;
   criado_em?: string;
   atualizado_em?: string | null;
+  observado_em?: string | null;
 
   farmacia_nome?: string;
   farmacia?: {
@@ -47,10 +59,21 @@ export interface Medicamento {
 export interface HistoricoPrecoPonto {
   data_registro: string;
   preco: number;
+  contexto_chave?: string;
+  canal_venda?: string | null;
+  contexto_local?: string | null;
+  cep?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  loja_id?: string | null;
+  loja_nome?: string | null;
+  fonte_observado_em?: string | null;
 }
 
 export interface HistoricoPrecoSerie {
   farmacia_id: number;
   farmacia_nome?: string;
+  contexto_chave?: string;
+  serie_id?: string;
   historico: HistoricoPrecoPonto[];
 }

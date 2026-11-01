@@ -1,6 +1,34 @@
 export type PharmacySeriesKey = { key: string };
 
+function pharmacyIdFromSeriesKey(key: string) {
+  return Number(key.split(':', 1)[0]);
+}
+
 export type HistoryPharmacyOption = { key: string; label: string; color: string; hasHistory: boolean };
+
+export function formatPharmacyHistoryLabel(
+  pharmacyName: string,
+  point?: {
+    contexto_local?: string | null;
+    cep?: string | null;
+    cidade?: string | null;
+    uf?: string | null;
+    loja_id?: string | null;
+    loja_nome?: string | null;
+  },
+) {
+  if (point?.cep) {
+    const locality = [point.cidade, point.uf].filter(Boolean).join('/');
+    return `Entrega ${locality || 'localidade'} · ${point.cep} · ${pharmacyName}`;
+  }
+  if (point?.contexto_local === 'online_sem_localizacao_confirmada') {
+    return `Online · ${pharmacyName}`;
+  }
+  if (point?.contexto_local === 'retirada_loja_confirmada') {
+    return `Retirada em unidade · ${pharmacyName}`;
+  }
+  return pharmacyName;
+}
 
 export function getHistoryPharmacyOptions<
   T extends PharmacySeriesKey & { label: string; color: string },
@@ -25,7 +53,7 @@ export function getHistoryPharmacyOptions<
     }
   }
   for (const item of series) {
-    const id = Number(item.key);
+    const id = pharmacyIdFromSeriesKey(item.key);
     options.set(id, { key: item.key, label: item.label, color: item.color, hasHistory: true });
   }
   return [...options.values()];
@@ -38,7 +66,7 @@ export function getVisibleHistorySeries<T extends PharmacySeriesKey>(
   if (selectedPharmacies === null) return series;
 
   const selected = new Set(selectedPharmacies);
-  return series.filter((item) => selected.has(Number(item.key)));
+  return series.filter((item) => selected.has(pharmacyIdFromSeriesKey(item.key)));
 }
 
 export function toggleHistoryPharmacy<T extends PharmacySeriesKey>(
@@ -55,7 +83,7 @@ export function toggleHistoryPharmacy<T extends PharmacySeriesKey>(
     selected.add(pharmacyId);
   }
 
-  if (selected.size === 0 || series.every((item) => selected.has(Number(item.key)))) {
+  if (selected.size === 0 || series.every((item) => selected.has(pharmacyIdFromSeriesKey(item.key)))) {
     return null;
   }
 

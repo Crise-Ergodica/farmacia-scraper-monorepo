@@ -14,6 +14,8 @@ export type CatalogQuery = {
   sortBy?: CatalogSort;
 };
 
+const normalizedFields = new WeakMap<Medicamento, Set<string>>();
+
 export function normalizeText(value: unknown) {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
@@ -32,7 +34,7 @@ export function resolveMedicineImage(medicine: Medicamento): string | undefined 
 
 export function normalizeMedicine(raw: Partial<Medicamento> & { name_search?: string }): Medicamento {
   const nome = raw.nome || raw.name_search || '';
-  return {
+  const medicine: Medicamento = {
     id: Number(raw.id),
     codigo_barras: raw.codigo_barras || '',
     nome,
@@ -54,6 +56,46 @@ export function normalizeMedicine(raw: Partial<Medicamento> & { name_search?: st
     imagem_motivo_rejeicao: raw.imagem_motivo_rejeicao || null,
     ofertas: Array.isArray(raw.ofertas) ? raw.ofertas : [],
   };
+  normalizedFields.set(medicine, new Set(Object.keys(raw)));
+  return medicine;
+}
+
+function hasUsefulCatalogValue(value: string | null | undefined) {
+  const normalized = normalizeText(value);
+  return Boolean(normalized && !/^(nao informado|indeterminado|pendente|n\/a)(\b|\s*\().*/.test(normalized));
+}
+
+/** Keep richer invariant fields when a response omits them, while refreshing present offers/images. */
+export function mergeCatalogMedicine(existing: Medicamento | undefined, incoming: Medicamento): Medicamento {
+  if (!existing) return incoming;
+  const incomingFields = normalizedFields.get(incoming) ?? new Set<string>();
+  const existingFields = normalizedFields.get(existing) ?? new Set<string>();
+  const merged: Medicamento = { ...existing, ...incoming };
+
+  for (const key of ['codigo_barras', 'principio_ativo', 'laboratorio'] as const) {
+    if (!hasUsefulCatalogValue(incoming[key]) && hasUsefulCatalogValue(existing[key])) {
+      merged[key] = existing[key] as never;
+    }
+  }
+  if (!incoming.nome.trim() && existing.nome.trim()) merged.nome = existing.nome;
+  if (!incoming.name_search?.trim() && existing.name_search?.trim()) merged.name_search = existing.name_search;
+
+  const imageFields = ['imagem_url', 'imagem_urls', 'imagem_ref', 'imagem_fonte', 'imagem_status', 'imagem_motivo_rejeicao'];
+  if (!imageFields.some((field) => incomingFields.has(field))) {
+    for (const field of imageFields as (keyof Medicamento)[]) {
+      if (field in existing) (merged as unknown as Record<string, unknown>)[field] = existing[field];
+    }
+  }
+  if (!incomingFields.has('ofertas')) merged.ofertas = existing.ofertas;
+  if (!incomingFields.has('categorias')) merged.categorias = existing.categorias;
+  for (const field of ['categoria_regulatoria', 'referencia_anvisa', 'exige_receita_confirmada', 'controle_especial', 'classificacao_fonte'] as const) {
+    if (!incomingFields.has(field)) {
+      (merged as unknown as Record<string, unknown>)[field] = existing[field];
+    }
+  }
+
+  normalizedFields.set(merged, new Set([...existingFields, ...incomingFields]));
+  return merged;
 }
 
 function normalizeUnique(values: unknown[]) {

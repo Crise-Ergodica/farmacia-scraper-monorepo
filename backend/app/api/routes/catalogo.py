@@ -13,7 +13,6 @@ from app.models.farmacia import Farmacia
 from app.schemas import CatalogoFiltrosOut, CatalogoPageOut
 from app.schemas.farmacia import FarmaciaOut
 from app.services.catalog_response import with_registry_images
-from app.services.image_registry import resolve_catalog_images
 
 router = APIRouter(prefix="/catalogo", tags=["Catálogo de Produtos"])
 
@@ -29,7 +28,10 @@ def _available_offer_options(farmacia_id: int | None = None):
 @router.get("/farmacias", response_model=list[FarmaciaOut])
 def listar_farmacias(db: Session = Depends(get_db)):
     return (
-        db.execute(select(Farmacia).order_by(Farmacia.nome_fantasia, Farmacia.id))
+        db.execute(
+            select(Farmacia)
+            .order_by(Farmacia.nome_fantasia, Farmacia.id)
+        )
         .scalars()
         .all()
     )
@@ -88,11 +90,11 @@ def redirecionar_imagem_catalogo(medicamento_id: int, db: Session = Depends(get_
     ).scalar_one_or_none()
     if medicamento is None:
         raise HTTPException(status_code=404, detail="Imagem nao encontrada.")
-    image_urls = resolve_catalog_images(medicamento.id, medicamento.ofertas)
-    if not image_urls:
+    image_url = with_registry_images(medicamento).imagem_url
+    if not image_url:
         raise HTTPException(status_code=404, detail="Imagem nao encontrada.")
     return RedirectResponse(
-        image_urls[0],
+        image_url,
         status_code=302,
         headers={"Cache-Control": "public, max-age=3600"},
     )

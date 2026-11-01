@@ -76,7 +76,7 @@ export default function SearchScreen() {
         medicineId: medicine.id,
         medicineName: medicine.nome,
         pharmacyId: offer.farmacia_id,
-        pharmacyName: offer.farmacia_nome || offer.farmacia?.nome_fantasia || `Farmácia ${offer.farmacia_id}`,
+        pharmacyName: `${offer.farmacia_nome || offer.farmacia?.nome_fantasia || `Farmácia ${offer.farmacia_id}`}${offer.contexto_local === 'online_sem_localizacao_confirmada' ? ' — Online' : ''}${offer.cep ? ` — Entrega para ${offer.cidade || 'localidade'}${offer.uf ? `/${offer.uf}` : ''} ${offer.cep}` : ''}${offer.contexto_local === 'retirada_loja_confirmada' ? ` — Retirada · ${offer.loja_nome || offer.loja_id || 'unidade confirmada'}` : ''}`,
         price: Number(offer.preco),
       })))
     .sort((a, b) => {

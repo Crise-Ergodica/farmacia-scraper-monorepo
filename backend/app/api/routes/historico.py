@@ -63,13 +63,29 @@ def get_medicine_history(
     if farmacia_id is not None:
         statement = statement.where(HistoricoPreco.farmacia_id == farmacia_id)
 
-    grouped: dict[int, dict] = {}
+    grouped: dict[tuple[int, str], dict] = {}
     for event, pharmacy_name in db.execute(statement).all():
+        context_key = event.contexto_chave or "global"
+        group_key = (event.farmacia_id, context_key)
+        series_id = (
+            str(event.farmacia_id)
+            if context_key == "global"
+            else f"{event.farmacia_id}:{context_key}"
+        )
         bucket = grouped.setdefault(
-            event.farmacia_id,
+            group_key,
             {
                 "farmacia_id": event.farmacia_id,
                 "pharmacy_name": pharmacy_name,
+                "contexto_chave": context_key,
+                "serie_id": series_id,
+                "contexto_local": event.contexto_local,
+                "canal_venda": event.canal_venda,
+                "cep": event.cep,
+                "cidade": event.cidade,
+                "uf": event.uf,
+                "loja_id": event.loja_id,
+                "loja_nome": event.loja_nome,
                 "history": [],
             },
         )
@@ -80,19 +96,33 @@ def get_medicine_history(
                 oferta_id=event.oferta_id,
                 origem=event.origem,
                 disponivel=event.disponivel,
+                contexto_chave=context_key,
+                canal_venda=event.canal_venda,
+                contexto_local=event.contexto_local,
+                cep=event.cep,
+                cidade=event.cidade,
+                uf=event.uf,
+                loja_id=event.loja_id,
+                loja_nome=event.loja_nome,
+                fonte_observado_em=event.fonte_observado_em,
             )
         )
 
     pharmacies = []
     statistics = {}
-    for pharmacy_id, data in grouped.items():
+    for (_, context_key), data in grouped.items():
         points = data["history"]
         pharmacies.append(PharmacyHistorySchema(**data))
         values = [point.preco for point in points]
         first, last = values[0], values[-1]
         difference = last - first
-        statistics[pharmacy_id] = PharmacyHistoryStatistics(
-            farmacia_id=pharmacy_id,
+        stats_key = (
+            data["farmacia_id"]
+            if context_key == "global"
+            else data["serie_id"]
+        )
+        statistics[stats_key] = PharmacyHistoryStatistics(
+            farmacia_id=data["farmacia_id"],
             menor_preco=min(values),
             maior_preco=max(values),
             preco_medio=(sum(values, Decimal("0")) / len(values)).quantize(
@@ -108,7 +138,9 @@ def get_medicine_history(
             ultima_observacao=points[-1].data_registro,
         )
 
-    pharmacies.sort(key=lambda pharmacy: pharmacy.farmacia_id)
+    pharmacies.sort(
+        key=lambda pharmacy: (pharmacy.farmacia_id, pharmacy.contexto_chave)
+    )
     return MedicineHistoryResponse(
         medicamento_id=medicamento_id,
         pharmacies=pharmacies,

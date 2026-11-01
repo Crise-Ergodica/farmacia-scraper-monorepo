@@ -141,6 +141,34 @@ it('keeps a bounded item cache and requests detail by identifier on demand', asy
   await waitFor(() => expect(result.current.getMedicineById(18)?.id).toBe(18));
 });
 
+it('preserves populated medicine fields when a later response is partial', async () => {
+  const rich = {
+    ...item,
+    codigo_barras: '7891234567895',
+    principio_ativo: 'Paracetamol',
+    laboratorio: 'Laboratório A',
+    ofertas: [{ id: 19, farmacia_id: 1, catalogo_id: 18, preco: 12, quantidade_estoque: 1, disponivel: true, url_origem: 'https://shop.test/item' }],
+  };
+  (api.get as jest.Mock).mockImplementation((url: string) => {
+    if (url.startsWith('/catalogo/filtros')) return Promise.resolve({ data: {} });
+    if (url.startsWith('/catalogo/mais-baratos')) return Promise.resolve({ data: [] });
+    if (url.startsWith('/catalogo/medicamentos/18')) return Promise.resolve({ data: {
+      id: 18, name_search: 'Paracetamol', principio_ativo: '', laboratorio: 'Não informado',
+    } });
+    return Promise.resolve({ data: { total: 1, limit: 20, offset: 0, items: [rich] } });
+  });
+
+  const { result } = await renderHook(() => useCatalogState());
+  await act(async () => { await result.current.loadCatalogPage({}); });
+  let medicine!: Medicamento;
+  await act(async () => { medicine = await result.current.loadMedicineById(18, true); });
+
+  expect(medicine.codigo_barras).toBe('7891234567895');
+  expect(medicine.principio_ativo).toBe('Paracetamol');
+  expect(medicine.laboratorio).toBe('Laboratório A');
+  expect(medicine.ofertas).toHaveLength(1);
+});
+
 it('refreshes an existing detail so changed pharmacy prices are not held by the cache', async () => {
   let currentPrice = 11.06;
   (api.get as jest.Mock).mockImplementation((url: string) => {

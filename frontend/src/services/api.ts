@@ -10,6 +10,7 @@ export const API_URL = resolveApiUrl(
   Platform.OS,
   __DEV__,
   Constants.expoConfig?.hostUri,
+  process.env.EXPO_PUBLIC_ALLOW_INSECURE_LAN_API === 'true',
 );
 export const TOKEN_KEY = 'auth_token';
 

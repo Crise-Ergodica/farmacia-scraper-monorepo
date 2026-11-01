@@ -4,6 +4,7 @@ from hashlib import sha256
 
 import httpx
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -56,10 +57,12 @@ def _register_external_image(
         image_url=url,
         pharmacy_id=pharmacy_id,
         pharmacy=pharmacy,
-        sku="test-sku",
+        sku=offer.sku_interno if offer is not None else "test-sku",
         ean=product.codigo_barras,
         product_id="test-product",
-        product_url="https://shop.example.test/item/p",
+        product_url=(
+            offer.url_origem if offer is not None else "https://shop.example.test/item/p"
+        ),
         catalog_id=product.id,
         offer_id=offer.id if offer is not None else None,
     )
@@ -162,7 +165,7 @@ def test_generic_catalog_image_reference_does_not_depend_on_audit_status():
     assert image_rejection_reason(url)
 
 
-def test_catalog_image_endpoint_requires_same_catalog_sku_or_matching_ean(db):
+def test_catalog_image_endpoint_rejects_generic_art_even_when_sku_matches(db):
     pharmacy = Farmacia(
         cnpj="12345678901234",
         razao_social="Farmacia teste",
@@ -192,14 +195,15 @@ def test_catalog_image_endpoint_requires_same_catalog_sku_or_matching_ean(db):
         product, product.imagem_url, offer=offer, pharmacy="Indiana"
     )
 
-    response = redirecionar_imagem_catalogo(product.id, db)
-    assert response.status_code == 302
-    assert response.headers["location"] == product.imagem_url
+    with pytest.raises(HTTPException) as error:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert error.value.status_code == 404
 
     product.imagem_sku_origem = "IND-OTHER"
     db.flush()
-    response = redirecionar_imagem_catalogo(product.id, db)
-    assert response.status_code == 302  # PostgreSQL image metadata is not consulted.
+    with pytest.raises(HTTPException) as error:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert error.value.status_code == 404
 
 
 def test_catalog_response_uses_external_registry_and_hides_legacy_offer_url(db):
@@ -237,7 +241,47 @@ def test_catalog_response_uses_external_registry_and_hides_legacy_offer_url(db):
     assert result.ofertas[0].imagem_url is None
 
 
-def test_catalog_generic_image_can_match_recorded_araujo_sku_without_offer(db):
+def test_catalog_response_keeps_verified_pack_and_rejects_verified_generic_art(db):
+    ean = "7891234567895"
+    verified_url = (
+        "https://i3-imagens-prd.araujo.com.br/webp/105933/"
+        "7891234567895_1.webp"
+    )
+    verified = CatalogoBase(
+        codigo_barras=ean,
+        name_search="Medicamento com embalagem verificada",
+        imagem_url=verified_url,
+        imagem_fonte="Araujo",
+        imagem_sku_origem="ARJ105933",
+        imagem_ean=ean,
+        imagem_match="ean",
+        imagem_status="verificada",
+    )
+    generic = CatalogoBase(
+        codigo_barras="7896026306751",
+        name_search="Glyxambi 25mg + 5mg",
+        imagem_url=(
+            "https://farmaciaindiana.vteximg.com.br/arquivos/"
+            "7896026306751.jpg"
+        ),
+        imagem_fonte="Indiana",
+        imagem_sku_origem="IND122816",
+        imagem_ean="7896026306751",
+        imagem_match="ean",
+        imagem_status="verificada",
+    )
+    db.add_all([verified, generic])
+    db.flush()
+
+    verified_response = with_registry_images(verified)
+    generic_response = with_registry_images(generic)
+
+    assert verified_response.imagem_urls == [verified_url]
+    assert generic_response.imagem_url is None
+    assert generic_response.imagem_urls == []
+
+
+def test_catalog_generic_araujo_image_is_not_delivered_without_offer(db):
     product = CatalogoBase(
         codigo_barras="7896026307925",
         name_search="Glyxambi 25mg + 5mg",
@@ -254,20 +298,18 @@ def test_catalog_generic_image_can_match_recorded_araujo_sku_without_offer(db):
     db.flush()
 
     _register_external_image(product, product.imagem_url, pharmacy="Araujo")
-    response = redirecionar_imagem_catalogo(product.id, db)
-    assert response.status_code == 302
-    assert response.headers["location"] == product.imagem_url
+    with pytest.raises(HTTPException) as error:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert error.value.status_code == 404
 
     product.imagem_url = product.imagem_url.replace("/7290/", "/7291/")
     db.flush()
-    response = redirecionar_imagem_catalogo(product.id, db)
-    assert response.headers["location"] == (
-        "https://i3-imagens-prd.araujo.com.br/webp/7290/"
-        "128666_7896026306751_1.webp?sw=200&sh=200"
-    )
+    with pytest.raises(HTTPException) as error:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert error.value.status_code == 404
 
 
-def test_catalog_image_can_match_recorded_indiana_sku_without_ean_or_offer(db):
+def test_catalog_image_without_offer_or_ean_is_not_delivered(db):
     product = CatalogoBase(
         name_search="Kit Allegra e Novalgina",
         imagem_url=(
@@ -283,16 +325,16 @@ def test_catalog_image_can_match_recorded_indiana_sku_without_ean_or_offer(db):
     db.flush()
 
     _register_external_image(product, product.imagem_url, pharmacy="Indiana")
-    response = redirecionar_imagem_catalogo(product.id, db)
-    assert response.status_code == 302
-    assert response.headers["location"] == product.imagem_url
+    with pytest.raises(HTTPException) as error:
+        redirecionar_imagem_catalogo(product.id, db)
+    assert error.value.status_code == 404
 
 
 @pytest.mark.parametrize(
     ("url", "catalog_ean", "image_ean", "sku", "match"),
     [
         (
-            "https://farmaciaindiana.vteximg.com.br/arquivos/ids/212425/7896830500147_0.jpg",
+            "https://farmaciaindiana.vteximg.com.br/arquivos/ids/212425/7897406119886_0.jpg",
             "7897406119886",
             "7897406119886",
             "IND13725",
@@ -324,10 +366,14 @@ def test_catalog_image_accepts_recorded_product_ean_or_generic_sku_lineage(
     db.flush()
     _register_external_image(product, url, pharmacy="Indiana")
 
-    response = redirecionar_imagem_catalogo(product.id, db)
-
-    assert response.status_code == 302
-    assert response.headers["location"] == url
+    if not catalog_ean:
+        with pytest.raises(HTTPException) as error:
+            redirecionar_imagem_catalogo(product.id, db)
+        assert error.value.status_code == 404
+    else:
+        response = redirecionar_imagem_catalogo(product.id, db)
+        assert response.status_code == 302
+        assert response.headers["location"] == url
 
 
 def test_scraper_keeps_offer_generic_image_without_requiring_audit_approval():
@@ -404,7 +450,7 @@ def test_vtex_exact_item_accepts_its_generic_image():
         ),
         (
             "7898581711254",
-            "https://www.farmaciasnissei.com.br/media/medicamentos/caixa-medicamento-geral-tarja-vermelha.webp",
+            "https://www.farmaciasnissei.com.br/media/medicamentos/7898581711254.webp",
             "Nissei",
         ),
     ],

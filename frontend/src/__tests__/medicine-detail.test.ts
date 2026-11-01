@@ -64,6 +64,26 @@ it('shows the cheapest valid offer when a pharmacy has duplicate offers', () => 
   expect(getComparableOffers([duplicate, cheapest])).toEqual([cheapest]);
 });
 
+it('keeps offers from separate contexts of one pharmacy in comparison', () => {
+  const online = offer({
+    id: 20,
+    farmacia_id: 4,
+    farmacia_nome: 'Indiana',
+    contexto_chave: 'online',
+    preco: 12,
+  });
+  const delivery = offer({
+    id: 21,
+    farmacia_id: 4,
+    farmacia_nome: 'Indiana',
+    contexto_chave: 'delivery:35160000',
+    cep: '35160000',
+    preco: 14,
+  });
+
+  expect(getComparableOffers([online, delivery])).toHaveLength(2);
+});
+
 it('ignores unavailable or invalid prices without discarding offers that lack a URL', () => {
   const withoutUrl = offer({ id: 4, farmacia_id: 4, preco: 4.25, url_origem: '' });
   expect(getComparableOffers([

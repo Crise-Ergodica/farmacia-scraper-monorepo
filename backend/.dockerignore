@@ -1,7 +1,13 @@
 ﻿.image_audit_state.json
 .image_audit_state.*.tmp
+.env
+.env.*
+.git/
+data/
 reports/
 __pycache__/
+.venv/
+venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

@@ -8,6 +8,7 @@ import {
   fetchFilterOptions,
   fetchMedicine,
   FilterOption,
+  mergeCatalogMedicine,
 } from '../services/catalog';
 import { markMedicineOpenTrace } from '../services/medicineOpenPerformance';
 
@@ -30,15 +31,18 @@ export function useCatalogState() {
 
   const rememberMedicines = useCallback((items: Medicamento[]) => {
     const current = cacheRef.current;
-    items.forEach((item) => {
-      current.delete(item.id);
-      current.set(item.id, item);
+    const remembered = items.map((item) => {
+      const merged = mergeCatalogMedicine(current.get(item.id), item);
+      current.delete(merged.id);
+      current.set(merged.id, merged);
+      return merged;
     });
     while (current.size > CACHE_LIMIT) {
       const oldestId = current.keys().next().value;
       if (oldestId === undefined) break;
       current.delete(oldestId);
     }
+    return remembered;
   }, []);
 
   const loadCatalogPage = useCallback(async (query: CatalogQuery) => {
@@ -46,7 +50,7 @@ export function useCatalogState() {
     const page = await fetchCatalogPage({ ...query, sortBy: query.sortBy ?? 'relevancia' });
     // Ignore stale pages so a slower response from a previous search/filter
     // cannot overwrite the shared medicine cache with older offer data.
-    if (requestSerial === catalogRequestSerial.current) rememberMedicines(page.items);
+    if (requestSerial === catalogRequestSerial.current) page.items = rememberMedicines(page.items);
     return page;
   }, [rememberMedicines]);
 
@@ -60,8 +64,7 @@ export function useCatalogState() {
     markMedicineOpenTrace(id, 'api-request-start');
     const request = fetchMedicine(id).then((medicine) => {
       markMedicineOpenTrace(id, 'api-response');
-      rememberMedicines([medicine]);
-      return medicine;
+      return rememberMedicines([medicine])[0];
     }).catch((error: unknown) => {
       markMedicineOpenTrace(id, 'api-error');
       throw error;
@@ -107,7 +110,7 @@ export function useCatalogState() {
       if (active) { setFilterOptions(options); setOptionsError(false); }
     }).catch(() => { if (active) setOptionsError(true); });
     fetchCheapestMedicines().then((items) => {
-      if (active) { setCheapestMedicines(items); rememberMedicines(items); setCheapestError(false); }
+      if (active) { setCheapestMedicines(rememberMedicines(items)); setCheapestError(false); }
     }).catch(() => { if (active) setCheapestError(true); });
     return () => { active = false; };
   }, [rememberMedicines]);

@@ -1,0 +1,12 @@
+.env
+.env.*
+.git/
+.expo/
+node_modules/
+dist/
+build/
+web-build/
+android/
+ios/
+reports/
+*.log

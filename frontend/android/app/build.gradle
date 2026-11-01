@@ -3,6 +3,55 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+def standaloneApiMode = (findProperty('standaloneApiMode') ?: 'https').toString()
+def standaloneAllowLanHttp = System.getenv('EXPO_PUBLIC_ALLOW_INSECURE_LAN_API') == 'true'
+def standaloneApiValidation = tasks.register('validateStandaloneApiConfig') {
+    doLast {
+        def rawUrl = System.getenv('EXPO_PUBLIC_API_URL')?.trim()
+        if (!rawUrl) {
+            throw new GradleException('Standalone APK requires EXPO_PUBLIC_API_URL.')
+        }
+
+        def apiUri
+        try {
+            apiUri = new java.net.URI(rawUrl)
+        } catch (Exception error) {
+            throw new GradleException('EXPO_PUBLIC_API_URL must be an absolute HTTP(S) URL.')
+        }
+
+        def hostname = apiUri.host?.toLowerCase()
+        def scheme = apiUri.scheme?.toLowerCase()
+        def isLoopback = hostname == 'localhost' || hostname == '::1' || hostname?.startsWith('127.') || hostname == '10.0.2.2'
+        if (!hostname || isLoopback || apiUri.userInfo || apiUri.query || apiUri.fragment) {
+            throw new GradleException('Standalone API URL must have a public/private-network host without credentials, query, or fragment.')
+        }
+
+        def octets = hostname.split('\\.').collect { part -> part.isInteger() ? part.toInteger() : -1 }
+        def privateIpv4 = octets.size() == 4 && octets.every { it >= 0 && it <= 255 } && (
+            octets[0] == 10 ||
+            (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31) ||
+            (octets[0] == 192 && octets[1] == 168)
+        )
+
+        if (standaloneApiMode == 'lan') {
+            if (scheme != 'http' || !privateIpv4 || !standaloneAllowLanHttp) {
+                throw new GradleException('LAN standalone requires a private IPv4 HTTP URL and EXPO_PUBLIC_ALLOW_INSECURE_LAN_API=true.')
+            }
+        } else if (standaloneApiMode == 'https') {
+            if (scheme != 'https' || privateIpv4 || standaloneAllowLanHttp) {
+                throw new GradleException('Standalone HTTPS requires a non-loopback public HTTPS host and EXPO_PUBLIC_ALLOW_INSECURE_LAN_API unset or false.')
+            }
+        } else {
+            throw new GradleException("Unknown standaloneApiMode '${standaloneApiMode}'. Use 'lan' or 'https'.")
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == 'preStandaloneBuild' || name == 'createBundleStandaloneJsAndAssets') {
+        dependsOn(standaloneApiValidation)
+    }
+}
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -119,6 +168,15 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
+        }
+        standalone {
+            initWith release
+            applicationIdSuffix ".standalone"
+            versionNameSuffix "-internal"
+            signingConfig signingConfigs.debug
+            debuggable false
+            manifestPlaceholders = [usesCleartextTraffic: (standaloneApiMode == 'lan').toString()]
+            matchingFallbacks = ["release"]
         }
     }
     packagingOptions {

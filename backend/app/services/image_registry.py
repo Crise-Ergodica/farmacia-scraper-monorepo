@@ -13,6 +13,8 @@ from threading import RLock
 from typing import Any
 from urllib.parse import urljoin, urlsplit
 
+from app.services.imagens import embedded_eans, gtin_matches, is_generic_image_url
+
 _lock = RLock()
 _cached_stat: tuple[str, int, int] | None = None
 _cached_records: list[dict[str, Any]] = []
@@ -228,12 +230,16 @@ def upsert_image_references(references: list[dict[str, Any]]) -> list[bool]:
 
 
 def resolve_catalog_images(
-    catalog_id: int, offers: list[Any] | None = None
+    catalog_id: int,
+    offers: list[Any] | None = None,
+    catalog_ean: str | None = None,
+    require_offer_match: bool = False,
 ) -> list[str]:
-    """Resolve only references whose persisted offer/catalog association matches."""
+    """Resolve offer references with matching identity and non-generic artwork."""
     linked = {
         int(o.id): o for o in (offers or []) if getattr(o, "id", None) is not None
     }
+    linked_offers = list(linked.values())
     linked_pharmacy_ids = {
         int(o.farmacia_id)
         for o in linked.values()
@@ -247,6 +253,42 @@ def resolve_catalog_images(
             continue
         if offer_id is not None and linked and int(offer_id) not in linked:
             continue
+        if require_offer_match:
+            record_pharmacy = record.get("pharmacy_id")
+            record_sku = record.get("sku")
+            if offer_id is not None:
+                offer = linked.get(int(offer_id))
+                if offer is None:
+                    continue
+                if record_pharmacy is not None and int(record_pharmacy) != int(
+                    getattr(offer, "farmacia_id", -1)
+                ):
+                    continue
+                offer_sku = getattr(offer, "sku_interno", None)
+                if record_sku and offer_sku and record_sku != offer_sku:
+                    continue
+            elif linked_offers:
+                same_offer = any(
+                    (
+                        record_pharmacy is None
+                        or record_pharmacy == getattr(offer, "farmacia_id", None)
+                    )
+                    and (
+                        not record_sku
+                        or record_sku == getattr(offer, "sku_interno", None)
+                    )
+                    for offer in linked_offers
+                )
+                if not same_offer:
+                    continue
+            else:
+                record_ean = record.get("ean")
+                if (
+                    not catalog_ean
+                    or not record_ean
+                    or not gtin_matches(catalog_ean, record_ean)
+                ):
+                    continue
         if (
             offer_id is None
             and linked_pharmacy_ids
@@ -255,8 +297,19 @@ def resolve_catalog_images(
         ):
             continue
         url = normalize_image_url(record.get("image_url"), record.get("product_url"))
-        if url and url not in found:
-            found.append(url)
+        if not url or url in found or is_generic_image_url(url):
+            continue
+
+        record_ean = record.get("ean")
+        if catalog_ean and record_ean and not gtin_matches(catalog_ean, record_ean):
+            continue
+        image_eans = embedded_eans(url)
+        if image_eans and (
+            not catalog_ean
+            or not all(gtin_matches(catalog_ean, image_ean) for image_ean in image_eans)
+        ):
+            continue
+        found.append(url)
     return found
 
 

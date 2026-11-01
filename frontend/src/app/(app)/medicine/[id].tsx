@@ -45,7 +45,7 @@ export function getComparableOffers(offers: Oferta[] = []) {
 
     const pharmacyName = getPharmacyName(offer as OfertaComExtras).trim();
     const pharmacyKey = offer.farmacia_id
-      ? `id:${offer.farmacia_id}`
+      ? `id:${offer.farmacia_id}:${offer.contexto_chave || 'global'}`
       : `name:${pharmacyName.toLocaleLowerCase()}`;
     const current = cheapestByPharmacy.get(pharmacyKey);
     if (!current || price < getOfferPrice(current)) cheapestByPharmacy.set(pharmacyKey, offer);
@@ -258,7 +258,7 @@ export default function MedicineDetailScreen() {
                   {lowest ? <Text style={[styles.price, isDesktop && styles.priceDesktop]}>{formatPrice(lowestPrice)}</Text> : null}
                   <Text style={styles.lowestStoreText}>
                     {lowest
-                      ? `Menor pre\u00e7o em ${getPharmacyName(lowest as OfertaComExtras)}`
+                      ? `Menor pre\u00e7o em ${getPharmacyName(lowest as OfertaComExtras)}${lowest.contexto_local === 'online_sem_localizacao_confirmada' ? ' — Online' : ''}${lowest.cep ? ` — Entrega para ${lowest.cidade || 'localidade'}${lowest.uf ? `/${lowest.uf}` : ''} (${lowest.cep})` : ''}${lowest.contexto_local === 'retirada_loja_confirmada' ? ` — Retirada · ${lowest.loja_nome || lowest.loja_id || 'unidade confirmada'}` : ''}`
                       : 'Nenhuma oferta dispon\u00edvel'}
                   </Text>
                   {loadingMedicine ? <Text style={styles.refreshStatus}>Atualizando ofertas...</Text> : null}
@@ -335,7 +335,7 @@ export default function MedicineDetailScreen() {
               {offers.map((offer, index) => {
                 const pharmacyName = getPharmacyName(offer as OfertaComExtras);
                 const offerUrl = normalizeOfferUrl(offer.url_origem);
-                const updatedAt = offer.atualizado_em;
+                const updatedAt = offer.observado_em || offer.atualizado_em;
                 const updatedDate = updatedAt ? new Date(updatedAt) : null;
                 const formattedDate = updatedDate && !Number.isNaN(updatedDate.getTime())
                   ? updatedDate.toLocaleDateString('pt-BR')
@@ -351,6 +351,13 @@ export default function MedicineDetailScreen() {
                           {isLowest ? <Text style={styles.bestPriceBadge}>Menor preço</Text> : null}
                         </View>
                         <Text style={styles.offerPrice}>{formatPrice(getOfferPrice(offer))}</Text>
+                        {offer.canal_venda || offer.cep ? (
+                          <Text style={styles.offerUpdated}>
+                            {offer.contexto_local === 'online_sem_localizacao_confirmada' ? 'Online' : offer.canal_venda === 'delivery' ? 'Entrega' : offer.canal_venda}
+                            {offer.cep ? ` para ${offer.cidade || 'localidade'}${offer.uf ? `/${offer.uf}` : ''} · ${offer.cep}` : ''}
+                            {offer.contexto_local === 'retirada_loja_confirmada' ? ` · ${offer.loja_nome || offer.loja_id || 'unidade confirmada'}` : ''}
+                          </Text>
+                        ) : null}
                         {formattedDate ? <Text style={styles.offerUpdated}>Atualizado em {formattedDate}</Text> : null}
                       </View>
                     </View>

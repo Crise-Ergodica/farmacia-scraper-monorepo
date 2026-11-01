@@ -9,6 +9,15 @@ function isLoopback(hostname: string) {
   return host === 'localhost' || host === '::1' || host.startsWith('127.');
 }
 
+function isPrivateIpv4(hostname: string) {
+  const octets = hostname.split('.').map(Number);
+  return octets.length === 4 && octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255) && (
+    octets[0] === 10 ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
+}
+
 function getLanHost(hostUri?: string) {
   if (!hostUri) return undefined;
   try {
@@ -35,6 +44,7 @@ export function resolveApiUrl(
   platform: PlatformName,
   isDevelopment: boolean,
   packagerHostUri?: string,
+  allowInsecureLanApi = false,
 ) {
   let candidate = configuredUrl?.trim();
   const lanHost = getLanHost(packagerHostUri);
@@ -48,7 +58,13 @@ export function resolveApiUrl(
   try {
     const url = new URL(candidate);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
-    if (!isDevelopment && (url.protocol !== 'https:' || isLoopback(url.hostname))) return '';
+    if (url.username || url.password || url.search || url.hash) return '';
+    if (!isDevelopment) {
+      const internalLanHttp = allowInsecureLanApi && platform === 'android' &&
+        url.protocol === 'http:' && isPrivateIpv4(url.hostname) &&
+        url.hostname !== ANDROID_EMULATOR_HOST;
+      if ((!internalLanHttp && url.protocol !== 'https:') || isLoopback(url.hostname)) return '';
+    }
 
     if (isDevelopment && isLoopback(url.hostname)) {
       if (lanHost) {

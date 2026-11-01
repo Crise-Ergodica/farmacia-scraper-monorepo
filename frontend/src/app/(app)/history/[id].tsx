@@ -29,6 +29,7 @@ import { api } from '../../../services/api';
 import {
   getHistoryPharmacyOptions,
   getVisibleHistorySeries,
+  formatPharmacyHistoryLabel,
   toggleHistoryPharmacy,
 } from '../../../services/historySeries';
 
@@ -234,10 +235,13 @@ export default function HistoryScreen() {
 
       try {
         const response = await api.get(`/api/v1/medicines/${medicineId}/history?periodo=${period}`);
-        const data = response.data as { pharmacies?: { farmacia_id: number; pharmacy_name?: string; history: { data_registro: string; preco: number }[] }[]; statistics?: Record<string, { menor_preco: number; maior_preco: number; preco_medio: number; variacao_percentual: number | null }>; total_observacoes?: number };
+        const data = response.data as { pharmacies?: { farmacia_id: number; pharmacy_name?: string; contexto_chave?: string; serie_id?: string; history: { data_registro: string; preco: number; contexto_local?: string | null; cep?: string | null; cidade?: string | null; uf?: string | null; loja_id?: string | null; loja_nome?: string | null }[] }[]; statistics?: Record<string, { menor_preco: number; maior_preco: number; preco_medio: number; variacao_percentual: number | null }>; total_observacoes?: number };
         const normalized = (data.pharmacies || []).map((item) => ({
-          key: String(item.farmacia_id),
-          label: item.pharmacy_name || `Farm\u00e1cia ${item.farmacia_id}`,
+          key: item.serie_id || String(item.farmacia_id),
+          label: formatPharmacyHistoryLabel(
+            item.pharmacy_name || `Farm\u00e1cia ${item.farmacia_id}`,
+            item.history.at(-1),
+          ),
           color: getPharmacyColor(item.farmacia_id),
           history: item.history.map((point) => ({
             timestamp: point.data_registro,
@@ -329,7 +333,9 @@ export default function HistoryScreen() {
           </Text>
 
           <Text numberOfLines={1} style={styles.heroPharmacy}>
-            {lowestOffer ? getPharmacyName(lowestOffer) : 'Nenhuma farmácia disponível'}
+            {lowestOffer
+              ? formatPharmacyHistoryLabel(getPharmacyName(lowestOffer), lowestOffer)
+              : 'Nenhuma farmácia disponível'}
           </Text>
         </View>
       </View>
@@ -357,7 +363,7 @@ export default function HistoryScreen() {
                 />
 
                 <Text numberOfLines={1} style={styles.summaryPharmacy}>
-                  {getPharmacyName(offer)}
+                  {formatPharmacyHistoryLabel(getPharmacyName(offer), offer)}
                 </Text>
               </View>
 
@@ -490,7 +496,7 @@ export default function HistoryScreen() {
                 key={offer.id || `${offer.farmacia_id}-${index}`}
                 medicine={medicine}
                 medicineName={medicine.nome}
-                pharmacy={getPharmacyName(offer)}
+                pharmacy={formatPharmacyHistoryLabel(getPharmacyName(offer), offer)}
                 price={offer.preco}
                 color={getPharmacyColor(offer.farmacia_id)}
                 onPress={() => {

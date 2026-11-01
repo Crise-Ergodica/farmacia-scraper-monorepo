@@ -1,6 +1,7 @@
 import {
   getHistoryPharmacyOptions,
   getVisibleHistorySeries,
+  formatPharmacyHistoryLabel,
   toggleHistoryPharmacy,
 } from '../services/historySeries';
 
@@ -50,4 +51,29 @@ it('keeps current pharmacies selectable without inventing history points', () =>
   ]);
   expect(toggleHistoryPharmacy(null, 1, options)).toEqual([1]);
   expect(getVisibleHistorySeries(historical, [1])).toEqual([]);
+});
+
+it('filters location-specific history series by their pharmacy id', () => {
+  const locationSeries = [
+    { key: '4:delivery:35160000', label: 'Entrega · 35160000' },
+    { key: '4:delivery:35161000', label: 'Entrega · 35161000' },
+  ];
+
+  expect(getVisibleHistorySeries(locationSeries, [4])).toEqual(locationSeries);
+  expect(getVisibleHistorySeries(locationSeries, [2])).toEqual([]);
+});
+
+it('puts each sale context before the pharmacy name so compact labels remain distinct', () => {
+  expect(formatPharmacyHistoryLabel('Indiana', {
+    contexto_local: 'online_sem_localizacao_confirmada',
+  })).toBe('Online · Indiana');
+  expect(formatPharmacyHistoryLabel('Araújo', {
+    contexto_local: 'online_cep_confirmado',
+    cep: '35160000',
+    cidade: 'Ipatinga',
+    uf: 'MG',
+  })).toBe('Entrega Ipatinga/MG · 35160000 · Araújo');
+  expect(formatPharmacyHistoryLabel('Pacheco', {
+    contexto_local: 'retirada_loja_confirmada',
+  })).toBe('Retirada em unidade · Pacheco');
 });
