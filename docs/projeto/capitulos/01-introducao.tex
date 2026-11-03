@@ -1,2 +1,13 @@
-\chapter{Introdução}
-\chapter{Metodologia}
+\chapter{Introdução}\label{cap:introducao}
+
+O projeto ``Preço Bão'' propõe uma plataforma móvel e web para pesquisa, comparação e acompanhamento de preços de medicamentos e produtos de farmácia. A proposta reúne ofertas de fontes públicas em um catálogo centralizado, permitindo consultar preços e acompanhar produtos de interesse. A informação coletada representa uma observação da fonte; não confirma disponibilidade física nem substitui a consulta ao estabelecimento.
+
+O objetivo desta documentação é apresentar a especificação e os artefatos de projeto e confrontá-los com a implementação presente no repositório. São mantidos os identificadores RF01--RF08 e RNF01--RNF11, inclusive quando descrevem metas ainda não demonstradas. A existência de um componente no código não equivale à comprovação de seu funcionamento em produção.
+
+\section{Contexto e procedimento de análise documental}
+
+O repositório separa a API em Python/FastAPI, o aplicativo React Native/Expo e os recursos de configuração do ambiente. A análise documental utiliza os fontes LaTeX existentes, os modelos SQLAlchemy, os contratos Pydantic, as rotas da API, os serviços de coleta e as configurações versionadas como evidência da estrutura técnica. O dicionário de dados é derivado dos metadados ORM para PostgreSQL e confrontado com a cadeia de migrações disponível. Esse procedimento descreve a conferência dos artefatos e não caracteriza, por inferência, o método de pesquisa ou o processo histórico adotado pela equipe.
+
+Os casos de teste são apresentados como planejamento, com seus estados pendentes preservados. Testes automatizados e relatórios técnicos existentes são fontes distintas do plano acadêmico: sua presença não autoriza atribuir execução, participação individual ou cumprimento de atividades letivas sem o registro correspondente.
+
+O Capítulo \ref{cap:desenvolvimento} apresenta minimundo, requisitos, modelagem, banco de dados, interfaces e plano de testes. O Capítulo \ref{cap:configuracao_manutencao} reúne as respostas documentadas das Práticas 1 e 2 do oitavo período, com alternativas de manutenção, classificação de demandas, backlog e plano coletivo de ação. Esses produtos constituem análise e planejamento; não se atribui execução às propostas. A conclusão sintetiza os componentes identificados e as limitações de validação. A atribuição de artefatos a períodos letivos requer os respectivos enunciados e registros acadêmicos.

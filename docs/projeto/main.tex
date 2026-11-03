@@ -16,11 +16,17 @@
 % --- PACOTES GERAIS ---
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
+\usepackage{iftex}
+\ifPDFTeX\usepackage[utf8]{inputenc}\fi
 \usepackage{indentfirst}
 \usepackage{graphicx}
 \usepackage{float}
-\usepackage[alf]{abntex2cite}
+\usepackage{longtable}
+\usepackage{xltabular}
+\usepackage{rotating}
+\usepackage{placeins}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\usepackage[alf,abnt-emphasize=bf]{abntex2cite}
 
 % --- CONFIGURAÇÃO DO AMBIENTE QUADRO ---
 \newcommand{\quadroname}{Quadro}
@@ -43,13 +49,12 @@
 \renewcommand*{\cftquadroaftersnum}{\hfill--\hfill}
 
 % --- IMPORTA SEUS ESTILOS PERSONALIZADOS ---
-% Substitua pelos caminhos reais dos seus arquivos de estilo (.sty), caso possua.
 \usepackage{styles/code-style} 
 \usepackage{styles/mylib-style}
 
 % --- DADOS DA CAPA ---
 \titulo{Especificação e Projeto de Software: \\ Plataforma ``Preço Bão''}
-\autor{Aurora Drumond Costa Magalhães \and Ana Clara de Souza \and Kayke Wellington}
+\autor{Aurora Drumond Costa Magalhães \\ Ana Clara de Souza \\ Kayke Wellington Ribeiro Santos}
 \local{Timóteo - MG}
 \data{2026}
 
@@ -68,34 +73,34 @@
 \begin{document}
 
 % Elementos Pré-Textuais
+\hypersetup{pageanchor=false}
 \imprimircapa
+\hypersetup{pageanchor=true}
 \imprimirfolhaderosto
 
 % Resumo (Pode ser movido para um arquivo chapters/00-resumos.tex se quiser)
 \setlength{\absparsep}{18pt} % Ajusta o espaçamento dos parágrafos do resumo
 \begin{resumo}
-O presente trabalho documenta a especificação, a modelagem e a arquitetura do projeto ``Preço Bão'', uma plataforma computacional (aplicativo móvel e \textit{web}) voltada para a pesquisa, comparação e monitoramento de preços de medicamentos e produtos de farmácia. Motivada pela volatilidade dos valores no varejo farmacêutico e pela dificuldade de pesquisa física, a solução propõe um sistema alimentado por rotinas automatizadas e resilientes de extração de dados (\textit{web scraping}), construindo um catálogo centralizado. O escopo do documento abrange todas as fases de planejamento da Engenharia de Software. Inicialmente, são definidos o minimundo e o levantamento de requisitos funcionais e não funcionais, garantindo neutralidade algorítmica na busca, cálculo espacial de distância geolocalizada e rigoroso controle de privacidade adequado à LGPD. Em seguida, o projeto aprofunda-se na modelagem comportamental (Diagramas de Casos de Uso), no projeto de banco de dados (modelagem conceitual e lógica em PostgreSQL) e no \textit{design} estrutural e de interface. A arquitetura definida adota o padrão de \textit{monorepo}, provisionamento em contêineres, \textit{pipelines} de CI/CD, \textit{backend} assíncrono em Python (FastAPI) e \textit{frontend} multiplataforma em React Native. Como resultado, o trabalho entrega um planejamento arquitetural detalhado, robusto e escalável, preparando o sistema para a implementação codificada e garantindo uma ferramenta de alto impacto para o consumidor final.
-
-\vspace{\onelineskip}
+O presente trabalho documenta a especificação e o projeto da plataforma ``Preço Bão'', destinada à pesquisa, comparação e acompanhamento de preços de medicamentos e produtos de farmácia. O objetivo é relacionar os requisitos do sistema aos artefatos de modelagem, persistência, interface e planejamento de testes. O procedimento de consolidação consiste na leitura dos documentos existentes e na conferência de modelos, contratos de dados, rotas, serviços e configurações do repositório, distinguindo funcionalidades previstas de componentes presentes no código. A implementação examinada organiza um backend FastAPI e um frontend React Native com Expo em um monorepo, com persistência PostgreSQL e coleta de ofertas em fontes públicas. O documento apresenta minimundo, requisitos funcionais e não funcionais, casos de uso, classes, diagrama entidade-relacionamento, dicionário de dados, protótipo de interface e plano de testes. As Práticas 1 e 2 do oitavo período acrescentam análise de riscos de manutenção, alternativas de intervenção, backlog e plano coletivo de sincronização de favoritos, registrados como propostas. A conferência identifica componentes de autenticação, favoritos, catálogo e histórico, além de limitações em recuperação de senha, geolocalização, retenção de dados e automação de qualidade. Os casos do plano permanecem pendentes, sem atribuição de resultados de execução. Conclui-se que a documentação deve preservar os objetivos aprovados e explicitar as diferenças entre planejamento e implementação, sem tomar a existência do código como comprovação de validação operacional ou de conformidade normativa.
+\par\vspace{\onelineskip}
 \noindent
-\textbf{Palavras-chave:} Engenharia de Software. Especificação de Requisitos. \textit{Web Scraping}. Modelagem de Sistemas. Arquitetura de \textit{Software}.
+\textbf{Palavras-chave:} engenharia de software; especificação de requisitos; \textit{web scraping}; modelagem de sistemas; arquitetura de \textit{software}.
 \end{resumo}
 
 % Abstract
 \begin{resumo}[Abstract]
 \begin{otherlanguage*}{english}
-This paper documents the specification, modeling, and architecture of the ``Preço Bão'' project, a computational platform (mobile and web application) aimed at searching, comparing, and monitoring prices of medicines and pharmacy products. Driven by the price volatility in pharmaceutical retail and the challenge of physical searching, the solution proposes a system powered by automated and resilient data extraction routines (\textit{web scraping}) to build a centralized catalog. The document's scope covers all planning phases of Software Engineering. Initially, the domain and the elicitation of functional and non-functional requirements are defined, ensuring algorithmic neutrality in searches, spatial calculation of geolocated distance, and strict privacy controls compliant with data protection laws. Subsequently, the project delves into behavioral modeling (Use Case Diagrams), database design (conceptual and logical modeling in PostgreSQL), and structural and interface design. The defined architecture adopts a monorepo pattern, container provisioning, CI/CD pipelines, an asynchronous Python backend (FastAPI), and a cross-platform React Native frontend. As a result, the work delivers a detailed, robust, and scalable architectural plan, preparing the system for coding implementation and ensuring a high-impact tool for the end consumer.
-
-\vspace{\onelineskip}
+This work documents the specification and design of the ``Preço Bão'' platform, intended for searching, comparing, and tracking prices of medicines and pharmacy products. Its objective is to relate system requirements to modeling, persistence, interface, and test planning artifacts. The consolidation procedure consists of reading existing documents and examining models, data contracts, routes, services, and repository configurations, distinguishing planned features from components present in the code. The implementation examined organizes a FastAPI backend and a React Native frontend with Expo in a monorepo, with PostgreSQL persistence and offer collection from public sources. The document presents the domain description, functional and nonfunctional requirements, use cases, classes, entity-relationship diagram, data dictionary, interface prototype, and test plan. Practices 1 and 2 from the eighth academic term add maintenance risk analysis, intervention alternatives, a backlog, and a collective favorites synchronization plan, recorded as proposals. The examination identifies authentication, favorites, catalog, and history components, as well as limitations in password recovery, geolocation, data retention, and quality automation. Test plan cases remain pending, with no execution results attributed to them. The work concludes that documentation should preserve approved objectives and explain the differences between planning and implementation, without treating the existence of code as evidence of operational validation or regulatory compliance.
+\par\vspace{\onelineskip}
 \noindent
-\textbf{Keywords:} Software Engineering. Requirements Specification. Web Scraping. Systems Modeling. Software Architecture.
+\textbf{Keywords:} software engineering; requirements specification; web scraping; systems modeling; software architecture.
 \end{otherlanguage*}
 \end{resumo}
 
 % Listas
-% \pdfbookmark[0]{\listfigurename}{lof}
-% \listoffigures*
-% \cleardoublepage
+\pdfbookmark[0]{\listfigurename}{lof}
+\listoffigures*
+\cleardoublepage
 
 % \pdfbookmark[0]{\lstlistlistingname}{lol}
 % \lstlistoflistings
@@ -106,7 +111,7 @@ This paper documents the specification, modeling, and architecture of the ``Pre�
 \cleardoublepage
 
 \pdfbookmark[0]{\contentsname}{toc}
-\tableofcontents
+\tableofcontents*
 \cleardoublepage
 
 % --------------------------------------------------------
@@ -116,8 +121,13 @@ This paper documents the specification, modeling, and architecture of the ``Pre�
 
 % Aqui acontece a mágica: você chama os arquivos externos
 
-%\include{capitulos/01-introducao}
-\include{capitulos/02-desenvolvimento}
-% \include{capitulos/03-conclusao}
+\input{capitulos/01-introducao}
+\input{capitulos/02-desenvolvimento}
+\input{capitulos/configuracao-manutencao}
+\input{capitulos/03-conclusao}
+
+\postextual
+\bibliographystyle{abntex2-alf}
+\bibliography{references}
 
 \end{document}

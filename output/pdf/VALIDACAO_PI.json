@@ -1,0 +1,64 @@
+{
+  "estado": "Aguardando resposta",
+  "data": "2026-11-03",
+  "timezone": "America/Sao_Paulo",
+  "pdf": "output/pdf/preco-bao-revisao-parcial.pdf",
+  "sha256": "6792e44477bd038693cd3ee76246289974a14972ffa06c849ffaa8166679b346",
+  "paginas_fisicas": 47,
+  "paginas_impressas_finais": 46,
+  "inspecao_visual": "47 páginas renderizadas e inspecionadas. Após correções finais, físicas 3, 9, 38, 39, 41 e 47 reinspecionadas; as outras 41 são pixel a pixel idênticas à primeira renderização já inspecionada nesta rodada. Sem páginas vazias, cortes, colisões ou quadros sem identificação.",
+  "tabelas_orm": 8,
+  "colunas_orm": 80,
+  "aplicacao_alterada": false,
+  "pendencias": [
+    "Demais dados institucionais e natureza não confirmados",
+    "Orientações originais/modelo institucional aplicável e textos normativos pertinentes",
+    "Entregas por período, inclusive 6º",
+    "Diários autênticos",
+    "Diagnóstico inicial ausente"
+  ],
+  "git_head_inicial": "3a69fac6785e80126394606da9daf80a38e927b4",
+  "integrantes_confirmados": [
+    "Kayke Wellington Ribeiro Santos",
+    "Ana Clara de Souza",
+    "Aurora Drumond Costa Magalhães"
+  ],
+  "titulo_confirmado": "Especificação e Projeto de Software: Plataforma “Preço Bão”",
+  "praticas_integradas": [
+    {
+      "pratica": 1,
+      "secao": "3.1",
+      "paginas_impressas": [
+        37,
+        40
+      ],
+      "fonte": "docs/projeto/fontes-academicas/pratica-01-preenchida.docx",
+      "produto": "Análise, alternativas e estimativas propostas"
+    },
+    {
+      "pratica": 2,
+      "secao": "3.2",
+      "paginas_impressas": [
+        40,
+        44
+      ],
+      "fonte": "docs/projeto/fontes-academicas/pratica-02-preenchida.pdf",
+      "produto": "Classificação, backlog, plano coletivo M-01, sprints planejadas e reflexão"
+    }
+  ],
+  "decisao_plano_coletivo": "Confirmada expressamente pelo usuário: Use o plano coletivo. Sem atribuição individual ou autorização da professora inferida.",
+  "fontes_academicas_manifesto": "docs/projeto/fontes-academicas/PROVENIENCIA.json",
+  "quadros": 27,
+  "referencias_impressas": 5,
+  "avisos_remanescentes": [
+    "Underfull hbox badness 1817 na folha de rosto; página inspecionada e texto integral"
+  ],
+  "escopo_praticas_confirmado": {
+    "praticas_exigidas": [
+      1,
+      2
+    ],
+    "correcao_do_usuario": "Não tiveram atividades 3, 4 e 5.",
+    "pendencia_praticas_adicionais": false
+  }
+}

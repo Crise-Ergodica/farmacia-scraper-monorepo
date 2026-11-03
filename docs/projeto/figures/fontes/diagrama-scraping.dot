@@ -1,0 +1,10 @@
+digraph G {
+ graph [rankdir=BT, bgcolor=white, nodesep=0.4];
+ node [shape=record,fontname="Helvetica",fontsize=12];
+ edge [fontname="Helvetica",fontsize=10];
+ Base [label="{«abstract» BasePharmacyScraper|fila; num_workers; batch_size|extrair_catalogo() [abstrato]\l_worker()\l_processar_e_salvar_lote()\lexecutar_com_backoff()\lrun()\l}"];
+ A [label="{AraujoScraper|extrair_catalogo()\ladaptar_parser_araujo_html()\l}"];
+ P [label="{PachecoScraper|extrair_catalogo()\l_adaptar_resposta_api()\l_extrair_produto()\l}"];
+ I [label="{«módulo funcional» indiana.py|extrair_todos_produtos()\ladaptar_parser_rest()\lsalvar_no_banco()\l}"];
+ A -> Base [arrowhead=empty]; P -> Base [arrowhead=empty];
+}

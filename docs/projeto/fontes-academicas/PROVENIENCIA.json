@@ -1,0 +1,26 @@
+{
+  "recebimento": "2026-11-03",
+  "data_das_atividades": "não informada; campos em branco",
+  "fontes": [
+    {
+      "arquivo": "pratica-01-preenchida.docx",
+      "original": "/home/aurora/Downloads/Atividade_Prática_01_Preenchida_Preço_Bão (1).docx",
+      "atividade": "Prática 1",
+      "localizacao": "capitulos/configuracao-manutencao.tex, seção sec:pratica01",
+      "paginas_renderizadas": 4,
+      "sha256": "803233ebe733106d2c58d219f69be30f0b89bc3e9237fa9f731332286bee0b50",
+      "bytes": 207793
+    },
+    {
+      "arquivo": "pratica-02-preenchida.pdf",
+      "original": "/home/aurora/Downloads/DOC-20260819-WA0006 (1).pdf",
+      "atividade": "Prática 2",
+      "localizacao": "capitulos/configuracao-manutencao.tex, seção sec:pratica02",
+      "paginas_fisicas": 8,
+      "sha256": "f5b8b182fb2874801c2c4432ff5e1b36ef9103cfc398a11522fb715b89c06de9",
+      "bytes": 314982
+    }
+  ],
+  "decisao_do_usuario": "Usar o plano coletivo da Etapa 4 da Prática 2. Não equivale a autorização declarada da professora ou a análises individuais.",
+  "limites": "Fichas preenchidas sustentam análises e propostas, não execução, apresentação em aula ou postagem no AVA."
+}

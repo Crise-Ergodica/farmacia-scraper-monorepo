@@ -1,0 +1,173 @@
+% Gerado por scripts/gerar_artefatos.py; não editar manualmente.
+\begingroup\def\LTcaptype{quadro}
+\subsection{Dicionário de dados}\label{sec:dicionario}
+A descrição representa os metadados ORM do checkout revisado, compilados para PostgreSQL. Nulo indica se a coluna admite SQL NULL; PK é chave primária e FK é chave estrangeira. Padrões Python são aplicados pela aplicação e não equivalem a padrões SQL. Não há consulta a um banco em execução.
+\subsubsection{anvisa\_medicamentos}\label{dic:anvisa_medicamentos}
+Base local de consulta oficial; cruzamento por EAN na aplicação, sem FK para o catálogo.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: anvisa\_medicamentos}\label{qua:dic-anvisa_medicamentos}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{id} & INTEGER / não & Identificador do registro. PK. \\\hline
+\ident{ean} & VARCHAR(14) / não & Código EAN da base oficial. único. \\\hline
+\ident{principio_ativo} & VARCHAR / sim & Princípio ativo informado pela fonte. \\\hline
+\ident{laboratorio} & VARCHAR / sim & Laboratório informado. \\\hline
+\ident{tarja} & VARCHAR / sim & Classificação de tarja informada. \\\hline
+\ident{registro_anvisa} & VARCHAR(20) / sim & Identificador de registro na Anvisa. \\\hline
+\ident{categoria_regulatoria} & VARCHAR(40) / sim & Categoria regulatória identificada na fonte. \\\hline
+\ident{status_registro} & VARCHAR(40) / sim & Situação do registro na fonte. \\\hline
+\ident{referencia_anvisa} & BOOLEAN / sim & Indicador de medicamento de referência. \\\hline
+\ident{exige_receita_confirmada} & BOOLEAN / sim & Exigência de receita confirmada na fonte. \\\hline
+\ident{controle_especial} & BOOLEAN / sim & Indicador de controle especial. \\\hline
+\ident{fonte_classificacao} & VARCHAR(120) / sim & Procedência da classificação oficial. \\\hline
+\ident{atualizado_fonte_em} & DATE / sim & Data de atualização informada pela fonte. \\\hline
+\end{longtable}\endgroup
+\subsubsection{catalogo\_base}\label{dic:catalogo_base}
+Identidade e classificação dos produtos e referências de imagens.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: catalogo\_base}\label{qua:dic-catalogo_base}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{id} & INTEGER / não & Identificador do registro. PK. \\\hline
+\ident{codigo_barras} & VARCHAR(14) / sim & EAN/GTIN do item; pode estar ausente. único. \\\hline
+\ident{name_search} & VARCHAR(150) / não & Nome utilizado nas pesquisas. \\\hline
+\ident{principio_ativo} & VARCHAR(500) / não & Princípio ativo informado pela fonte. padrão Python: \ident{Não informado}. \\\hline
+\ident{laboratorio} & VARCHAR(100) / não & Laboratório informado. padrão Python: \ident{Não informado}. \\\hline
+\ident{exige_receita} & BOOLEAN / não & Indicador legado de exigência de receita. padrão Python: \ident{False}. \\\hline
+\ident{categoria_regulatoria} & VARCHAR(40) / sim & Categoria regulatória identificada na fonte. \\\hline
+\ident{referencia_anvisa} & BOOLEAN / sim & Indicador de medicamento de referência. \\\hline
+\ident{exige_receita_confirmada} & BOOLEAN / sim & Exigência de receita confirmada na fonte. \\\hline
+\ident{controle_especial} & BOOLEAN / sim & Indicador de controle especial. \\\hline
+\ident{classificacao_fonte} & VARCHAR(80) / sim & Procedência da classificação. \\\hline
+\ident{categorias} & VARCHAR[] / não & Lista de categorias do catálogo. padrão Python: \ident{list}. \\\hline
+\ident{imagem_url} & VARCHAR(500) / sim & Referência externa da imagem; não armazena a fotografia. \\\hline
+\ident{imagem_fonte} & VARCHAR(40) / sim & Origem da referência de imagem. \\\hline
+\ident{imagem_sku_origem} & VARCHAR(80) / sim & SKU que sustenta a associação da imagem. \\\hline
+\ident{imagem_ean} & VARCHAR(14) / sim & EAN usado como evidência da imagem. \\\hline
+\ident{imagem_match} & VARCHAR(24) / sim & Tipo de correspondência de identidade. \\\hline
+\ident{imagem_status} & VARCHAR(20) / sim & Estado de verificação da referência. \\\hline
+\ident{imagem_atualizada_em} & timestamp com fuso / sim & Instante de alteração da referência. \\\hline
+\ident{imagem_verificada_em} & timestamp com fuso / sim & Última validação bem-sucedida. \\\hline
+\ident{imagem_ultima_verificacao_em} & timestamp com fuso / sim & Instante da última tentativa de validação. \\\hline
+\ident{imagem_falhas_consecutivas} & INTEGER / não & Contador de falhas seguidas. padrão SQL: \ident{0}; padrão Python: \ident{0}. \\\hline
+\ident{imagem_ultima_falha} & TEXT / sim & Descrição da falha recente. \\\hline
+\ident{imagem_motivo_rejeicao} & TEXT / sim & Motivo de rejeição da referência. \\\hline
+\ident{criado_em} & timestamp com fuso / não & Instante de criação. padrão SQL: \ident{now()}. \\\hline
+\ident{atualizado_em} & timestamp com fuso / sim & Instante da última atualização; ORM preenche ao alterar. \\\hline
+\end{longtable}\endgroup
+\subsubsection{farmacias}\label{dic:farmacias}
+Cadastro dos estabelecimentos e coordenadas.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: farmacias}\label{qua:dic-farmacias}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{id} & INTEGER / não & Identificador do registro. PK. \\\hline
+\ident{cnpj} & VARCHAR(14) / não & CNPJ da farmácia. único. \\\hline
+\ident{razao_social} & VARCHAR(150) / não & Razão social cadastrada. \\\hline
+\ident{nome_fantasia} & VARCHAR(100) / não & Nome comercial da farmácia. \\\hline
+\ident{telefone} & VARCHAR(20) / sim & Contato telefônico. \\\hline
+\ident{endereco_completo} & VARCHAR(255) / não & Endereço cadastrado. \\\hline
+\ident{latitude} & NUMERIC(9, 6) / sim & Latitude do estabelecimento. \\\hline
+\ident{longitude} & NUMERIC(10, 6) / sim & Longitude do estabelecimento. \\\hline
+\ident{criado_em} & timestamp com fuso / não & Instante de criação. padrão SQL: \ident{now()}. \\\hline
+\ident{atualizado_em} & timestamp com fuso / sim & Instante da última atualização; ORM preenche ao alterar. \\\hline
+\end{longtable}\endgroup
+\subsubsection{usuario}\label{dic:usuario}
+Conta; nome é declarado localmente e os demais campos são herdados de SQLAlchemyBaseUserTableUUID.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: usuario}\label{qua:dic-usuario}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{nome} & VARCHAR(100) / não & Nome cadastrado do usuário. \\\hline
+\ident{id} & UUID / não & Identificador do registro. PK; padrão Python: \ident{uuid4}. \\\hline
+\ident{email} & VARCHAR(320) / não & E-mail de autenticação. único. \\\hline
+\ident{hashed_password} & VARCHAR(1024) / não & Resumo criptográfico da senha; nunca resposta pública. \\\hline
+\ident{is_active} & BOOLEAN / não & Indicador de conta ativa. padrão Python: \ident{True}. \\\hline
+\ident{is_superuser} & BOOLEAN / não & Indicador de privilégio administrativo. padrão Python: \ident{False}. \\\hline
+\ident{is_verified} & BOOLEAN / não & Indicador de verificação da conta. padrão Python: \ident{False}. \\\hline
+\end{longtable}\endgroup
+\subsubsection{ofertas\_farmacia}\label{dic:ofertas_farmacia}
+Ocorrências comerciais de produtos em farmácias.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: ofertas\_farmacia}\label{qua:dic-ofertas_farmacia}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{id} & INTEGER / não & Identificador do registro. PK. \\\hline
+\ident{sku_interno} & VARCHAR(50) / não & Identificador do produto na farmácia; não é EAN. \\\hline
+\ident{preco} & NUMERIC(10, 2) / não & Preço observado, com duas casas decimais. \\\hline
+\ident{quantidade_estoque} & INTEGER / não & Quantidade informada pela coleta, sem garantia de estoque físico. padrão Python: \ident{0}. \\\hline
+\ident{disponivel} & BOOLEAN / não & Disponibilidade observada na fonte. padrão Python: \ident{True}. \\\hline
+\ident{url_origem} & VARCHAR(500) / não & Página pública de origem da oferta. único. \\\hline
+\ident{imagem_url} & VARCHAR(500) / sim & Referência externa da imagem; não armazena a fotografia. \\\hline
+\ident{criado_em} & timestamp com fuso / não & Instante de criação. padrão SQL: \ident{now()}. \\\hline
+\ident{atualizado_em} & timestamp com fuso / sim & Instante da última atualização; ORM preenche ao alterar. \\\hline
+\ident{observado_em} & timestamp com fuso / sim & Instante da observação da oferta. \\\hline
+\ident{farmacia_id} & INTEGER / não & Vínculo com a farmácia. FK \ident{farmacias.id}. \\\hline
+\ident{catalogo_id} & INTEGER / não & Vínculo com o item do catálogo. FK \ident{catalogo_base.id}. \\\hline
+\end{longtable}\endgroup
+\subsubsection{usuario\_farmacia\_favorita}\label{dic:usuario_farmacia_favorita}
+Associação de usuários com farmácias favoritas, sem coluna id própria.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: usuario\_farmacia\_favorita}\label{qua:dic-usuario_farmacia_favorita}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{usuario_id} & UUID / não & Vínculo com o usuário. PK composta; FK \ident{usuario.id}. ON DELETE CASCADE. \\\hline
+\ident{farmacia_id} & INTEGER / não & Vínculo com a farmácia. PK composta; FK \ident{farmacias.id}. ON DELETE CASCADE. \\\hline
+\end{longtable}\endgroup
+\subsubsection{usuario\_medicamento\_favorito}\label{dic:usuario_medicamento_favorito}
+Associação de usuários com medicamentos favoritos, sem coluna id própria.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: usuario\_medicamento\_favorito}\label{qua:dic-usuario_medicamento_favorito}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{usuario_id} & UUID / não & Vínculo com o usuário. PK composta; FK \ident{usuario.id}. ON DELETE CASCADE. \\\hline
+\ident{medicamento_id} & INTEGER / não & Vínculo com o item do catálogo. PK composta; FK \ident{catalogo_base.id}. ON DELETE CASCADE. \\\hline
+\end{longtable}\endgroup
+\subsubsection{historico\_precos}\label{dic:historico_precos}
+Observações de preço vinculadas a produto e farmácia.
+\begingroup\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.27\textwidth}|>{\raggedright\arraybackslash}p{0.22\textwidth}|>{\raggedright\arraybackslash}p{0.43\textwidth}|}
+\caption{Dicionário: historico\_precos}\label{qua:dic-historico_precos}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endfirsthead
+\multicolumn{3}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Coluna} & \textbf{Tipo / nulo} & \textbf{Descrição e restrições} \\\hline\endhead
+\multicolumn{3}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{3}{l}{Fonte: metadados ORM do projeto (2026).}\\\endlastfoot
+\ident{id} & INTEGER / não & Identificador do registro. PK. \\\hline
+\ident{medicamento_id} & INTEGER / não & Vínculo com o item do catálogo. FK \ident{catalogo_base.id}. \\\hline
+\ident{farmacia_id} & INTEGER / não & Vínculo com a farmácia. FK \ident{farmacias.id}. \\\hline
+\ident{oferta_id} & INTEGER / sim & Oferta associada à observação; registros legados podem não ter vínculo. FK \ident{ofertas_farmacia.id}. \\\hline
+\ident{origem} & VARCHAR(40) / sim & Origem da observação de preço. \\\hline
+\ident{preco} & NUMERIC(10, 2) / não & Preço observado, com duas casas decimais. \\\hline
+\ident{disponivel} & BOOLEAN / sim & Disponibilidade observada na fonte. \\\hline
+\ident{data_registro} & timestamp sem fuso / não & Instante do registro histórico, sem fuso no banco. padrão SQL: \ident{now()}. \\\hline
+\end{longtable}\endgroup
+\endgroup

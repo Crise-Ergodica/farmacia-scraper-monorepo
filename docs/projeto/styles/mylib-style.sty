@@ -1,12 +1,12 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{mylib-style}[2025/12/22 General Style and Documentation Macros]
+\ProvidesPackage{styles/mylib-style}[2025/12/22 General Style and Documentation Macros]
 
 % --- ESSENTIAL PACKAGES ---
 \RequirePackage{microtype}  
 \RequirePackage{graphicx}   
 \RequirePackage{float}      
 \RequirePackage{pdfpages}   
-\RequirePackage{url}        
+\RequirePackage{xurl}
 \RequirePackage{tabularx}   
 \RequirePackage{xcolor}
 \RequirePackage{tikz}
@@ -25,14 +25,16 @@
 % --- HYPERREF SETUP ---
 % The abntex2 class handles the main hyperref imports. 
 \hypersetup{
-    colorlinks=false, 
+    hidelinks,
+    pdfborder={0 0 0},
 }
 
 % --- CUSTOM MACROS ---
 
 % 1. File or directory paths
 % Usage: Open the \file{main.py} script.
-\newcommand{\file}[1]{\textit{\texttt{\color{docDark}#1}}}
+\newcommand{\ident}[1]{{\def\UrlLeft{}\def\UrlRight{}\urlstyle{tt}\nolinkurl{#1}}}
+\newcommand{\file}[1]{{\color{docDark}\ident{#1}}}
 
 % 2. Inline code snippets or variables
 % Usage: The \code{user_id} variable must be an integer.

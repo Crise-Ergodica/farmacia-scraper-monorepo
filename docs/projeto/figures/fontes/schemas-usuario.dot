@@ -1,0 +1,6 @@
+digraph G {
+ graph [rankdir=BT,bgcolor=white]; node [shape=record,fontname="Helvetica",fontsize=14]; edge [arrowhead=empty];
+ BR [label="BaseUser UUID"]; BC [label="BaseUserCreate"]; BU [label="BaseUserUpdate"];
+ R [label="{UsuarioRead|nome: str}"]; C [label="{UsuarioCreate|nome: str [3..100]\llimpar_nome()\l}"]; U [label="{UsuarioUpdate|nome: str opcional\l[3..100]\l}"];
+ R -> BR; C -> BC; U -> BU;
+}

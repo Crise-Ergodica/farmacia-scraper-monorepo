@@ -1,0 +1,6 @@
+digraph G {
+ graph [rankdir=TB,bgcolor=white]; node [shape=record,fontname="Helvetica",fontsize=14]; edge [arrowhead=none,fontname="Helvetica"];
+ HR [label="MedicineHistoryResponse"]; HP [label="PharmacyHistorySchema"]; PP [label="PricePointSchema"]; HS [label="PharmacyHistoryStatistics"];
+ HR -> HP [style=dashed,label="0..*"]; HP -> PP [style=dashed,label="0..*"]; HR -> HS [style=dashed,label="0..*"];
+ HB [label="HistoricoBase"]; HO [label="HistoricoOut"]; HO -> HB [arrowhead=empty];
+}

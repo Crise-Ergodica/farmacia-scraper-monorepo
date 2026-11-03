@@ -1,0 +1,5 @@
+digraph G {
+ graph [rankdir=BT,bgcolor=white]; node [shape=record,fontname="Helvetica",fontsize=14]; edge [arrowhead=empty];
+ CB [label="CatalogoBaseSchema"]; CO [label="CatalogoOut"]; CA [label="CatalogoComOfertasOut"]; OB [label="OfertaBaseSchema"]; OO [label="OfertaOut"];
+ CO -> CB; CA -> CO; OO -> OB; CA -> OO [arrowhead=none,style=dashed,label="0..*",fontname="Helvetica"];
+}

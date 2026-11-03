@@ -1,0 +1,596 @@
+{
+  "anvisa_medicamentos": [
+    {
+      "coluna": "id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": []
+    },
+    {
+      "coluna": "ean",
+      "tipo_postgresql": "VARCHAR(14)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "principio_ativo",
+      "tipo_postgresql": "VARCHAR",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "laboratorio",
+      "tipo_postgresql": "VARCHAR",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "tarja",
+      "tipo_postgresql": "VARCHAR",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "registro_anvisa",
+      "tipo_postgresql": "VARCHAR(20)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "categoria_regulatoria",
+      "tipo_postgresql": "VARCHAR(40)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "status_registro",
+      "tipo_postgresql": "VARCHAR(40)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "referencia_anvisa",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "exige_receita_confirmada",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "controle_especial",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "fonte_classificacao",
+      "tipo_postgresql": "VARCHAR(120)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "atualizado_fonte_em",
+      "tipo_postgresql": "DATE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    }
+  ],
+  "catalogo_base": [
+    {
+      "coluna": "id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": []
+    },
+    {
+      "coluna": "codigo_barras",
+      "tipo_postgresql": "VARCHAR(14)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "name_search",
+      "tipo_postgresql": "VARCHAR(150)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "principio_ativo",
+      "tipo_postgresql": "VARCHAR(500)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "laboratorio",
+      "tipo_postgresql": "VARCHAR(100)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "exige_receita",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "categoria_regulatoria",
+      "tipo_postgresql": "VARCHAR(40)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "referencia_anvisa",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "exige_receita_confirmada",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "controle_especial",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "classificacao_fonte",
+      "tipo_postgresql": "VARCHAR(80)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "categorias",
+      "tipo_postgresql": "VARCHAR[]",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_url",
+      "tipo_postgresql": "VARCHAR(500)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_fonte",
+      "tipo_postgresql": "VARCHAR(40)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_sku_origem",
+      "tipo_postgresql": "VARCHAR(80)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_ean",
+      "tipo_postgresql": "VARCHAR(14)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_match",
+      "tipo_postgresql": "VARCHAR(24)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_status",
+      "tipo_postgresql": "VARCHAR(20)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_atualizada_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_verificada_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_ultima_verificacao_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_falhas_consecutivas",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_ultima_falha",
+      "tipo_postgresql": "TEXT",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_motivo_rejeicao",
+      "tipo_postgresql": "TEXT",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "criado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "atualizado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    }
+  ],
+  "farmacias": [
+    {
+      "coluna": "id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": []
+    },
+    {
+      "coluna": "cnpj",
+      "tipo_postgresql": "VARCHAR(14)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "razao_social",
+      "tipo_postgresql": "VARCHAR(150)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "nome_fantasia",
+      "tipo_postgresql": "VARCHAR(100)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "telefone",
+      "tipo_postgresql": "VARCHAR(20)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "endereco_completo",
+      "tipo_postgresql": "VARCHAR(255)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "latitude",
+      "tipo_postgresql": "NUMERIC(9, 6)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "longitude",
+      "tipo_postgresql": "NUMERIC(10, 6)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "criado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "atualizado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    }
+  ],
+  "usuario": [
+    {
+      "coluna": "nome",
+      "tipo_postgresql": "VARCHAR(100)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "id",
+      "tipo_postgresql": "UUID",
+      "nulo": false,
+      "pk": true,
+      "fk": []
+    },
+    {
+      "coluna": "email",
+      "tipo_postgresql": "VARCHAR(320)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "hashed_password",
+      "tipo_postgresql": "VARCHAR(1024)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "is_active",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "is_superuser",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "is_verified",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    }
+  ],
+  "ofertas_farmacia": [
+    {
+      "coluna": "id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": []
+    },
+    {
+      "coluna": "sku_interno",
+      "tipo_postgresql": "VARCHAR(50)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "preco",
+      "tipo_postgresql": "NUMERIC(10, 2)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "quantidade_estoque",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "disponivel",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "url_origem",
+      "tipo_postgresql": "VARCHAR(500)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "imagem_url",
+      "tipo_postgresql": "VARCHAR(500)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "criado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "atualizado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "observado_em",
+      "tipo_postgresql": "TIMESTAMP WITH TIME ZONE",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "farmacia_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": false,
+      "fk": [
+        "farmacias.id"
+      ]
+    },
+    {
+      "coluna": "catalogo_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": false,
+      "fk": [
+        "catalogo_base.id"
+      ]
+    }
+  ],
+  "usuario_farmacia_favorita": [
+    {
+      "coluna": "usuario_id",
+      "tipo_postgresql": "UUID",
+      "nulo": false,
+      "pk": true,
+      "fk": [
+        "usuario.id"
+      ]
+    },
+    {
+      "coluna": "farmacia_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": [
+        "farmacias.id"
+      ]
+    }
+  ],
+  "usuario_medicamento_favorito": [
+    {
+      "coluna": "usuario_id",
+      "tipo_postgresql": "UUID",
+      "nulo": false,
+      "pk": true,
+      "fk": [
+        "usuario.id"
+      ]
+    },
+    {
+      "coluna": "medicamento_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": [
+        "catalogo_base.id"
+      ]
+    }
+  ],
+  "historico_precos": [
+    {
+      "coluna": "id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": true,
+      "fk": []
+    },
+    {
+      "coluna": "medicamento_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": false,
+      "fk": [
+        "catalogo_base.id"
+      ]
+    },
+    {
+      "coluna": "farmacia_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": false,
+      "pk": false,
+      "fk": [
+        "farmacias.id"
+      ]
+    },
+    {
+      "coluna": "oferta_id",
+      "tipo_postgresql": "INTEGER",
+      "nulo": true,
+      "pk": false,
+      "fk": [
+        "ofertas_farmacia.id"
+      ]
+    },
+    {
+      "coluna": "origem",
+      "tipo_postgresql": "VARCHAR(40)",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "preco",
+      "tipo_postgresql": "NUMERIC(10, 2)",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "disponivel",
+      "tipo_postgresql": "BOOLEAN",
+      "nulo": true,
+      "pk": false,
+      "fk": []
+    },
+    {
+      "coluna": "data_registro",
+      "tipo_postgresql": "TIMESTAMP WITHOUT TIME ZONE",
+      "nulo": false,
+      "pk": false,
+      "fk": []
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+digraph G {
+ graph [rankdir=TB,nodesep=0.3,ranksep=0.7,bgcolor=white];
+ node [shape=record,fontname="Helvetica",fontsize=12]; edge [fontname="Helvetica",fontsize=10];
+ B [label="{Base|metadata: MetaData}"];
+ U [label="{Usuario|nome: str\lid: UUID (herdado)\lemail; hashed_password (herdados)\lis_active; is_superuser; is_verified\l}"];
+ X [label="SQLAlchemyBaseUserTableUUID"];
+ C [label="{CatalogoBase|id; codigo_barras; name_search\lprincipio_ativo; laboratorio\lcategorias; classificacao_fonte\limagem_url; metadados de imagem\l}"];
+ F [label="{Farmacia|id; cnpj; nome_fantasia\llatitude; longitude\l}"];
+ O [label="{OfertaFarmacia|id; sku_interno; preco\lfarmacia_id; catalogo_id\lobservado_em\l}"];
+ H [label="{HistoricoPreco|id; medicamento_id; farmacia_id\loferta_id opcional; preco; data_registro\l}"];
+ A [label="{AnvisaMedicamento|id; ean; principio_ativo\lfonte_classificacao\l}"];
+ T [label="{«Table» usuario_medicamento_favorito|usuario_id + medicamento_id [PK]}"];
+ V [label="{«Table» usuario_farmacia_favorita|usuario_id + farmacia_id [PK]}"];
+ {U C F O H A} -> B [arrowhead=empty,style=dashed]; U -> X [arrowhead=empty];
+ C -> O [dir=none,taillabel="1",headlabel="0..*"]; F -> O [dir=none,taillabel="1",headlabel="0..*"];
+ C -> H [dir=none,taillabel="1",headlabel="0..*"]; F -> H [dir=none,taillabel="1",headlabel="0..*"];
+ O -> H [dir=none,taillabel="0..1",headlabel="0..*"];
+ U -> T [dir=none]; T -> C [dir=none]; U -> V [dir=none]; V -> F [dir=none];
+}

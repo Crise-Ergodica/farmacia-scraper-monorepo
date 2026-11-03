@@ -1,0 +1,16 @@
+digraph G {
+ graph [rankdir=BT, nodesep=0.35, ranksep=0.55, bgcolor=white];
+ node [shape=record,fontname="Helvetica",fontsize=12];
+ edge [arrowhead=empty];
+ BU [label="schemas.BaseUser UUID"]; BC [label="schemas.BaseUserCreate"]; BP [label="schemas.BaseUserUpdate"];
+ UR [label="{UsuarioRead|nome: str}"]; UC [label="{UsuarioCreate|nome: str [3..100]\llimpar_nome()\l}"]; UU [label="{UsuarioUpdate|nome: str opcional [3..100]}"];
+ UR -> BU; UC -> BC; UU -> BP;
+ CB [label="CatalogoBaseSchema"]; CO [label="{CatalogoOut|id; criado_em; imagem_ref}"]; CA [label="{CatalogoComOfertasOut|ofertas: list[OfertaOut]}"];
+ CO -> CB; CA -> CO;
+ OB [label="OfertaBaseSchema"]; OO [label="{OfertaOut|id; farmacia_id; catalogo_id}"]; OO -> OB;
+ CA -> OO [arrowhead=none,style=dashed,label="0..*",fontname="Helvetica"];
+ HB [label="HistoricoBase"]; HO [label="HistoricoOut"]; HO -> HB;
+ HR [label="{MedicineHistoryResponse|pharmacies; statistics}"];
+ HP [label="PharmacyHistorySchema"]; PP [label="PricePointSchema"]; HS [label="PharmacyHistoryStatistics"];
+ HR -> HP [arrowhead=none,style=dashed,label="0..*"]; HP -> PP [arrowhead=none,style=dashed,label="0..*"]; HR -> HS [arrowhead=none,style=dashed,label="0..*"];
+}

@@ -1,0 +1,166 @@
+\chapter{Configuração e Manutenção de Software}\label{cap:configuracao_manutencao}
+
+Este capítulo reúne os produtos documentais das Práticas 1 e 2 da disciplina Configuração e Manutenção de Software. As fichas identificam o oitavo período e a professora Maíza Cristina de Souza Dias. A Prática 1 apresenta alternativas para reduzir dificuldades de manutenção; a Prática 2 organiza demandas, classificação, prioridades e plano de ação. As respostas registram análises e propostas do projeto ``Preço Bão'', sem constituir, por si, comprovação de execução das alterações propostas.
+
+Os registros de referência são a ficha preenchida da Prática 1, em formato Word, e a ficha preenchida da Prática 2, em PDF, preservadas com esta documentação \cite{pratica01,pratica02}. Os campos de data estão em branco nos dois materiais; não se atribuem datas de realização a partir de nomes de arquivos ou de sua ordem numérica. As propostas são relacionadas à implementação descrita no Capítulo \ref{cap:desenvolvimento}, mantendo a distinção entre o planejamento registrado e o código consultado.
+
+\section{Prática 1: alternativas para a manutenção do sistema}\label{sec:pratica01}
+
+\subsection{Solicitação e produto elaborado}
+
+A atividade solicita a leitura e a síntese do artigo \textit{Alternativas para redução de problemas na manutenção de software}, a retomada dos componentes e desafios do sistema, a identificação de problemas potenciais e a proposição de soluções, considerando custo, prazo e impacto. Também solicita documentar e apresentar as propostas e disponibilizar a documentação no ambiente virtual de aprendizagem \cite{pratica01}.
+
+O produto recebido contém respostas a esses tópicos, uma síntese para apresentação e quatro itens de manutenção classificados por tipo e gravidade. Sua contribuição é a análise das alternativas e a organização de uma proposta de intervenção. As estimativas apresentadas são previsões da ficha, sem medição de esforço realizado. A existência desse documento não comprova apresentação em aula, postagem no ambiente virtual ou aplicação das soluções.
+
+\subsection{Síntese da leitura e alternativas selecionadas}
+
+A resposta da ficha destaca treinamento, base de conhecimento, documentação, formalização de chamados, acompanhamento de cronogramas, divisão de tarefas e melhoria dos testes. O artigo indicado relaciona alternativas de manutenção à orientação da ISO/IEC 12207, às observações de uma organização e à literatura da área. Nele, a melhoria de documentação interna ainda aparece como dificuldade sem solução satisfatória, enquanto a base de conhecimento e o fluxo de informações são práticas descritas. Assim, atualização documental integra a proposta da equipe, sem se afirmar que todos esses mecanismos já estavam resolvidos no estudo apresentado por \citeonline{mateus2011}.
+
+Aplicadas ao Preço Bão como planejamento, essas alternativas compreendem capacitação em FastAPI, PostgreSQL, Docker, Expo e coleta de dados; registro de problemas e soluções; atualização de instruções de instalação e contratos da API; uso de chamados com prioridade e critérios de aceite; revisão de código; testes antes da liberação; e acompanhamento da disponibilidade e da qualidade dos dados. Essas ações procuram reduzir dependência de conhecimento individual, divergências entre ambientes e regressões nas funções centrais.
+
+\subsection{Componentes e dificuldades retomados}
+
+A ficha descreve o frontend em React Native, Expo, Expo Router e TypeScript; o backend Python/FastAPI; a persistência PostgreSQL com SQLAlchemy e Alembic; os coletores de farmácias; e o ambiente Docker Compose, com configurações em arquivos de ambiente. Relaciona essas partes à pesquisa, aos filtros, à comparação de ofertas, à conta, aos favoritos e ao histórico \cite{pratica01}. Os artefatos técnicos correspondentes estão nas Seções \ref{sec:situacao}, \ref{sec:banco} e \ref{sec:interfaces}.
+
+Os desafios relatados envolvem integração entre frontend e backend, URL da API e CORS, preparação de máquinas distintas, migrações e carga inicial, persistência dos favoritos, adaptação da interface, dependências Android e alimentação do catálogo pelos coletores. O registro menciona interface web e Android, mas não apresenta resultado de teste em dispositivo; essa menção não altera a distinção entre componente presente e funcionamento validado.
+
+\subsection{Problemas potenciais e propostas de manutenção}
+
+A análise identifica riscos de mudanças nos sites de farmácias, falhas de coleta, preços desatualizados, duplicação e incompletude do catálogo; indisponibilidade da API ou do banco; erros de ambiente; perda de volumes e ausência de backup; incompatibilidade de dependências; desalinhamento de contratos de autenticação e favoritos; crescimento do volume de consultas; e dificuldade de suporte sem registros padronizados.
+
+O Quadro \ref{qua:pratica01_itens} preserva os quatro itens sintetizados na entrega. Seus números identificam os itens da Prática 1; não são equivalências automáticas dos identificadores M-01--M-04 da prática seguinte.
+
+\begingroup\footnotesize\def\LTcaptype{quadro}
+\begin{xltabular}{\textwidth}{|c|Y|Y|Y|}
+\caption{Itens de manutenção propostos na Prática 1}\label{qua:pratica01_itens}\\\hline
+\textbf{Item} & \textbf{Ocorrência e efeito} & \textbf{Tipo} & \textbf{Prioridade / gravidade}\\\hline\endfirsthead
+\multicolumn{4}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Item} & \textbf{Ocorrência e efeito} & \textbf{Tipo} & \textbf{Prioridade / gravidade}\\\hline\endhead
+\multicolumn{4}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{4}{l}{Fonte: ficha preenchida da Prática 1.}\\\endlastfoot
+01 & Mudança no site de uma farmácia interrompe a coleta e a atualização de preços, comprometendo a comparação de ofertas. & Adaptativa e corretiva & Alta / crítica.\\\hline
+02 & Mudança ou expiração do endereço do túnel, CORS ou variáveis de ambiente interrompe a comunicação com a API. & Adaptativa e preventiva & Alta.\\\hline
+03 & Banco vazio, migrações ou carga inicial pendentes e falta de backup comprometem catálogo, contas e histórico. & Corretiva e preventiva & Alta / crítica.\\\hline
+04 & Atualizações de dependências podem impedir compilação, instalação ou execução em novos ambientes. & Adaptativa e preventiva & Média / alta.\\\hline
+\end{xltabular}\endgroup
+
+As soluções propostas incluem testes unitários e de integração para conta, catálogo, filtros, favoritos e coletores; homologação; monitoramento e registros de falha; verificações de disponibilidade dos serviços; backup e validação dos dados; automação das migrações; e substituição de endereço temporário de túnel por configuração estável. O Quadro \ref{qua:pratica01_estimativas} mantém as estimativas e os efeitos esperados declarados na ficha, sem convertê-los em resultados obtidos.
+
+\begingroup\footnotesize\def\LTcaptype{quadro}
+\begin{xltabular}{\textwidth}{|Y|Y|Y|Y|}
+\caption{Estimativas propostas na Prática 1}\label{qua:pratica01_estimativas}\\\hline
+\textbf{Ação} & \textbf{Custo estimado} & \textbf{Prazo estimado} & \textbf{Efeito esperado}\\\hline\endfirsthead
+\multicolumn{4}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Ação} & \textbf{Custo estimado} & \textbf{Prazo estimado} & \textbf{Efeito esperado}\\\hline\endhead
+\multicolumn{4}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{4}{l}{Fonte: ficha preenchida da Prática 1.}\\\endlastfoot
+Documentação e base de conhecimento & Baixo & 2 a 4 dias & Reduzir tempo de suporte e dependência de conhecimento individual.\\\hline
+Testes automatizados & Médio & 1 a 2 semanas & Reduzir regressões nos fluxos principais.\\\hline
+Monitoramento e registros & Médio & 3 a 5 dias & Detectar indisponibilidade de API, banco e coletores.\\\hline
+Banco, migrações e backup & Baixo a médio & 2 a 4 dias & Reduzir risco de catálogo vazio e perda de dados.\\\hline
+Refatoração dos coletores & Médio a alto & 1 a 3 semanas & Melhorar adaptação a alterações das fontes.\\\hline
+Túnel ou domínio estável & Baixo a médio & 1 a 2 dias & Reduzir interrupções por mudança de URL.\\\hline
+CI/CD e revisão de código & Médio & 3 a 7 dias & Propor testes e análise estática antes da integração.\\\hline
+\end{xltabular}\endgroup
+
+\subsection{Síntese da proposta}
+
+A entrega prioriza estabilidade da coleta, preparação e proteção do banco e disponibilidade da API; em seguida, propõe testes, monitoramento, documentação e padronização de chamados. Não há valores monetários, medições de redução de falhas ou comprovação de execução no material recebido. A meta de CI/CD permanece sujeita à distinção de implementação registrada na Seção \ref{sec:situacao}.
+
+\section{Prática 2: identificação e planejamento de manutenções}\label{sec:pratica02}
+
+\subsection{Solicitação, classificação e produto elaborado}
+
+A atividade solicita identificar e documentar problemas após a implantação, classificá-los, priorizar um backlog inspirado em Scrum, detalhar um plano de ação, organizar sprints e refletir sobre criticidade e métricas. A ficha preenchida apresenta quatro demandas M-01--M-04, sua classificação, backlog, plano coletivo para M-01, duas sprints planejadas e respostas à reflexão final \cite{pratica02}.
+
+A classificação adotada no roteiro distingue manutenção corretiva para correção de falhas, adaptativa para adequação a mudanças externas, evolutiva ou perfectiva para novos recursos e melhorias e preventiva para redução de falhas latentes e dificuldades de manutenção. O enunciado menciona ISO/IEC 14764 e IEEE 1219 sem especificar edições; a terminologia aqui reproduz a classificação da atividade, sem declarar conformidade normativa do processo do projeto.
+
+O plano de M-01 é apresentado como produto coletivo, sem atribuição de autoria individual aos integrantes. As funções de frontend, backend, mobile e DevOps nos quadros são papéis planejados da entrega e não registros de participação ou de execução de pessoas específicas.
+
+\subsection{Etapas 1 e 2: levantamento, classificação e análise}
+
+O Quadro \ref{qua:pratica02_demandas} consolida as ocorrências descritas e sua classificação. Solicitantes são os papéis registrados na ficha; não se presume a existência de entrevista, chamado ou incidente reproduzido para cada linha.
+
+\begingroup\footnotesize\def\LTcaptype{quadro}
+\begin{xltabular}{\textwidth}{|c|Y|Y|Y|}
+\caption{Demandas e classificação de manutenção da Prática 2}\label{qua:pratica02_demandas}\\\hline
+\textbf{ID} & \textbf{Solicitante, ocorrência e área} & \textbf{Impacto e tipo} & \textbf{Justificativa e risco}\\\hline\endfirsthead
+\multicolumn{4}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{ID} & \textbf{Solicitante, ocorrência e área} & \textbf{Impacto e tipo} & \textbf{Justificativa e risco}\\\hline\endhead
+\multicolumn{4}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{4}{l}{Fonte: ficha preenchida da Prática 2, etapas 1 e 2.}\\\endlastfoot
+M-01 & Usuário final: favoritos podem não reaparecer após sair e autenticar novamente, apesar da persistência no backend. Funcionalidade, persistência e usabilidade. & Alto; corretiva. & Corrigir a reconstrução de uma função existente. A divergência entre estado local e servidor pode parecer perda de dados e gerar repetição de operações.\\\hline
+M-02 & Equipe técnica/mobile: atualizações de Expo, React Native, SDK/NDK Android, bibliotecas web e navegadores podem exigir ajustes. Compatibilidade, plataforma e infraestrutura. & Médio/alto; adaptativa. & Preservar funcionamento diante de mudança externa, sem alterar regras de negócio. Incompatibilidades podem impedir compilação, instalação ou comunicação com a API.\\\hline
+M-03 & Cliente/Product Owner: adicionar histórico visual e alertas de redução de preços. Funcionalidade e experiência do usuário. & Médio; evolutiva ou perfectiva. & Agregar recursos ao acompanhamento de medicamentos. A falta da evolução limita o valor percebido, sem implicar interrupção imediata do sistema.\\\hline
+M-04 & Equipe técnica/DevOps: padronizar ambiente, migrações, banco, carga inicial, verificações de disponibilidade e testes. Manutenibilidade, dados, DevOps e confiabilidade. & Alto; preventiva. & Reduzir falhas de implantação e regressões. Configuração incompleta, banco vazio ou tabelas desatualizadas podem impedir a exibição de medicamentos e elevar o suporte.\\\hline
+\end{xltabular}\endgroup
+
+A classificação mantém o sentido registrado na atividade, sem apagar propostas por já existirem componentes relacionados no código. Em particular, M-03 reúne histórico e alertas: a implementação consultada já contém consulta e gráfico de histórico, conforme a Seção \ref{sec:situacao}; isso não demonstra a realização da sprint ou a entrega de alertas. M-01 também permanece como análise da ficha, sem converter a presença dos hooks de favoritos em prova de execução daquele plano.
+
+\subsection{Etapa 3: priorização e backlog}
+
+Os critérios registrados são impacto no usuário, risco de continuidade, custo de correção e urgência. O Quadro \ref{qua:pratica02_backlog} conserva a ordem de priorização, as sprints e os responsáveis por papel. A criticidade de M-04 para continuidade, discutida na reflexão, não altera a ordem M-01, M-04, M-02 e M-03 apresentada no backlog.
+
+\begingroup\footnotesize\def\LTcaptype{quadro}
+\begin{xltabular}{\textwidth}{|c|Y|c|c|Y|}
+\caption{Backlog de manutenção proposto na Prática 2}\label{qua:pratica02_backlog}\\\hline
+\textbf{ID} & \textbf{Item e tipo} & \textbf{Prioridade} & \textbf{Sprint} & \textbf{Papel responsável}\\\hline\endfirsthead
+\multicolumn{5}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{ID} & \textbf{Item e tipo} & \textbf{Prioridade} & \textbf{Sprint} & \textbf{Papel responsável}\\\hline\endhead
+\multicolumn{5}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{5}{l}{Fonte: ficha preenchida da Prática 2, etapa 3.}\\\endlastfoot
+M-01 & Corrigir sincronização de favoritos após novo login; corretiva. & Alta & 1 & Frontend e backend.\\\hline
+M-04 & Automatizar preparação do ambiente, migrações, carga e verificações; preventiva. & Alta & 1 & Backend/DevOps.\\\hline
+M-02 & Adequar frontend a mudanças de plataforma e dependências; adaptativa. & Média & 2 & Frontend/mobile.\\\hline
+M-03 & Histórico de preços e alertas de redução; evolutiva. & Média & 2 & Frontend e backend.\\\hline
+\end{xltabular}\endgroup
+
+\subsection{Etapa 4: plano coletivo de ação para M-01}\label{sec:pratica02_plano}
+
+\textbf{Problema e público afetado.} A análise aborda a situação em que o usuário autentica novamente e a interface não reconstrói os medicamentos já persistidos como favoritos. O público afetado são contas autenticadas que utilizam esse recurso. A ficha formula o diagnóstico como causa provável, sem fornecer rastros de execução que permitam afirmá-lo como causa comprovada.
+
+\textbf{Causa provável e impacto.} O estado \ident{favoriteIds} mantido no frontend precisa ser sincronizado com a listagem \ident{/users/me/favoritos/medicamentos}. Contrato de resposta sem o identificador esperado, atualização apenas local ou sincronização em momento inadequado podem deixar a interface divergente do banco. O efeito esperado é percepção de perda de favoritos, operações repetidas, respostas de erro em inclusões duplicadas e aumento de solicitações de suporte.
+
+\textbf{Componentes relacionados.} A entrega indica \file{frontend/src/context/AppContext.tsx}, \file{frontend/src/components/MedicineCard.tsx}, \file{frontend/src/services/api.ts}, rotas de usuários e favoritos do FastAPI, schemas de resposta e associações de favoritos no PostgreSQL. Na estrutura atual, o contexto utiliza também \file{useAuthSession.ts} e \file{useFavoritesState.ts}; as tabelas correspondentes estão no dicionário da Seção \ref{sec:dicionario}. Essa relação localiza a proposta na arquitetura e não substitui seu registro por uma execução retrospectiva.
+
+\textbf{Solução proposta.} A API deve retornar os identificadores dos produtos; a interface deve buscar os favoritos após autenticação e após inclusão ou remoção, usando o backend como referência persistente da conta. O plano também prevê tratar repetição de inclusão sem interromper a interface. As respostas HTTP 400/404 citadas na ficha pertencem ao cenário proposto; o comportamento atual das rotas deve ser conferido nos testes, sem alterar o registro original.
+
+A estratégia de implementação registrada compreende:
+\begin{enumerate}
+\item revisar o contrato da listagem e garantir o campo \ident{id};
+\item revisar as operações POST, DELETE e GET de favoritos;
+\item centralizar a função de sincronização no fluxo de contexto;
+\item dispará-la após login e atualizar o estado após favoritar ou desfavoritar;
+\item tratar os erros previstos de forma controlada;
+\item validar o fluxo na web e em Android.
+\end{enumerate}
+
+O plano de testes propõe integração dos endpoints, autenticação de conta com favoritos existentes, ciclo de favoritar/sair/entrar, remoção seguida de nova autenticação, regressão da Home e da tela de favoritos, navegador e Android físico e conferência das associações no PostgreSQL. Esses cenários se relacionam a RF03 e RF07 e a CT02, CT09 e CT10 do plano geral. Os ciclos de nova autenticação e remoção detalham cenários adicionais, não cobertos integralmente pelos casos gerais citados. A ausência de resultados na ficha mantém esses ensaios como planejados; não altera os estados dos casos históricos.
+
+Os recursos previstos são equipes de frontend e backend, Expo/React Native, FastAPI, PostgreSQL, Docker, Swagger, DevTools e Git/GitHub. O prazo de 1 a 2 dias corresponde à estimativa da atividade para correção, testes e documentação, sem identificação de datas efetivas.
+
+\subsection{Etapa 5: cronograma de sprints}
+
+O Quadro \ref{qua:pratica02_sprints} preserva as duas sprints de uma semana e o estado \textbf{Planejado}. A ficha não informa início ou término no calendário.
+
+\begingroup\footnotesize\def\LTcaptype{quadro}
+\begin{xltabular}{\textwidth}{|c|Y|Y|Y|}
+\caption{Sprints planejadas na Prática 2}\label{qua:pratica02_sprints}\\\hline
+\textbf{Sprint} & \textbf{Duração, objetivo e estado} & \textbf{Itens} & \textbf{Papéis responsáveis}\\\hline\endfirsthead
+\multicolumn{4}{l}{Quadro \thequadro\ -- continuação}\\\hline
+\textbf{Sprint} & \textbf{Duração, objetivo e estado} & \textbf{Itens} & \textbf{Papéis responsáveis}\\\hline\endhead
+\multicolumn{4}{r}{Continua na próxima página.}\\\endfoot
+\multicolumn{4}{l}{Fonte: ficha preenchida da Prática 2, etapa 5.}\\\endlastfoot
+1 & Uma semana: corrigir falhas críticas e reforçar confiabilidade de dados e implantação. Planejado. & M-01: sincronização de favoritos. M-04: ambiente, migrações, carga e verificações. & Frontend, backend e DevOps.\\\hline
+2 & Uma semana: manter compatibilidade e evoluir a experiência do usuário. Planejado. & M-02: plataforma e dependências. M-03: histórico e alertas. & Frontend e backend.\\\hline
+\end{xltabular}\endgroup
+
+A divisão por frentes da ficha compreende equipe A, frontend/UX e integração; equipe B, backend/dados, autenticação, catálogo e coletores; e equipe C, infraestrutura/qualidade, Docker, túnel, migrações, testes e documentação. Essas denominações organizam responsabilidades propostas e não criam novos integrantes nem atribuem realizações individuais.
+
+\subsection{Etapa 6: reflexão e indicadores propostos}
+
+A reflexão identifica M-04 como manutenção mais crítica para a continuidade do produto, pois catálogo e banco sustentam suas consultas. A indisponibilidade dos dados pode impedir a exibição de medicamentos mesmo quando há acesso à API. A ficha menciona backend permanente no Cloudflare, enquanto a Prática 1 discute Quick Tunnel temporário e sua substituição; sem datas e configuração de implantação correspondente, não se estabelece uma cronologia de mudança nem garantia de publicação permanente. A configuração consultada permanece descrita na Seção \ref{sec:situacao}.
+
+Quanto à evolução, a entrega relaciona correção de falhas à confiabilidade, adaptação à compatibilidade, evolução ao valor para o usuário e prevenção à redução de regressões e dificuldades futuras. Como indicadores possíveis, sugere disponibilidade e tempo de resposta da API, erros HTTP 5xx, sucesso de login e cadastro, sincronização de favoritos, quantidade de medicamentos e ofertas válidas, idade dos preços, sucesso dos coletores, cobertura e aprovação de testes, defeitos reabertos e tempo médio de recuperação. Não há valores ou comparação antes/depois no registro; são propostas de avaliação, não resultados medidos.
+
+Para gerir o backlog, a ficha propõe registrar tipo, impacto, risco, urgência e critérios de aceite; priorizar continuidade e funções centrais no planejamento da sprint; acompanhar andamento em reuniões diárias; incluir testes e documentação na definição de conclusão; validar resultados na revisão da sprint; e usar a retrospectiva para ações preventivas. O registro desse processo proposto não comprova a realização das cerimônias.

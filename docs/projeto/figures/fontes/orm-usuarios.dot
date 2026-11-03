@@ -1,0 +1,9 @@
+digraph G {
+ graph [rankdir=TB,nodesep=0.5,ranksep=0.5,bgcolor=white]; node [shape=record,fontname="Helvetica",fontsize=14]; edge [fontname="Helvetica",fontsize=12,dir=none];
+ U [label="{Usuario|nome\lid: UUID; email; hashed_password\lis_active; is_superuser; is_verified\l}"];
+ T [label="{«Table» usuario_medicamento_favorito|usuario_id + medicamento_id [PK]}"];
+ V [label="{«Table» usuario_farmacia_favorita|usuario_id + farmacia_id [PK]}"];
+ C [label="CatalogoBase"]; F [label="Farmacia"];
+ U -> T [taillabel="1",headlabel="0..*"]; U -> V [taillabel="1",headlabel="0..*"];
+ C -> T [taillabel="1",headlabel="0..*"]; F -> V [taillabel="1",headlabel="0..*"];
+}

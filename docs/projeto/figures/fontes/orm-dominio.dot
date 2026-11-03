@@ -1,0 +1,13 @@
+digraph G {
+ graph [rankdir=TB,nodesep=0.65,ranksep=0.6,bgcolor=white]; node [shape=record,fontname="Helvetica",fontsize=14]; edge [fontname="Helvetica",fontsize=12,dir=none];
+ C [label="{CatalogoBase|id; codigo_barras\lname_search; laboratorio\lprincipio_ativo; categorias\limagem_url e metadados\l}"];
+ F [label="{Farmacia|id; cnpj; nome_fantasia\llatitude; longitude\l}"];
+ O [label="{OfertaFarmacia|id; sku_interno; preco\lcatalogo_id; farmacia_id\lobservado_em\l}"];
+ H [label="{HistoricoPreco|id; medicamento_id\lfarmacia_id; oferta_id opcional\lpreco; data_registro\l}"];
+ A [label="{AnvisaMedicamento|id; ean; principio_ativo\lfonte_classificacao\l}"];
+ {rank=same;C;F;} {rank=same;H;A;}
+ C -> O [taillabel="1",headlabel="0..*"]; F -> O [taillabel="1",headlabel="0..*"];
+ O -> H [taillabel="0..1",headlabel="0..*"];
+ C -> H [taillabel="1",headlabel="0..*"]; F -> H [taillabel="1",headlabel="0..*"];
+ O -> A [style=invis];
+}

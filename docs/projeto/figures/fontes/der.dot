@@ -1,0 +1,22 @@
+digraph DER {
+graph [rankdir=TB, nodesep=0.35, ranksep=0.7, bgcolor="white"];
+node [shape=record, fontname="Helvetica", fontsize=14];
+edge [fontname="Helvetica", fontsize=11, dir=none];
+anvisa_medicamentos [label="{anvisa_medicamentos|id [PK]\l}" ];
+catalogo_base [label="{catalogo_base|id [PK]\l}" ];
+farmacias [label="{farmacias|id [PK]\l}" ];
+usuario [label="{usuario|id [PK]\l}" ];
+ofertas_farmacia [label="{ofertas_farmacia|id [PK]\lfarmacia_id [FK]\lcatalogo_id [FK]\l}" ];
+farmacias -> ofertas_farmacia [taillabel="1", headlabel="0..*", labeldistance=1.7];
+catalogo_base -> ofertas_farmacia [taillabel="1", headlabel="0..*", labeldistance=1.7];
+usuario_farmacia_favorita [label="{usuario_farmacia_favorita|usuario_id [PK] [FK]\lfarmacia_id [PK] [FK]\l}" ];
+usuario -> usuario_farmacia_favorita [taillabel="1", headlabel="0..*", labeldistance=1.7];
+farmacias -> usuario_farmacia_favorita [taillabel="1", headlabel="0..*", labeldistance=1.7];
+usuario_medicamento_favorito [label="{usuario_medicamento_favorito|usuario_id [PK] [FK]\lmedicamento_id [PK] [FK]\l}" ];
+usuario -> usuario_medicamento_favorito [taillabel="1", headlabel="0..*", labeldistance=1.7];
+catalogo_base -> usuario_medicamento_favorito [taillabel="1", headlabel="0..*", labeldistance=1.7];
+historico_precos [label="{historico_precos|id [PK]\lmedicamento_id [FK]\lfarmacia_id [FK]\loferta_id [FK] (opcional)\l}" ];
+catalogo_base -> historico_precos [taillabel="1", headlabel="0..*", labeldistance=1.7];
+farmacias -> historico_precos [taillabel="1", headlabel="0..*", labeldistance=1.7];
+ofertas_farmacia -> historico_precos [taillabel="0..1", headlabel="0..*", labeldistance=1.7];
+}
