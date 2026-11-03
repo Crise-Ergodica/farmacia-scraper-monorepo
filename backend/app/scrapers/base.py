@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -16,7 +17,7 @@ from app.models.farmacia import Farmacia
 from app.models.oferta_farmacia import OfertaFarmacia
 from app.schemas.oferta import ProdutoExtraidoSchema
 from app.services.enriquecimento import ServicoEnriquecimentoFarmacologico
-from app.services.imagens import register_image_candidate
+from app.services.image_registry import upsert_image_references
 from app.services.preco_observacoes import registrar_observacao_preco
 
 
@@ -37,6 +38,24 @@ class BasePharmacyScraper(ABC):
         self.farmacia_razao_social = farmacia_razao_social
         self.farmacia_nome_fantasia = farmacia_nome_fantasia
         self.farmacia_endereco = farmacia_endereco
+        self.persistence_stats = {
+            "catalog_items_created": 0,
+            "offers_created": 0,
+            "offers_updated": 0,
+            "first_price_observations": 0,
+            "price_changes": 0,
+            "images_registered": 0,
+            "products_without_image": 0,
+            "image_errors": 0,
+            "persistence_errors": 0,
+            "unassociated_products": 0,
+        }
+        self._persistence_stats_lock = threading.Lock()
+
+    def _record_persistence_stats(self, values: dict[str, int]) -> None:
+        with self._persistence_stats_lock:
+            for key, value in values.items():
+                self.persistence_stats[key] += value
 
     @abstractmethod
     async def extrair_catalogo(self) -> None:
@@ -98,6 +117,7 @@ class BasePharmacyScraper(ABC):
         if not batch:
             return
 
+        metrics = {key: 0 for key in self.persistence_stats}
         db = SessionLocal()
         try:
             # 1. Enriquecimento em lote (Bulk Lookup)
@@ -150,6 +170,20 @@ class BasePharmacyScraper(ABC):
             catalogo_values = list(catalogo_values_dict.values())
 
             if catalogo_values:
+                existing_eans = {
+                    ean
+                    for (ean,) in db.query(CatalogoBase.codigo_barras)
+                    .filter(
+                        CatalogoBase.codigo_barras.in_(
+                            [value["codigo_barras"] for value in catalogo_values]
+                        )
+                    )
+                    .all()
+                }
+                metrics["catalog_items_created"] += sum(
+                    value["codigo_barras"] not in existing_eans
+                    for value in catalogo_values
+                )
                 # Upsert CatalogoBase
                 stmt = insert(CatalogoBase).values(catalogo_values)
                 # O conflito pode ser no codigo_barras
@@ -276,32 +310,23 @@ class BasePharmacyScraper(ABC):
                             )
                             db.add(catalogo_item)
                             db.flush()
+                            metrics["catalog_items_created"] += 1
                             catalogo_id = catalogo_item.id
                             mapa_catalogo[batch_key] = catalogo_id
 
                 if catalogo_id:
-                    catalogo_item = db.get(CatalogoBase, catalogo_id)
-                    if catalogo_item is not None:
-                        register_image_candidate(
-                            catalogo_item,
-                            image_url=prod.imagem_url,
-                            pharmacy_name=self.farmacia_nome_fantasia,
-                            sku=prod.sku_interno,
-                            ean=prod.ean,
-                            product_url=prod.link,
-                            identity_confirmed=True,
-                        )
                     # Chave de desduplicação pela URL origem que é a unique key
                     oferta_dicts_map[prod.link] = {
                         "sku_interno": prod.sku_interno,
                         "preco": prod.preco,
-                        "quantidade_estoque": 1,
-                        "disponivel": True,
+                        "quantidade_estoque": prod.quantidade_estoque,
+                        "disponivel": prod.disponivel,
                         "url_origem": prod.link,
-                        "imagem_url": prod.imagem_url,
                         "farmacia_id": farmacia.id,
                         "catalogo_id": catalogo_id,
                     }
+                else:
+                    metrics["unassociated_products"] += 1
 
             observed_at = datetime.now(timezone.utc)
             changes: list[tuple[OfertaFarmacia, Decimal | None, dict]] = []
@@ -311,13 +336,13 @@ class BasePharmacyScraper(ABC):
                 if offer is None:
                     offer = OfertaFarmacia(**oferta_data)
                     db.add(offer)
+                    metrics["offers_created"] += 1
                 else:
+                    metrics["offers_updated"] += 1
                     offer.sku_interno = oferta_data["sku_interno"]
                     offer.quantidade_estoque = oferta_data["quantidade_estoque"]
                     offer.disponivel = oferta_data["disponivel"]
                     offer.url_origem = oferta_data["url_origem"]
-                    if oferta_data["imagem_url"]:
-                        offer.imagem_url = oferta_data["imagem_url"]
                 changes.append((offer, previous_price, oferta_data))
 
             # IDs for new offers are needed to retain the exact offer lineage.
@@ -334,14 +359,56 @@ class BasePharmacyScraper(ABC):
                 )
                 if history_event:
                     db.add(history_event)
+                    if previous_price is None:
+                        metrics["first_price_observations"] += 1
+                    else:
+                        metrics["price_changes"] += 1
 
             db.commit()
 
+            # Image references stay outside PostgreSQL. Registry failures do not
+            # undo an already committed price or offer.
+            image_references = []
+            for item in batch:
+                prod: ProdutoExtraidoSchema = item["validado"]
+                data = oferta_dicts_map.get(prod.link)
+                if data is None:
+                    continue
+                offer = ofertas_existentes_por_url.get(prod.link)
+                if offer is None:
+                    offer = next(
+                        (o for o, _, d in changes if d["url_origem"] == prod.link), None
+                    )
+                image_references.append(
+                    {
+                        "image_url": prod.imagem_url,
+                        "pharmacy_id": farmacia.id,
+                        "pharmacy": self.farmacia_nome_fantasia,
+                        "sku": prod.sku_interno,
+                        "ean": prod.ean,
+                        "product_id": str(prod.id),
+                        "product_url": prod.link,
+                        "catalog_id": data["catalogo_id"],
+                        "offer_id": offer.id if offer else None,
+                    }
+                )
+            try:
+                saved_references = upsert_image_references(image_references)
+                metrics["images_registered"] += sum(saved_references)
+                metrics["products_without_image"] += len(saved_references) - sum(
+                    saved_references
+                )
+            except Exception as image_error:
+                metrics["image_errors"] += len(image_references)
+                print(f"[IMAGE REGISTRY] Batch save failed: {image_error}")
+
         except SQLAlchemyError as e:
             db.rollback()
+            metrics["persistence_errors"] += 1
             print(f"[ERRO DB] Falha na persistência em lote: {e}")
         finally:
             db.close()
+            self._record_persistence_stats(metrics)
 
     async def executar_com_backoff(
         self, funcao, *args, max_retries=5, initial_delay=2.0, **kwargs

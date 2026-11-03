@@ -45,6 +45,9 @@ GENERIC_IMAGE_MARKERS = (
     "medicamentos-caixa",
     "imagem-indisponivel",
     "medicamento-tarjado-generico",
+    "de-referencia-tarja-vermelha",
+    "referencia-tarja-vermelha",
+    "tarja-vermelha-em-comprimido",
 )
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 KNOWN_GENERIC_ASSETS = {
@@ -67,6 +70,20 @@ KNOWN_GENERIC_ASSETS = {
     "128666_7896026306751_1.webp",
     # Indiana's SKU 122816 maps Glyxambi to an ANVISA generic illustration.
     "7896026306751.jpg",
+    # Browser review: Araujo Mounjaro assets are combo promotions, not packs.
+    "239898_7896382709135_1.webp",
+    "239899_7896382709111_1.webp",
+    "239360_7896382709173_1.webp",
+    "239363_7896382709159_1.webp",
+    "239367_7896382709197_1.webp",
+    "239366_7896382709210_1.webp",
+    # Browser review: Pacheco Mounjaro assets are combo promotions/templates.
+    "887455-2.jpg",
+    "887528-dpa.png",
+    "888060-2.jpg",
+    "887951-2.jpg",
+    "888079-2.jpg",
+    "888087-2.jpg",
     # Exact SKU-linked Araújo assets visually confirmed as generic illustrations.
     "129154_7891721201806_1.webp",
     "128048_7896112486787_1.webp",
@@ -286,6 +303,28 @@ def gtin_matches(first: str | None, second: str | None) -> bool:
     )
 
 
+def is_generic_image_url(url: str) -> bool:
+    """Return whether a URL is known to serve generic or pharmacy artwork."""
+    if url in KNOWN_GENERIC_URLS:
+        return True
+    if source_for_url(url) is None:
+        return False
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return False
+    filename = unquote(parsed.path.rsplit("/", 1)[-1]).lower()
+    normalized_filename = re.sub(r"[^a-z0-9]+", "", filename)
+    return bool(
+        filename == "generico.webp"
+        or filename in KNOWN_GENERIC_ASSETS
+        or any(
+            re.sub(r"[^a-z0-9]+", "", marker) in normalized_filename
+            for marker in GENERIC_IMAGE_MARKERS
+        )
+    )
+
+
 def image_rejection_reason(url: str) -> str | None:
     """Audit-level rejection, including appearance-only generic assets."""
     if url in KNOWN_GENERIC_URLS:
@@ -400,10 +439,16 @@ def validate_image_association(
                 and not product_host.endswith(".drogariaspacheco.com.br")
             )
         ):
-            return False, source, "Imagem da Pacheco exige vínculo confirmado com o domínio oficial."
+            return (
+                False,
+                source,
+                "Imagem da Pacheco exige vínculo confirmado com o domínio oficial.",
+            )
         match_kind = (
             "ean"
-            if image_eans and ean and any(gtin_matches(ean, image_ean) for image_ean in image_eans)
+            if image_eans
+            and ean
+            and any(gtin_matches(ean, image_ean) for image_ean in image_eans)
             else "sku"
         )
         return True, match_kind, None

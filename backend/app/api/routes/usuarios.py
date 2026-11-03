@@ -16,6 +16,7 @@ from app.models.usuario import (
 from app.schemas.catalogo import CatalogoComOfertasOut
 from app.schemas.farmacia import FarmaciaOut
 from app.schemas.usuario import UsuarioCreate, UsuarioRead, UsuarioUpdate
+from app.services.catalog_response import with_registry_images
 
 router = APIRouter(tags=["Usuários e Autenticação"])
 
@@ -88,7 +89,7 @@ def remove_medicamento_favorito(
 def list_medicamentos_favoritos(
     user: Usuario = Depends(current_active_user), db: Session = Depends(get_db)
 ):
-    return (
+    products = (
         db.execute(
             select(CatalogoBase)
             .join(
@@ -106,6 +107,7 @@ def list_medicamentos_favoritos(
         .scalars()
         .all()
     )
+    return [with_registry_images(product) for product in products]
 
 
 @router.post(

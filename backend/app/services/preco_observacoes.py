@@ -52,4 +52,13 @@ def registrar_observacao_preco(
         data_registro=data_registro,
         origem=origem[:40],
         disponivel=oferta.disponivel,
+        contexto_chave=oferta.contexto_chave,
+        canal_venda=oferta.canal_venda,
+        contexto_local=oferta.contexto_local,
+        cep=oferta.cep,
+        cidade=oferta.cidade,
+        uf=oferta.uf,
+        loja_id=oferta.loja_id,
+        loja_nome=oferta.loja_nome,
+        fonte_observado_em=oferta.fonte_observado_em,
     )

@@ -14,91 +14,19 @@ export type CatalogQuery = {
   sortBy?: CatalogSort;
 };
 
+const normalizedFields = new WeakMap<Medicamento, Set<string>>();
+
 export function normalizeText(value: unknown) {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
-const IMAGE_PHARMACY_DOMAINS: Record<string, string> = {
-  'farmaciaindiana.vteximg.com.br': 'farmaciaindiana.com.br',
-  'i3-imagens-prd.araujo.com.br': 'araujo.com.br',
-  'www.farmaciasnissei.com.br': 'farmaciasnissei.com.br',
-  'farmaciamodelo.com.br': 'farmaciamodelo.com.br',
-  'www.farmaciamodelo.com.br': 'farmaciamodelo.com.br',
-  'drogariaspacheco.vteximg.com.br': 'drogariaspacheco.com.br',
-};
-function imageBelongsToOffer(
-  imageUrl: string,
-  productUrl: string,
-  medicine: Medicamento,
-  allowGenericEanMismatch: boolean,
-) {
-  try {
-    const image = new URL(imageUrl);
-    const product = new URL(productUrl);
-    if (image.protocol !== 'https:' || product.protocol !== 'https:') return false;
-    if (image.username || image.password || product.username || product.password) return false;
-    if (image.port && image.port !== '443') return false;
-    const pharmacyDomain = IMAGE_PHARMACY_DOMAINS[image.hostname.toLowerCase()];
-    if (!pharmacyDomain) return false;
-
-    const imageHost = image.hostname.toLowerCase();
-    const productHost = product.hostname.toLowerCase();
-    if (productHost !== pharmacyDomain && !productHost.endsWith(`.${pharmacyDomain}`)) return false;
-
-    const filename = decodeURIComponent(image.pathname.split('/').pop() || '');
-    if (!/\.(jpe?g|png|webp)$/i.test(filename)) return false;
-    if (imageHost.includes('araujo')) {
-      const productId = product.pathname.match(/\/(\d+)\.html?$/i)?.[1];
-      const imageParts = image.pathname.split('/').filter(Boolean);
-      const imageProductId = imageParts.length > 1 ? imageParts[imageParts.length - 2] : undefined;
-      if (productId && /^\d+$/.test(imageProductId || '') && imageProductId !== productId) return false;
-    }
-    const imageEans: string[] = filename.match(/(?<!\d)\d{13,14}(?!\d)/g) || [];
-    if (
-      medicine.codigo_barras
-      && imageEans.length
-      && !imageEans.includes(medicine.codigo_barras)
-      && !allowGenericEanMismatch
-    ) return false;
-
-    // A same-pharmacy image attached to this exact catalog offer is useful even
-    // when its name has no SKU/EAN or the pharmacy uses generic artwork.
-    return true;
-  } catch {
-    return false;
-  }
-}
 export function resolveMedicineImages(medicine: Medicamento): string[] {
-  const verifiedCatalogImage: string[] = [];
-  const unclassifiedCatalogImage: string[] = [];
-  const deferredCatalogImage: string[] = [];
-  const specificOfferImages: string[] = [];
-  const genericOfferImages: string[] = [];
-  if (medicine.imagem_ref?.startsWith('/catalogo/medicamentos/')) {
-    const catalogImage = `${API_URL.replace(/\/+$/, '')}${medicine.imagem_ref}`;
-    if (normalizeText(medicine.imagem_motivo_rejeicao).includes('generica')) {
-      deferredCatalogImage.push(catalogImage);
-    } else if (medicine.imagem_status === 'verificada') {
-      verifiedCatalogImage.push(catalogImage);
-    } else {
-      unclassifiedCatalogImage.push(catalogImage);
-    }
-  }
-  for (const offer of medicine.ofertas || []) {
-    const imageUrl = offer.imagem_url?.trim();
-    const productUrl = offer.url_origem?.trim();
-    if (!imageUrl || !productUrl || offer.imagem_rejeitada || offer.catalogo_id !== medicine.id) continue;
-    if (imageBelongsToOffer(imageUrl, productUrl, medicine, Boolean(offer.imagem_generica))) {
-      (offer.imagem_generica ? genericOfferImages : specificOfferImages).push(imageUrl);
-    }
-  }
-  return [...new Set([
-    ...verifiedCatalogImage,
-    ...specificOfferImages,
-    ...unclassifiedCatalogImage,
-    ...genericOfferImages,
-    ...deferredCatalogImage,
-  ])];
+  const urls = Array.isArray(medicine.imagem_urls) ? medicine.imagem_urls : [];
+  const legacyRef = medicine.imagem_ref?.startsWith('/catalogo/medicamentos/')
+    ? `${API_URL.replace(/\/+$/, '')}${medicine.imagem_ref}` : undefined;
+  return [...new Set([...urls, medicine.imagem_url, legacyRef]
+    .filter((url): url is string => typeof url === 'string' && /^https:\/\//i.test(url.trim()))
+    .map((url) => url.trim()))];
 }
 export function resolveMedicineImage(medicine: Medicamento): string | undefined {
   return resolveMedicineImages(medicine)[0];
@@ -106,7 +34,7 @@ export function resolveMedicineImage(medicine: Medicamento): string | undefined 
 
 export function normalizeMedicine(raw: Partial<Medicamento> & { name_search?: string }): Medicamento {
   const nome = raw.nome || raw.name_search || '';
-  return {
+  const medicine: Medicamento = {
     id: Number(raw.id),
     codigo_barras: raw.codigo_barras || '',
     nome,
@@ -121,12 +49,53 @@ export function normalizeMedicine(raw: Partial<Medicamento> & { name_search?: st
     classificacao_fonte: raw.classificacao_fonte ?? null,
     categorias: Array.isArray(raw.categorias) ? raw.categorias.map(String) : [],
     imagem_url: raw.imagem_url || null,
+    imagem_urls: Array.isArray(raw.imagem_urls) ? raw.imagem_urls.filter((url): url is string => typeof url === 'string') : [],
     imagem_ref: raw.imagem_ref || null,
     imagem_fonte: raw.imagem_fonte || null,
     imagem_status: raw.imagem_status || null,
     imagem_motivo_rejeicao: raw.imagem_motivo_rejeicao || null,
     ofertas: Array.isArray(raw.ofertas) ? raw.ofertas : [],
   };
+  normalizedFields.set(medicine, new Set(Object.keys(raw)));
+  return medicine;
+}
+
+function hasUsefulCatalogValue(value: string | null | undefined) {
+  const normalized = normalizeText(value);
+  return Boolean(normalized && !/^(nao informado|indeterminado|pendente|n\/a)(\b|\s*\().*/.test(normalized));
+}
+
+/** Keep richer invariant fields when a response omits them, while refreshing present offers/images. */
+export function mergeCatalogMedicine(existing: Medicamento | undefined, incoming: Medicamento): Medicamento {
+  if (!existing) return incoming;
+  const incomingFields = normalizedFields.get(incoming) ?? new Set<string>();
+  const existingFields = normalizedFields.get(existing) ?? new Set<string>();
+  const merged: Medicamento = { ...existing, ...incoming };
+
+  for (const key of ['codigo_barras', 'principio_ativo', 'laboratorio'] as const) {
+    if (!hasUsefulCatalogValue(incoming[key]) && hasUsefulCatalogValue(existing[key])) {
+      merged[key] = existing[key] as never;
+    }
+  }
+  if (!incoming.nome.trim() && existing.nome.trim()) merged.nome = existing.nome;
+  if (!incoming.name_search?.trim() && existing.name_search?.trim()) merged.name_search = existing.name_search;
+
+  const imageFields = ['imagem_url', 'imagem_urls', 'imagem_ref', 'imagem_fonte', 'imagem_status', 'imagem_motivo_rejeicao'];
+  if (!imageFields.some((field) => incomingFields.has(field))) {
+    for (const field of imageFields as (keyof Medicamento)[]) {
+      if (field in existing) (merged as unknown as Record<string, unknown>)[field] = existing[field];
+    }
+  }
+  if (!incomingFields.has('ofertas')) merged.ofertas = existing.ofertas;
+  if (!incomingFields.has('categorias')) merged.categorias = existing.categorias;
+  for (const field of ['categoria_regulatoria', 'referencia_anvisa', 'exige_receita_confirmada', 'controle_especial', 'classificacao_fonte'] as const) {
+    if (!incomingFields.has(field)) {
+      (merged as unknown as Record<string, unknown>)[field] = existing[field];
+    }
+  }
+
+  normalizedFields.set(merged, new Set([...existingFields, ...incomingFields]));
+  return merged;
 }
 
 function normalizeUnique(values: unknown[]) {
